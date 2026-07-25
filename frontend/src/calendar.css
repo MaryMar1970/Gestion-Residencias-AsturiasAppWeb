@@ -1,0 +1,152 @@
+/* ── Calendar Gantt ────────────────────────────────────────────── */
+.cal-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.cal-toolbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 14px 18px; background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.cal-toolbar h4 { font-size: 15px; font-weight: 700; color: var(--primary); margin-right: 12px; }
+
+.cal-grid {
+  display: grid;
+  min-width: max-content;
+}
+
+/* Header row: room label + day columns */
+.cal-header {
+  display: contents;
+}
+.cal-head-room {
+  position: sticky; left: 0; z-index: 10;
+  background: var(--primary-dark); color: white;
+  padding: 8px 8px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  border-right: 2px solid rgba(255,255,255,0.15);
+  min-width: 96px;
+}
+.cal-head-day {
+  background: var(--primary-dark); color: rgba(255,255,255,0.8);
+  padding: 4px 2px; font-size: 10px; font-weight: 500;
+  text-align: center; border-right: 1px solid rgba(255,255,255,0.08);
+  min-width: 34px;
+}
+.cal-head-day.weekend { color: var(--accent-light); }
+.cal-head-day.festivo { color: #ff9999; }
+.cal-head-day.today   { background: var(--accent); color: var(--primary-dark); font-weight: 800; }
+.cal-head-month {
+  background: var(--primary); color: white;
+  padding: 5px; font-size: 11px; font-weight: 700;
+  text-align: center; border-right: 1px solid rgba(255,255,255,0.1);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* Room rows */
+.cal-row {
+  display: contents;
+}
+.cal-room-label {
+  position: sticky; left: 0; z-index: 5;
+  background: var(--surface); border-right: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px; min-width: 96px; min-height: 36px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.cal-room-label .room-num { font-size: 13px; font-weight: 700; color: var(--primary); }
+.cal-room-label .room-res { font-size: 10px; color: var(--text-muted); }
+.cal-room-label .room-tipo { font-size: 10px; }
+
+/* Day cells */
+.cal-cell {
+  position: relative; min-width: 34px; min-height: 36px;
+  border-right: 1px solid #eef0f3;
+  border-bottom: 1px solid #eef0f3;
+  background: var(--surface);
+  cursor: pointer; transition: background 0.15s;
+}
+.cal-cell:hover { background: rgba(30,58,95,0.04); }
+.cal-cell.weekend { background: #fafbfc; }
+.cal-cell.festivo { background: #fff5f5; }
+.cal-cell.today   { background: rgba(201,168,76,0.08); }
+.cal-cell.bloqueada { background: repeating-linear-gradient(45deg,#f8f9fa,#f8f9fa 4px,#eee 4px,#eee 8px); }
+
+/* Reservation bars */
+.cal-reserva {
+  position: absolute; top: 1px; bottom: 1px; left: 2px;
+  border-radius: 5px; display: flex; align-items: center;
+  padding: 0 8px; font-size: 11px; font-weight: 500;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer; z-index: 3; transition: opacity 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  background: #fefcbf; color: #744210; border: 1px solid #f6e05e;
+}
+.cal-reserva:hover { opacity: 0.92; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.cal-reserva.confirmada { border-left: 4px solid #2d8a4e; }
+.cal-reserva.pendiente  { border-left: 4px solid #d4a017; }
+.cal-reserva.checkin    { border-left: 4px solid #1a6eb5; }
+.cal-reserva.checkout   { border-left: 4px solid #7c4dff; }
+.cal-reserva.bloqueada  { background: repeating-linear-gradient(45deg,#777,#777 4px,#999 4px,#999 8px); color: white; border: none; }
+
+/* Legend */
+.cal-legend {
+  display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 16px;
+  border-top: 1px solid var(--border); background: var(--surface-2);
+}
+.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+.cal-legend-dot  { width: 14px; height: 10px; border-radius: 3px; }
+
+/* Reserva modal tooltip */
+.reserva-tooltip {
+  position: absolute; z-index: 200;
+  background: var(--primary-dark); color: white;
+  border-radius: 8px; padding: 10px 14px; font-size: 12px;
+  box-shadow: var(--shadow-lg); min-width: 200px; max-width: 280px;
+  pointer-events: none;
+}
+.reserva-tooltip h4 { font-size: 13px; margin-bottom: 4px; color: var(--accent-light); }
+.reserva-tooltip p  { margin: 2px 0; opacity: 0.85; }
+
+/* ── Reservas List ─────────────────────────────────────────────── */
+.reserva-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+  display: grid; grid-template-columns: 1fr auto; gap: 8px;
+  transition: box-shadow 0.2s;
+}
+.reserva-card:hover { box-shadow: var(--shadow); }
+.reserva-card-title { font-size: 14px; font-weight: 600; color: var(--primary); }
+.reserva-card-sub   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.reserva-card-meta  { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ── DNI Search ────────────────────────────────────────────────── */
+.search-box {
+  position: relative; display: flex; align-items: center;
+}
+.search-box input {
+  padding: 8px 12px 8px 34px; border: 1px solid var(--border);
+  border-radius: 7px; font-size: 13px; width: 280px; background: var(--surface);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-box input:focus {
+  outline: none; border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(45,84,146,0.12);
+}
+.search-box .search-icon {
+  position: absolute; left: 10px; color: var(--text-muted); font-size: 14px;
+}
+
+/* ── Estado badges ─────────────────────────────────────────────── */
+.estado-Pendiente  { background: #fff3cd; color: #856404; }
+.estado-Confirmada { background: #d1e7dd; color: #0a3622; }
+.estado-CheckIn    { background: #cfe2ff; color: #084298; }
+.estado-CheckOut   { background: #e2d9f3; color: #432874; }
+.estado-Cancelada  { background: #f8d7da; color: #58151c; }
+.estado-Bloqueada  { background: #e2e3e5; color: #41464b; }
