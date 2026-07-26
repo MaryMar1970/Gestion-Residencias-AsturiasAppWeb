@@ -8,6 +8,7 @@ namespace ResidenciaApp.Api.Controllers;
 [Route("auth")]
 public class AuthController : ControllerBase
 {
+    #lalallaa
     private readonly IAuthService _authService;
 
     public AuthController(IAuthService authService)
