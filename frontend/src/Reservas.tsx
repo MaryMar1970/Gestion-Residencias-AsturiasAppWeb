@@ -401,8 +401,8 @@ export function CalendarioGantt({ onNuevaReserva }: { onNuevaReserva: (habitacio
                           alignItems: 'center',
                           padding: '0 6px',
                           overflow: 'hidden',
-                          border: res.id === highlightReservaId ? '2.5px solid #f59e0b' : undefined,
-                          boxShadow: res.id === highlightReservaId ? '0 0 15px rgba(245, 158, 11, 0.9)' : undefined,
+                          border: res.id === highlightReservaId ? '2.5px solid var(--accent)' : undefined,
+                          boxShadow: res.id === highlightReservaId ? '0 0 15px var(--accent-light)' : undefined,
                           transform: res.id === highlightReservaId ? 'scale(1.05)' : undefined,
                           transition: 'all 0.3s ease',
                         }}
@@ -475,7 +475,7 @@ export function CalendarioGantt({ onNuevaReserva }: { onNuevaReserva: (habitacio
           <div className="cal-legend-item"><div className="cal-legend-dot" style={{ background: '#7c4dff' }}></div>Check-out</div>
           <div className="cal-legend-item"><div className="cal-legend-dot" style={{ background: '#888', backgroundImage: 'repeating-linear-gradient(45deg,#777,#777 2px,#999 2px,#999 5px)' }}></div>Bloqueado</div>
           <div className="cal-legend-item"><div className="cal-legend-dot" style={{ background: 'rgba(201,168,76,0.25)', border: '1px solid var(--accent)' }}></div>Hoy</div>
-          <div className="cal-legend-item"><div className="cal-legend-dot" style={{ background: '#fff5f5', border: '1px solid #ffcccc' }}></div>Festivo</div>
+          <div className="cal-legend-item"><div className="cal-legend-dot" style={{ background: 'var(--cal-cell-festivo)', border: '1px solid var(--cal-festivo-border)' }}></div>Festivo</div>
         </div>
       </div>
 

@@ -105,12 +105,12 @@ export function FacturasPage() {
       {alert && <div className={`alert alert-${alertType}`} style={{ marginBottom: 12 }}>{alert}</div>}
 
       {/* Estadísticas rápidas */}
-      <div className="stats-grid" style={{ marginBottom: 18 }}>
+      <div className="stats-row" style={{ marginBottom: 18 }}>
         {[
-          { label: 'Emitidas', val: facturas.filter(f => f.estado === 'Emitida').length, color: '#2563eb', icon: '📄' },
-          { label: 'Pagadas',  val: facturas.filter(f => f.estado === 'Pagada').length,  color: '#059669', icon: '✅' },
-          { label: 'Borradores', val: facturas.filter(f => f.estado === 'Borrador').length, color: '#d97706', icon: '📝' },
-          { label: 'Total facturado', val: `${facturas.filter(f => f.estado !== 'Anulada').reduce((s,f)=>s+f.total,0).toFixed(2)} €`, color: '#1e3a5f', icon: '💶' },
+          { label: 'Emitidas', val: facturas.filter(f => f.estado === 'Emitida').length, color: 'var(--primary-light)', icon: '📄' },
+          { label: 'Pagadas',  val: facturas.filter(f => f.estado === 'Pagada').length,  color: 'var(--success)', icon: '✅' },
+          { label: 'Borradores', val: facturas.filter(f => f.estado === 'Borrador').length, color: 'var(--accent)', icon: '📝' },
+          { label: 'Total facturado', val: `${facturas.filter(f => f.estado !== 'Anulada').reduce((s,f)=>s+f.total,0).toFixed(2)} €`, color: 'var(--primary)', icon: '💶' },
         ].map(s => (
           <div key={s.label} className="stat-card" style={{ borderTop: `3px solid ${s.color}` }}>
             <div className="stat-icon">{s.icon}</div>

@@ -65,16 +65,16 @@
 /* Day cells */
 .cal-cell {
   position: relative; min-width: 34px; min-height: 36px;
-  border-right: 1px solid #eef0f3;
-  border-bottom: 1px solid #eef0f3;
+  border-right: 1px solid var(--cal-cell-border);
+  border-bottom: 1px solid var(--cal-cell-border);
   background: var(--surface);
   cursor: pointer; transition: background 0.15s;
 }
-.cal-cell:hover { background: rgba(30,58,95,0.04); }
-.cal-cell.weekend { background: #fafbfc; }
-.cal-cell.festivo { background: #fff5f5; }
-.cal-cell.today   { background: rgba(201,168,76,0.08); }
-.cal-cell.bloqueada { background: repeating-linear-gradient(45deg,#f8f9fa,#f8f9fa 4px,#eee 4px,#eee 8px); }
+.cal-cell:hover { background: var(--cal-cell-hover); }
+.cal-cell.weekend { background: var(--cal-cell-weekend); }
+.cal-cell.festivo { background: var(--cal-cell-festivo); }
+.cal-cell.today   { background: var(--cal-cell-today); }
+.cal-cell.bloqueada { background: var(--cal-cell-bloqueada); }
 
 /* Reservation bars */
 .cal-reserva {
@@ -150,3 +150,11 @@
 .estado-CheckOut   { background: #e2d9f3; color: #432874; }
 .estado-Cancelada  { background: #f8d7da; color: #58151c; }
 .estado-Bloqueada  { background: #e2e3e5; color: #41464b; }
+
+/* ── Dark theme status badges overrides ──────────────────────── */
+[data-theme="dark"] .estado-Pendiente  { background: #3e2d0a; color: #f59e0b; }
+[data-theme="dark"] .estado-Confirmada { background: #064e3b; color: #10b981; }
+[data-theme="dark"] .estado-CheckIn    { background: #1e3a8a; color: #93c5fd; }
+[data-theme="dark"] .estado-CheckOut   { background: #3b0764; color: #c084fc; }
+[data-theme="dark"] .estado-Cancelada  { background: #450a0a; color: #f87171; }
+[data-theme="dark"] .estado-Bloqueada  { background: #374151; color: #9ca3af; }

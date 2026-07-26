@@ -15,7 +15,7 @@ type Festivo   = { id: string; fecha: string; descripcion: string; ambito: strin
 type Page = 'dashboard' | 'residencias' | 'alojamientos' | 'tarifas' | 'festivos' | 'calendario' | 'reservas' | 'huespedes' | 'facturas' | 'bloqueos';
 
 // ─── Login ─────────────────────────────────────────────────────────────────────
-function LoginPage({ onLogin }: { onLogin: (token: string, user: User) => void }) {
+function LoginPage({ onLogin, theme, toggleTheme }: { onLogin: (token: string, user: User) => void; theme: 'light' | 'dark'; toggleTheme: () => void }) {
   const [email, setEmail] = useState('admin@residencia.local');
   const [password, setPassword] = useState('Admin123!');
   const [error, setError] = useState('');
@@ -37,7 +37,28 @@ function LoginPage({ onLogin }: { onLogin: (token: string, user: User) => void }
   };
 
   return (
-    <div className="login-page">
+    <div className="login-page" style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', top: 20, right: 20 }}>
+        <button className="theme-toggle" onClick={toggleTheme} aria-label="Cambiar tema">
+          {theme === 'light' ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#c9a84c' }}>
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#a5b4fc' }}>
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          )}
+        </button>
+      </div>
       <div className="login-card">
         <div className="login-logo">
           <div className="logo-icon">🏨</div>
@@ -851,6 +872,19 @@ export default function App() {
   const [user, setUser]   = useState<User | null>(null);
   const [page, setPage]   = useState<Page>('dashboard');
 
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   useEffect(() => {
     if (token && !user) {
       apiFetch<User>('/users/me').then(setUser).catch(() => { localStorage.removeItem('token'); setToken(null); });
@@ -860,7 +894,7 @@ export default function App() {
   const handleLogin = (t: string, u: User) => { setToken(t); setUser(u); };
   const handleLogout = () => { localStorage.removeItem('token'); setToken(null); setUser(null); };
 
-  if (!token || !user) return <LoginPage onLogin={handleLogin} />;
+  if (!token || !user) return <LoginPage onLogin={handleLogin} theme={theme} toggleTheme={toggleTheme} />;
 
   const pt = PAGE_TITLES[page];
   return (
@@ -869,6 +903,25 @@ export default function App() {
       <div className="main-content">
         <div className="topbar">
           <div><div className="topbar-title">{pt.title}</div><div className="topbar-subtitle">{pt.sub}</div></div>
+          <button className="theme-toggle" onClick={toggleTheme} aria-label="Cambiar tema">
+            {theme === 'light' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#c9a84c' }}>
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#a5b4fc' }}>
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            )}
+          </button>
         </div>
         <div className="page-content">
           {page === 'dashboard'    && <Dashboard setPage={setPage} />}
