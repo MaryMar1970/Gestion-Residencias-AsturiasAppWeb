@@ -1,0 +1,383 @@
+# Plan de Implementación: Completar la Lógica de Adjudicación/Validación de Alojamientos
+
+## Contexto: Estado Actual de la Aplicación
+
+Tras un análisis exhaustivo del código fuente completo, la app **.NET 8 + React 18 + TypeScript + EF Core** ya tiene un nivel de madurez **significativo**:
+
+### ✅ Ya implementado (NO tocar)
+
+| Funcionalidad | Dónde |
+|---|---|
+| Detección de solapes en tiempo real | `ReservaService.ComprobarSolapamientoAsync()` |
+| Regla de turnover (checkout=checkin OK) | `entrada < r.FechaSalida && salida > r.FechaEntrada` |
+| Gantt interactivo con drag-and-drop | `Reservas.tsx` → `CalendarioGantt` |
+| Creación de reservas con asignación automática | `ReservaService.CreateAsync()` |
+| Búsqueda de habitaciones disponibles | `ReservaService.GetHabitacionesDisponiblesAsync()` |
+| Evaluación/prioridad con matriz de 30+ reglas | `EvaluarReserva()` (backend + frontend duplicado) |
+| Resolución automática (CONCEDIDA/DENEGADA/DESESTIMADA) | `CalcularResolucionAutomatica()` |
+| Re-evaluación de candidatos tras RENUNCIA | `GetCandidatosReevaluacionAsync()` + `ReevaluarCandidatosTrasRenunciaAsync()` |
+| Facturación desde reserva con HTML imprimible | `FacturaService.CrearDesdeReservaAsync()` + `GenerarHtmlAsync()` |
+| Numeración automática de facturas por residencia | `SiguienteNumeroAsync()` → Serie-Ejercicio-NNNN |
+| Estados de factura (Borrador→Emitida→Pagada/Anulada) | `EmitirAsync()`, `MarcarPagadaAsync()`, `AnularAsync()` |
+| Gestión de huéspedes, tarifas, tipos hab., residencias | `ConfiguracionService.cs` completo |
+| Bloqueos como reservas especiales (`EsBloqueo=true`) | En `Reserva` entity |
+| Familia numerosa con descuentos (20%/50%) | `FamiliaNumerosa`, `PorcentajeDescuento` |
+| Nº Orden automático y secuencial | `NumeroOrden` en `Reserva` |
+| DNI con validación y autocorrección de letra | Frontend `validarYCorregirDNI()` |
+
+### ❌ GAPs identificados (falta implementar)
+
+| # | Gap | Impacto | Prioridad |
+|---|---|---|---|
+| **1** | **Validación de capacidad PAX/niños por tipo de alojamiento** — No hay validación backend de que `NumPersonas + NumNinos ≤ CapacidadMaxima` del tipo | Puede asignar 5 personas a una habitación individual | 🔴 Alta |
+| **2** | **Validación completa de fechas** — No hay validación de estancia máxima, antelación máxima, ni cierres estacionales | Permiten reservas de 365 días o con 2 años de antelación | 🔴 Alta |
+| **3** | **Separación mínima entre estancias del mismo DNI** — No hay control de gap mínimo entre reservas consecutivas | Misma persona puede reservar continuamente sin límite | 🟡 Media |
+| **4** | **Bloqueos temporales con rango de fechas** — Los bloqueos actuales son reservas (`EsBloqueo=true`), pero no hay gestión dedicada de bloqueos por mantenimiento/período | Funcional pero poco intuitivo | 🟡 Media |
+| **5** | **Temporadas alta/baja en tarifas** — La entidad `Tarifa` tiene `VigenteDesde`/`VigenteHasta` pero no se usa en la asignación automática | Precio manual, no automático por temporada | 🟡 Media |
+| **6** | **Reglas diferenciadas por tipo: niños solo en apartamentos** — No hay validación de que niños solo pueden ir en tipos que lo permitan | Pueden asignar niños a habitaciones individuales | 🔴 Alta |
+| **7** | **Facturación mensual por lotes** — Solo existe facturación individual por reserva | No cubre el flujo Excel de facturación masiva mensual | 🟢 Baja (Fase 2) |
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Decisión: ¿Campos MaxPax / MaxNinos / PermiteNinos en TipoHabitacion?**
+> La entidad `TipoHabitacion` actual solo tiene `CapacidadMaxima` (un entero). Para implementar las reglas del Excel necesito añadir `MaxAdultos`, `MaxNinos` y `PermiteNinos`. ¿Confirmas que quieres estas restricciones por tipo?
+
+> [!IMPORTANT]
+> **Decisión: Estancia máxima por tipo**
+> En el Excel: Apartamentos = 30 días, Habitaciones = 15 días. ¿Se mantienen estos valores? ¿Dónde prefieres almacenarlos: en `TipoHabitacion` como `MaxDiasEstancia` o en `SystemSettings` como configuración?
+
+> [!IMPORTANT]
+> **Decisión: Antelación máxima**
+> En el Excel: Gijón = 90 días, Oviedo/Soto = 60 días. ¿Se configura por residencia? Sugiero añadir un `SystemSetting` por residencia con clave `MaxDiasAntelacion`.
+
+> [!WARNING]
+> **Decisión: Separación mínima entre estancias**
+> ¿Cuántos días de separación mínima se deben exigir entre estancias del mismo DNI? ¿Es configurable por residencia? ¿Se aplica solo a la misma residencia o a cualquiera de las tres?
+
+---
+
+## Open Questions
+
+1. **Cierres estacionales de Soto**: ¿Cuáles son las fechas de cierre? ¿Se configuran anualmente vía la app o son fijas?
+
+2. **Restricción de check-in por día de semana**: ¿Se implementa o se descarta para la app web?
+
+3. **Apartamentos con contraseña en Soto**: ¿Se mantiene esta funcionalidad o se descarta?
+
+---
+
+## Proposed Changes
+
+### Fase 1: Validación y Reglas de Negocio (Prioridad Alta)
+
+---
+
+### Componente 1: Ampliar entidad TipoHabitacion con reglas de capacidad
+
+#### [MODIFY] [TipoHabitacion.cs](file:///c:/Users/jaime_ntymfau/Downloads/VBAProject%20(2026-07-01,%20BDAS_GIJ%C3%93N-SOTO-OVIEDO_v16.5.5_PRU_Incidencia%20actualizaci%C3%B3n%20Hoja%20Calendario%20G)/-BDAS_GIJ-N-SOTO-OVIEDO_v16.5.5_/backend/src/ResidenciaApp.Domain/Entities/TipoHabitacion.cs)
+
+Añadir propiedades para soportar las reglas de capacidad del Excel:
+
+```diff
+ public int CapacidadMaxima { get; set; } = 1;
++public int MaxAdultos { get; set; } = 1;          // Máximo adultos (PAX)
++public int MaxNinos { get; set; } = 0;            // Máximo niños
++public bool PermiteNinos { get; set; } = false;    // Solo apartamentos permiten niños
++public int MaxDiasEstancia { get; set; } = 15;     // Estancia máxima en días
+```
+
+> [!NOTE]
+> `CapacidadMaxima` se mantiene como está (compatibilidad). `MaxAdultos + MaxNinos` pueden sumar más que `CapacidadMaxima` si se define así, pero la validación real usará `MaxAdultos`, `MaxNinos` y `CapacidadMaxima` como techo total.
+
+---
+
+### Componente 2: Servicio de Validación de Adjudicación (nuevo)
+
+#### [NEW] backend/src/ResidenciaApp.Application/Services/AdjudicacionValidationService.cs
+
+Servicio dedicado que centraliza TODA la lógica de validación antes de crear/actualizar una reserva:
+
+```csharp
+public interface IAdjudicacionValidationService
+{
+    Task<ValidacionResult> ValidarAsync(ValidarAdjudicacionDto dto);
+}
+
+public record ValidarAdjudicacionDto(
+    Guid ResidenciaId,
+    Guid? HabitacionId,
+    Guid? TipoHabitacionId,
+    string FechaEntrada,
+    string FechaSalida,
+    int NumPersonas,
+    int NumNinos,
+    string? DniHuesped,
+    Guid? ExcluirReservaId
+);
+
+public record ValidacionResult(
+    bool Valido,
+    List<string> Errores,
+    List<string> Avisos
+);
+```
+
+**Reglas implementadas (en orden):**
+
+1. **Capacidad por tipo** (GAP #1 y #6):
+   ```
+   IF tipo.PermiteNinos == false && numNinos > 0 → Error
+   IF numPersonas > tipo.MaxAdultos → Error  
+   IF numNinos > tipo.MaxNinos → Error
+   IF numPersonas + numNinos > tipo.CapacidadMaxima → Error
+   IF numPersonas < 1 → Error
+   ```
+
+2. **Fechas** (GAP #2):
+   ```
+   IF fechaEntrada >= fechaSalida → Error
+   IF fechaEntrada < hoy → Error (no reservas en pasado)
+   IF (fechaSalida - fechaEntrada).Days > tipo.MaxDiasEstancia → Error
+   IF (fechaEntrada - hoy).Days > residencia.MaxDiasAntelacion → Aviso o Error
+   IF fechas en período de cierre estacional → Error
+   ```
+
+3. **Separación entre estancias** (GAP #3):
+   ```
+   IF dniHuesped != null:
+     Buscar últimas reservas del mismo DNI en la misma residencia
+     IF alguna reserva existente tiene gap < minDiasSeparacion → Aviso
+   ```
+
+4. **Disponibilidad** (ya existe, se invoca):
+   ```
+   IF habitacionId != null:
+     Reutilizar ComprobarSolapamientoAsync existente
+   ```
+
+---
+
+### Componente 3: Integrar validación en ReservaService
+
+#### [MODIFY] [ReservasService.cs](file:///c:/Users/jaime_ntymfau/Downloads/VBAProject%20(2026-07-01,%20BDAS_GIJ%C3%93N-SOTO-OVIEDO_v16.5.5_PRU_Incidencia%20actualizaci%C3%B3n%20Hoja%20Calendario%20G)/-BDAS_GIJ-N-SOTO-OVIEDO_v16.5.5_/backend/src/ResidenciaApp.Application/Services/ReservasService.cs)
+
+Modificar `CreateAsync()` y `UpdateAsync()` para invocar el servicio de validación:
+
+```diff
+ public async Task<ResultadoOperacionReservaDto> CreateAsync(CrearReservaDto dto)
+ {
+     var entrada = DateOnly.Parse(dto.FechaEntrada);
+     var salida  = DateOnly.Parse(dto.FechaSalida);
+     if (salida <= entrada)
+         throw new InvalidOperationException("La fecha de salida debe ser posterior a la de entrada.");
+
++    // Validación de reglas de negocio
++    if (!dto.EsBloqueo)
++    {
++        var validacion = await _validationService.ValidarAsync(new ValidarAdjudicacionDto(
++            ResidenciaId: /* obtener de habitación */,
++            HabitacionId: dto.HabitacionId,
++            TipoHabitacionId: null,
++            FechaEntrada: dto.FechaEntrada,
++            FechaSalida: dto.FechaSalida,
++            NumPersonas: dto.NumPersonas,
++            NumNinos: dto.NumNinos,
++            DniHuesped: /* obtener de huésped */,
++            ExcluirReservaId: null));
++        
++        if (!validacion.Valido)
++            throw new InvalidOperationException(
++                string.Join("\n", validacion.Errores));
++    }
+```
+
+---
+
+### Componente 4: Endpoint de validación anticipada
+
+#### [MODIFY] [ReservasController.cs](file:///c:/Users/jaime_ntymfau/Downloads/VBAProject%20(2026-07-01,%20BDAS_GIJ%C3%93N-SOTO-OVIEDO_v16.5.5_PRU_Incidencia%20actualizaci%C3%B3n%20Hoja%20Calendario%20G)/-BDAS_GIJ-N-SOTO-OVIEDO_v16.5.5_/backend/src/ResidenciaApp.Api/Controllers/ReservasController.cs)
+
+Nuevo endpoint para validar desde el frontend en tiempo real:
+
+```csharp
+[HttpPost("validar-adjudicacion")]
+public async Task<IActionResult> ValidarAdjudicacion(ValidarAdjudicacionDto dto)
+{
+    var result = await _validationService.ValidarAsync(dto);
+    return Ok(result);
+}
+```
+
+---
+
+### Componente 5: Validación en frontend
+
+#### [MODIFY] [Reservas.tsx](file:///c:/Users/jaime_ntymfau/Downloads/VBAProject%20(2026-07-01,%20BDAS_GIJ%C3%93N-SOTO-OVIEDO_v16.5.5_PRU_Incidencia%20actualizaci%C3%B3n%20Hoja%20Calendario%20G)/-BDAS_GIJ-N-SOTO-OVIEDO_v16.5.5_/frontend/src/Reservas.tsx)
+
+Añadir en `NuevaReservaModal`:
+
+1. **Validación de capacidad en tiempo real**: Al cambiar NumPersonas/NumNinos/TipoHabitación, llamar a `POST /api/reservas/validar-adjudicacion` y mostrar errores/avisos inline.
+
+2. **Indicadores visuales de restricción**:
+   - Badge 🚫 en tipos que no permiten niños (si `numNinos > 0`)
+   - Badge ⚠️ en tipos donde PAX excede capacidad
+   - Contador de días de estancia con color rojo si excede máximo
+
+3. **Filtrado inteligente de habitaciones disponibles**: Al buscar disponibilidad, filtrar automáticamente los tipos que no cumplen capacidad para el PAX/niños solicitados.
+
+---
+
+### Componente 6: Migración de base de datos
+
+#### [NEW] Nueva migración EF Core
+
+```bash
+dotnet ef migrations add AddCapacityRulesAndValidation
+```
+
+Cambios en el esquema:
+- `TiposHabitacion`: + columnas `MaxAdultos`, `MaxNinos`, `PermiteNinos`, `MaxDiasEstancia`
+- `SystemSettings`: insertar configuraciones:
+  - `MaxDiasAntelacion` (por residencia, configurable)
+  - `MinDiasSeparacion` (por residencia, configurable, default 0)
+  - `CierreEstacionalInicio` / `CierreEstacionalFin` (para Soto)
+
+---
+
+### Componente 7: Panel de configuración ampliado
+
+#### [MODIFY] UI de Configuración → Tipos de Habitación
+
+Ampliar el formulario de edición de `TipoHabitacion` en la sección de Configuración para incluir:
+- Campo `Max Adultos` (numérico)
+- Campo `Max Niños` (numérico)
+- Toggle `Permite Niños` (checkbox)
+- Campo `Estancia Máxima (días)` (numérico)
+
+Y en Configuración de Residencia:
+- Campo `Antelación máxima (días)` → guarda en `SystemSettings`
+- Campo `Separación mínima (días)` → guarda en `SystemSettings`
+
+---
+
+### Fase 2: Facturación Mensual por Lotes
+
+---
+
+### Componente 8: Facturación masiva mensual
+
+#### [NEW] backend/src/ResidenciaApp.Application/Services/FacturacionMensualService.cs
+
+```csharp
+public interface IFacturacionMensualService
+{
+    Task<FacturacionMensualResultDto> FacturarMesAsync(Guid residenciaId, int anio, int mes, string? formaPago);
+    Task<PreviewFacturacionDto> PreviewMesAsync(Guid residenciaId, int anio, int mes);
+}
+```
+
+- **Preview**: Muestra todas las reservas del mes que aún no están facturadas, con importes calculados.
+- **Facturar**: Genera facturas automáticamente para todas las reservas aceptadas/confirmadas del mes seleccionado, incluyendo el caso de estancias que cruzan meses (factura parcial por los días dentro del mes).
+
+#### [MODIFY] FacturasController.cs — Añadir endpoints:
+```
+POST /api/facturas/facturar-mes        → Facturación masiva
+GET  /api/facturas/preview-mes         → Preview antes de facturar
+```
+
+#### [MODIFY] Facturas.tsx — Añadir botón "Facturar Mes" con selección de residencia, año y mes, y vista preview.
+
+---
+
+## Resumen de Archivos
+
+### Archivos nuevos (2)
+| Archivo | Propósito |
+|---|---|
+| `backend/src/ResidenciaApp.Application/Services/AdjudicacionValidationService.cs` | Motor de validación de reglas de negocio |
+| `backend/src/ResidenciaApp.Application/Services/FacturacionMensualService.cs` | Facturación masiva por mes (Fase 2) |
+
+### Archivos modificados (8)
+| Archivo | Cambio |
+|---|---|
+| `TipoHabitacion.cs` | +4 propiedades de capacidad/restricción |
+| `ReservasService.cs` | Integrar validación antes de crear/actualizar |
+| `ReservasController.cs` | +endpoint `validar-adjudicacion` |
+| `Reservas.tsx` | Validación capacidad en tiempo real, filtrado inteligente |
+| `ResidenciaDbContext.cs` | Configuración de nuevas columnas |
+| `DependencyInjection.cs` | Registrar nuevo servicio de validación |
+| `FacturasController.cs` | +endpoints facturación mensual (Fase 2) |
+| `Facturas.tsx` | UI de facturación mensual (Fase 2) |
+
+### Migración EF Core (1)
+| Migración | Cambios |
+|---|---|
+| `AddCapacityRulesAndValidation` | TiposHabitacion: MaxAdultos, MaxNinos, PermiteNinos, MaxDiasEstancia |
+
+---
+
+## Diagrama: Flujo de Adjudicación con Validaciones
+
+```mermaid
+flowchart TD
+    A[Usuario crea/edita reserva] --> B{¿Es bloqueo?}
+    B -->|Sí| K[Solo validar solapes]
+    B -->|No| C[Validar Capacidad]
+    C --> D{PAX ≤ MaxAdultos?<br>Niños ≤ MaxNinos?<br>PermiteNinos?}
+    D -->|No| E[❌ Error capacidad]
+    D -->|Sí| F[Validar Fechas]
+    F --> G{Estancia ≤ Max?<br>Antelación ≤ Max?<br>No cierre estacional?}
+    G -->|No| H[❌ Error fechas]
+    G -->|Sí| I[Validar Separación DNI]
+    I --> J{Gap ≥ Min días?}
+    J -->|No| L[⚠️ Aviso separación]
+    J -->|Sí| K
+    L --> K
+    K --> M[Comprobar Solapes]
+    M --> N{¿Habitación libre?}
+    N -->|No| O[❌ Error solape]
+    N -->|Sí| P[Calcular Evaluación/Prioridad]
+    P --> Q[Calcular Resolución]
+    Q --> R[Crear/Actualizar Reserva]
+    R --> S[✅ Reserva guardada]
+```
+
+---
+
+## Verification Plan
+
+### Build & Tests
+
+```bash
+# Backend
+cd backend/src/ResidenciaApp.Api
+dotnet build
+dotnet ef migrations add AddCapacityRulesAndValidation --project ../ResidenciaApp.Infrastructure
+
+# Frontend
+cd frontend
+npm run build
+```
+
+### Escenarios de Test Clave
+
+| # | Escenario | Resultado esperado |
+|---|---|---|
+| 1 | 3 PAX + 2 niños en Apartamento (MaxAdultos=4, MaxNinos=2, PermiteNinos=true) | ✅ Válido |
+| 2 | 2 PAX + 1 niño en Hab. Individual (PermiteNinos=false) | ❌ "Este tipo no permite niños" |
+| 3 | 5 PAX en Hab. Doble (MaxAdultos=2) | ❌ "Máximo 2 adultos" |
+| 4 | Estancia 31 días en tipo con MaxDiasEstancia=30 | ❌ "Estancia máxima 30 días" |
+| 5 | Reserva con 100 días de antelación en residencia con MaxAntelacion=60 | ❌ "Antelación máxima 60 días" |
+| 6 | Mismo DNI reserva a 0 días de distancia (MinSeparacion=1) | ⚠️ "Separación mínima 1 día" |
+| 7 | Checkout A = Checkin B (turnover) | ✅ No es solape (ya funciona) |
+| 8 | Facturar mes Julio con 15 reservas no facturadas | ✅ 15 facturas generadas |
+
+### Manual Verification
+- Crear tipo "Apartamento A" con MaxAdultos=4, MaxNinos=2, PermiteNinos=true
+- Crear tipo "Hab. Individual" con MaxAdultos=1, MaxNinos=0, PermiteNinos=false
+- Intentar crear reserva con niños en Hab. Individual → debe bloquearse
+- Verificar que el frontend muestra los badges 🚫/⚠️ en tiempo real
+- Verificar que la facturación mensual genera facturas correctas

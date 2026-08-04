@@ -1,155 +1,72 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ResidenciaApp.Application.Dtos;
 using ResidenciaApp.Application.Interfaces;
 using ResidenciaApp.Domain.Entities;
 
 namespace ResidenciaApp.Application.Services;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HUÉSPEDES
-// ─────────────────────────────────────────────────────────────────────────────
-public interface IHuespedService
-{
-    Task<List<HuespedDto>> GetAllAsync(string? buscar = null);
-    Task<HuespedDto?> GetByIdAsync(Guid id);
-    Task<HuespedDto?> GetByDniAsync(string dni);
-    Task<HuespedDto> CreateAsync(UpsertHuespedDto dto);
-    Task<HuespedDto?> UpdateAsync(Guid id, UpsertHuespedDto dto);
-    Task<bool> DeleteAsync(Guid id);
-}
-
-public class HuespedService(IResidenciaDbContext db) : IHuespedService
-{
-    private static HuespedDto ToDto(Huesped h, int reservas = 0) => new(
-        h.Id, h.Dni, h.Nombre, h.Apellidos,
-        $"{h.Nombre} {h.Apellidos}",
-        h.Telefono, h.Email,
-        h.Direccion, h.CodigoPostal, h.Municipio, h.Provincia,
-        h.CentroOrigen, h.Departamento,
-        h.TipoHuesped, h.EnListaNegra, h.MotivoListaNegra,
-        h.Notas, h.Empleo, h.Situacion, h.Finalidad, h.EmpleoCategoria, reservas, h.CreadoEn);
-
-    public async Task<List<HuespedDto>> GetAllAsync(string? buscar = null)
-    {
-        var q = db.Huespedes.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(buscar))
-        {
-            var b = buscar.Trim().ToLower();
-            q = q.Where(h =>
-                h.Dni.ToLower().Contains(b) ||
-                h.Nombre.ToLower().Contains(b) ||
-                h.Apellidos.ToLower().Contains(b) ||
-                (h.Email != null && h.Email.ToLower().Contains(b)));
-        }
-        return await q.OrderBy(h => h.Apellidos).ThenBy(h => h.Nombre)
-            .Select(h => ToDto(h, h.Reservas.Count))
-            .ToListAsync();
-    }
-
-    public async Task<HuespedDto?> GetByIdAsync(Guid id)
-    {
-        var h = await db.Huespedes.Include(x => x.Reservas).FirstOrDefaultAsync(x => x.Id == id);
-        return h is null ? null : ToDto(h, h.Reservas.Count);
-    }
-
-    public async Task<HuespedDto?> GetByDniAsync(string dni)
-    {
-        var h = await db.Huespedes.Include(x => x.Reservas)
-            .FirstOrDefaultAsync(x => x.Dni == dni.Trim().ToUpper());
-        return h is null ? null : ToDto(h, h.Reservas.Count);
-    }
-
-    public async Task<HuespedDto> CreateAsync(UpsertHuespedDto dto)
-    {
-        var entity = new Huesped
-        {
-            Dni = dto.Dni.Trim().ToUpper(), Nombre = dto.Nombre.Trim(),
-            Apellidos = dto.Apellidos.Trim(), Telefono = dto.Telefono,
-            Email = dto.Email, Direccion = dto.Direccion, CodigoPostal = dto.CodigoPostal,
-            Municipio = dto.Municipio, Provincia = dto.Provincia,
-            CentroOrigen = dto.CentroOrigen, Departamento = dto.Departamento,
-            TipoHuesped = dto.TipoHuesped, EnListaNegra = dto.EnListaNegra,
-            MotivoListaNegra = dto.MotivoListaNegra, Notas = dto.Notas,
-            Empleo = dto.Empleo, Situacion = dto.Situacion,
-            Finalidad = dto.Finalidad, EmpleoCategoria = dto.EmpleoCategoria
-        };
-        db.Huespedes.Add(entity);
-        await db.SaveChangesAsync();
-        return ToDto(entity);
-    }
-
-    public async Task<HuespedDto?> UpdateAsync(Guid id, UpsertHuespedDto dto)
-    {
-        var entity = await db.Huespedes.FindAsync(id);
-        if (entity is null) return null;
-        entity.Dni = dto.Dni.Trim().ToUpper(); entity.Nombre = dto.Nombre.Trim();
-        entity.Apellidos = dto.Apellidos.Trim(); entity.Telefono = dto.Telefono;
-        entity.Email = dto.Email; entity.Direccion = dto.Direccion; entity.CodigoPostal = dto.CodigoPostal;
-        entity.Municipio = dto.Municipio; entity.Provincia = dto.Provincia;
-        entity.CentroOrigen = dto.CentroOrigen; entity.Departamento = dto.Departamento;
-        entity.TipoHuesped = dto.TipoHuesped; entity.EnListaNegra = dto.EnListaNegra;
-        entity.MotivoListaNegra = dto.MotivoListaNegra; entity.Notas = dto.Notas;
-        entity.Empleo = dto.Empleo; entity.Situacion = dto.Situacion;
-        entity.Finalidad = dto.Finalidad; entity.EmpleoCategoria = dto.EmpleoCategoria;
-        entity.ActualizadoEn = DateTime.UtcNow;
-        await db.SaveChangesAsync();
-        return ToDto(entity);
-    }
-
-    public async Task<bool> DeleteAsync(Guid id)
-    {
-        var entity = await db.Huespedes.FindAsync(id);
-        if (entity is null) return false;
-        db.Huespedes.Remove(entity);
-        await db.SaveChangesAsync();
-        return true;
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RESERVAS
-// ─────────────────────────────────────────────────────────────────────────────
 public interface IReservaService
 {
-    Task<List<ReservaDto>> GetAllAsync(Guid? residenciaId = null, Guid? habitacionId = null,
-        string? fechaDesde = null, string? fechaHasta = null, bool incluirCanceladas = false);
+    Task<PaginatedResult<ReservaDto>> GetAllAsync(Guid? residenciaId = null, Guid? habitacionId = null,
+        string? fechaDesde = null, string? fechaHasta = null, bool incluirCanceladas = false,
+        int page = 1, int pageSize = 50);
     Task<ReservaDto?> GetByIdAsync(Guid id);
-    Task<SolapamientoDto> ComprobarSolapamientoAsync(Guid habitacionId,
+    Task<SolapamientoDto> ComprobarSolapamientoAsync(Guid? habitacionId,
         string fechaEntrada, string fechaSalida, Guid? excluirReservaId = null, bool esBloqueo = false);
-    Task<ReservaDto> CreateAsync(CrearReservaDto dto);
-    Task<ReservaDto?> UpdateAsync(Guid id, ActualizarReservaDto dto);
+    Task<List<HabitacionDto>> GetHabitacionesDisponiblesAsync(Guid residenciaId, string fechaEntrada, string fechaSalida, int pax);
+    Task<ResultadoOperacionReservaDto> CreateAsync(CrearReservaDto dto);
+    Task<ResultadoOperacionReservaDto?> UpdateAsync(Guid id, ActualizarReservaDto dto);
+    Task<ResultadoOperacionReservaDto?> MoverAsync(Guid id, MoverReservaDto dto);
+    Task<List<ReservaDto>> GetCandidatosReevaluacionAsync(Guid reservaId);
     Task<bool> DeleteAsync(Guid id);
     Task<CalendarioDto> GetCalendarioAsync(string fechaInicio, string fechaFin, Guid? residenciaId = null);
 }
 
-public class ReservaService(IResidenciaDbContext db) : IReservaService
+public class ReservaService(IResidenciaDbContext db, IEvaluacionService evalSvc, IDisponibilidadService dispSvc, ILogger<ReservaService> logger) : IReservaService
 {
-    private static ReservaDto ToDto(Reserva r) => new(
-        r.Id, r.NumeroOrden,
-        r.HabitacionId, r.Habitacion?.Numero ?? "", r.Habitacion?.Residencia?.Nombre ?? "", r.Habitacion?.TipoHabitacion?.Nombre ?? "",
-        r.HuespedId, r.Huesped is null ? null : $"{r.Huesped.Nombre} {r.Huesped.Apellidos}", r.Huesped?.Dni, r.Huesped?.Nombre, r.Huesped?.Apellidos,
-        r.Huesped?.Telefono, r.Huesped?.Email,
-        r.FechaEntrada.ToString("yyyy-MM-dd"), r.FechaSalida.ToString("yyyy-MM-dd"),
-        r.TotalNoches, r.NumPersonas, r.CamasSupletorias,
-        r.Estado.ToString(), (int)r.Estado,
-        r.EsBloqueo, r.MotivoBloqueo,
-        r.TarifaNombreSnapshot,
-        r.PrecioNocheAplicado, r.PorcentajeIvaAplicado,
-        r.ImporteBase, r.ImporteIva, r.ImporteTotal,
-        r.Pagado, r.FormaPago, r.FechaPago,
-        r.Facturado, r.Observaciones,
-        r.Finalidad, r.Empleo, r.Evaluacion,
-        r.Resolucion, r.FechaSolicitud,
-        r.CreadoEn, r.ActualizadoEn);
+    private static ReservaDto ToDto(Reserva r)
+    {
+        bool esNegativeResolucion = Resoluciones.EsNegativa(r.Resolucion);
+        bool tieneAlojamientoAdjudicado = r.HabitacionId.HasValue && r.HabitacionId.Value != Guid.Empty && !esNegativeResolucion;
+
+        return new(
+            r.Id, r.NumeroOrden, r.ResidenciaId ?? r.Habitacion?.ResidenciaId,
+            tieneAlojamientoAdjudicado ? r.HabitacionId : null,
+            tieneAlojamientoAdjudicado ? (r.Habitacion?.Numero ?? null) : null,
+            r.Residencia?.Nombre ?? (r.Habitacion?.Residencia?.Nombre ?? null),
+            tieneAlojamientoAdjudicado ? (r.Habitacion?.TipoHabitacion?.Nombre ?? null) : null,
+            r.HuespedId, r.Huesped is null ? null : $"{r.Huesped.Nombre} {r.Huesped.Apellidos}", r.Huesped?.Dni, r.Huesped?.Nombre, r.Huesped?.Apellidos,
+            r.Huesped?.Telefono, r.Huesped?.Email,
+            r.FechaEntrada.ToString("yyyy-MM-dd"), r.FechaSalida.ToString("yyyy-MM-dd"),
+            r.TotalNoches, r.NumPersonas, r.NumNinos, r.CamasSupletorias,
+            r.FamiliaNumerosa ?? "NO", r.PorcentajeDescuento,
+            r.AlojamientoSolicitado,
+            r.Estado.ToString(), (int)r.Estado,
+            r.EsBloqueo, r.MotivoBloqueo,
+            r.TarifaNombreSnapshot,
+            r.PrecioNocheAplicado, r.PorcentajeIvaAplicado,
+            r.ImporteBase, r.ImporteIva, r.ImporteTotal,
+            r.Pagado, r.FormaPago, r.FechaPago,
+            r.Facturado, r.Observaciones,
+            r.Finalidad, r.Empleo, r.Evaluacion,
+            r.Resolucion, r.FechaSolicitud,
+            r.CreadoEn, r.ActualizadoEn);
+    }
 
     private static IQueryable<Reserva> WithIncludes(IQueryable<Reserva> q) =>
-        q.Include(r => r.Habitacion).ThenInclude(h => h.Residencia)
+        q.Include(r => r.Residencia)
+         .Include(r => r.Habitacion).ThenInclude(h => h.Residencia)
          .Include(r => r.Habitacion).ThenInclude(h => h.TipoHabitacion)
          .Include(r => r.Huesped);
 
-    public async Task<List<ReservaDto>> GetAllAsync(Guid? residenciaId = null,
-        Guid? habitacionId = null, string? fechaDesde = null, string? fechaHasta = null, bool incluirCanceladas = false)
+    public async Task<PaginatedResult<ReservaDto>> GetAllAsync(Guid? residenciaId = null,
+        Guid? habitacionId = null, string? fechaDesde = null, string? fechaHasta = null, bool incluirCanceladas = false,
+        int page = 1, int pageSize = 50)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 500);
+
         var q = WithIncludes(db.Reservas.AsQueryable());
         if (!incluirCanceladas)
         {
@@ -158,7 +75,7 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
         }
 
         if (residenciaId.HasValue)
-            q = q.Where(r => r.Habitacion.ResidenciaId == residenciaId.Value);
+            q = q.Where(r => r.ResidenciaId == residenciaId.Value || (r.Habitacion != null && r.Habitacion.ResidenciaId == residenciaId.Value));
         if (habitacionId.HasValue)
             q = q.Where(r => r.HabitacionId == habitacionId.Value);
         if (DateOnly.TryParse(fechaDesde, out var d))
@@ -166,7 +83,15 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
         if (DateOnly.TryParse(fechaHasta, out var h))
             q = q.Where(r => r.FechaEntrada <= h);
 
-        return await q.OrderBy(r => r.FechaEntrada).Select(r => ToDto(r)).ToListAsync();
+        var totalCount = await q.CountAsync();
+        var items = await q.OrderBy(r => r.FechaEntrada)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => ToDto(r))
+            .ToListAsync();
+
+        int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        return new PaginatedResult<ReservaDto>(items, totalCount, page, pageSize, totalPages);
     }
 
     public async Task<ReservaDto?> GetByIdAsync(Guid id)
@@ -175,81 +100,139 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
         return r is null ? null : ToDto(r);
     }
 
-    public async Task<SolapamientoDto> ComprobarSolapamientoAsync(Guid habitacionId,
+    public Task<SolapamientoDto> ComprobarSolapamientoAsync(Guid? habitacionId,
         string fechaEntradaStr, string fechaSalidaStr, Guid? excluirReservaId = null, bool esBloqueo = false)
     {
-        var entrada = DateOnly.Parse(fechaEntradaStr);
-        var salida  = DateOnly.Parse(fechaSalidaStr);
-
-        var q = db.Reservas
-            .Include(r => r.Huesped)
-            .Include(r => r.Habitacion)
-            .Where(r => r.HabitacionId == habitacionId
-                && r.Estado != EstadoReserva.Cancelada
-                && (r.EsBloqueo || r.HuespedId == null || r.Resolucion == null || r.Resolucion == "" || r.Resolucion == "SI" || r.Resolucion == "CONCEDIDA" || r.Resolucion == "REEVALUADA"));
-
-        if (excluirReservaId.HasValue)
-            q = q.Where(r => r.Id != excluirReservaId.Value);
-
-        var conflictosRaw = await q.ToListAsync();
-
-        var conflictos = conflictosRaw.Where(r =>
-        {
-            bool isAnyBloqueo = esBloqueo || r.EsBloqueo;
-            if (isAnyBloqueo)
-            {
-                return entrada <= r.FechaSalida && salida >= r.FechaEntrada;
-            }
-            else
-            {
-                return entrada < r.FechaSalida && salida > r.FechaEntrada;
-            }
-        }).ToList();
-
-        string? mensaje = null;
-        if (conflictos.Count > 0)
-        {
-            var detalles = conflictos.Select(c =>
-            {
-                string tipo = c.EsBloqueo ? "BLOQUEADO" : (!c.HuespedId.HasValue ? "RESERVADO (interno)" : "RESERVADO");
-                string causa = c.EsBloqueo
-                    ? (c.MotivoBloqueo ?? "Mantenimiento/Reforma")
-                    : (!c.HuespedId.HasValue
-                        ? (c.MotivoBloqueo ?? "Reserva de habitación")
-                        : $"Reserva de {c.Huesped?.Nombre} {c.Huesped?.Apellidos}");
-                return $"- {tipo} del {c.FechaEntrada:dd/MM/yyyy} al {c.FechaSalida:dd/MM/yyyy}. Causa: {causa}";
-            });
-            mensaje = $"La habitación/apartamento se encuentra ocupada/bloqueada en las fechas seleccionadas:\n" + string.Join("\n", detalles);
-        }
-
-        return new SolapamientoDto(
-            conflictos.Count > 0,
-            mensaje,
-            conflictos.Select(r => ToDto(r)).ToList());
+        return dispSvc.ComprobarSolapamientoAsync(habitacionId, fechaEntradaStr, fechaSalidaStr, excluirReservaId, esBloqueo);
     }
 
-    public async Task<ReservaDto> CreateAsync(CrearReservaDto dto)
+    public Task<List<HabitacionDto>> GetHabitacionesDisponiblesAsync(Guid residenciaId, string fechaEntrada, string fechaSalida, int pax)
+    {
+        return dispSvc.GetHabitacionesDisponiblesAsync(residenciaId, fechaEntrada, fechaSalida, pax);
+    }
+
+    public Task<CalendarioDto> GetCalendarioAsync(string fechaInicioStr, string fechaFinStr, Guid? residenciaId = null)
+    {
+        return dispSvc.GetCalendarioAsync(fechaInicioStr, fechaFinStr, residenciaId);
+    }
+
+    public async Task<List<ReservaDto>> GetCandidatosReevaluacionAsync(Guid reservaId)
+    {
+        var reservaRenuncia = await db.Reservas
+            .Include(r => r.Habitacion)
+            .FirstOrDefaultAsync(r => r.Id == reservaId);
+
+        if (reservaRenuncia is null) return new List<ReservaDto>();
+
+        var habitacion = reservaRenuncia.Habitacion;
+        if (habitacion is null) return new List<ReservaDto>();
+
+        var residenciaId = habitacion.ResidenciaId;
+        var inicio = reservaRenuncia.FechaEntrada;
+        var fin = reservaRenuncia.FechaSalida;
+
+        var candidatas = await db.Reservas
+            .Include(r => r.Habitacion).ThenInclude(h => h.Residencia)
+            .Include(r => r.Habitacion).ThenInclude(h => h.TipoHabitacion)
+            .Include(r => r.Huesped)
+            .Where(r => r.Habitacion.ResidenciaId == residenciaId
+                && r.Id != reservaRenuncia.Id
+                && r.Estado != EstadoReserva.Cancelada
+                && (r.Resolucion == Resoluciones.No || r.Resolucion == Resoluciones.Denegada)
+                && r.FechaEntrada < fin && r.FechaSalida > inicio)
+            .OrderBy(r => r.FechaSolicitud ?? r.CreadoEn)
+            .ThenBy(r => r.NumeroOrden)
+            .ToListAsync();
+
+        var result = new List<ReservaDto>();
+        foreach (var cand in candidatas)
+        {
+            var solapamiento = await dispSvc.ComprobarSolapamientoAsync(
+                cand.HabitacionId,
+                cand.FechaEntrada.ToString("yyyy-MM-dd"),
+                cand.FechaSalida.ToString("yyyy-MM-dd"),
+                cand.Id);
+
+            if (!solapamiento.HaySolapamiento)
+            {
+                result.Add(ToDto(cand));
+            }
+        }
+
+        return result;
+    }
+
+    private async Task<List<ReservaDto>> ReevaluarCandidatosTrasRenunciaAsync(Reserva reservaRenuncia)
+    {
+        var reevaluadas = new List<ReservaDto>();
+        var habitacion = await db.Habitaciones
+            .Include(h => h.Residencia)
+            .FirstOrDefaultAsync(h => h.Id == reservaRenuncia.HabitacionId);
+
+        if (habitacion is null) return reevaluadas;
+
+        var residenciaId = habitacion.ResidenciaId;
+        var inicio = reservaRenuncia.FechaEntrada;
+        var fin = reservaRenuncia.FechaSalida;
+
+        var candidatas = await db.Reservas
+            .Include(r => r.Habitacion).ThenInclude(h => h.Residencia)
+            .Include(r => r.Habitacion).ThenInclude(h => h.TipoHabitacion)
+            .Include(r => r.Huesped)
+            .Where(r => r.Habitacion.ResidenciaId == residenciaId
+                && r.Id != reservaRenuncia.Id
+                && r.Estado != EstadoReserva.Cancelada
+                && (r.Resolucion == Resoluciones.No || r.Resolucion == Resoluciones.Denegada)
+                && r.FechaEntrada < fin && r.FechaSalida > inicio)
+            .OrderBy(r => r.FechaSolicitud ?? r.CreadoEn)
+            .ThenBy(r => r.NumeroOrden)
+            .ToListAsync();
+
+        foreach (var cand in candidatas)
+        {
+            var solapamiento = await dispSvc.ComprobarSolapamientoAsync(
+                cand.HabitacionId,
+                cand.FechaEntrada.ToString("yyyy-MM-dd"),
+                cand.FechaSalida.ToString("yyyy-MM-dd"),
+                cand.Id);
+
+            if (!solapamiento.HaySolapamiento)
+            {
+                cand.Resolucion = Resoluciones.Reevaluada;
+                cand.ActualizadoEn = DateTime.UtcNow;
+                var candDto = await GetByIdAsync(cand.Id);
+                if (candDto is not null) reevaluadas.Add(candDto);
+            }
+        }
+
+        if (reevaluadas.Count > 0)
+        {
+            await db.SaveChangesAsync();
+        }
+
+        return reevaluadas;
+    }
+
+    public async Task<ResultadoOperacionReservaDto> CreateAsync(CrearReservaDto dto)
     {
         var entrada = DateOnly.Parse(dto.FechaEntrada);
         var salida  = DateOnly.Parse(dto.FechaSalida);
         if (salida <= entrada)
             throw new InvalidOperationException("La fecha de salida debe ser posterior a la de entrada.");
 
-        // Obtener tarifa si se indicó
         Tarifa? tarifa = dto.TarifaId.HasValue
             ? await db.Tarifas.FindAsync(dto.TarifaId.Value) : null;
 
-        Guid assignedHabitacionId = Guid.Empty;
+        Guid? assignedHabitacionId = null;
         if (dto.HabitacionId.HasValue && dto.HabitacionId.Value != Guid.Empty)
         {
             assignedHabitacionId = dto.HabitacionId.Value;
-            var solapamiento = await ComprobarSolapamientoAsync(assignedHabitacionId, dto.FechaEntrada, dto.FechaSalida, null, dto.EsBloqueo);
+            var solapamiento = await dispSvc.ComprobarSolapamientoAsync(assignedHabitacionId, dto.FechaEntrada, dto.FechaSalida, null, dto.EsBloqueo);
             if (solapamiento.HaySolapamiento)
                 throw new InvalidOperationException(solapamiento.Mensaje);
         }
         else
         {
-            // Asignación automática: buscar una habitación libre
             var habitacionesDisponibles = await db.Habitaciones
                 .Include(h => h.TipoHabitacion)
                 .Where(h => h.Activa)
@@ -258,21 +241,15 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
 
             var habitacionesCandidatas = habitacionesDisponibles.Where(h =>
             {
-                if (tarifa != null && h.TipoHabitacionId != tarifa.TipoHabitacionId)
-                {
-                    return false;
-                }
+                if (tarifa != null && h.TipoHabitacionId != tarifa.TipoHabitacionId) return false;
                 var capacidadMax = h.CapacidadPersonas + (h.AdmiteSupletorias ? h.PlazasSupletorias : 0);
-                if (dto.CamasSupletorias > 0 && (!h.AdmiteSupletorias || dto.CamasSupletorias > h.PlazasSupletorias))
-                {
-                    return false;
-                }
+                if (dto.CamasSupletorias > 0 && (!h.AdmiteSupletorias || dto.CamasSupletorias > h.PlazasSupletorias)) return false;
                 return capacidadMax >= dto.NumPersonas;
             }).ToList();
 
             foreach (var hab in habitacionesCandidatas)
             {
-                var solapamiento = await ComprobarSolapamientoAsync(hab.Id, dto.FechaEntrada, dto.FechaSalida, null, dto.EsBloqueo);
+                var solapamiento = await dispSvc.ComprobarSolapamientoAsync(hab.Id, dto.FechaEntrada, dto.FechaSalida, null, dto.EsBloqueo);
                 if (!solapamiento.HaySolapamiento)
                 {
                     assignedHabitacionId = hab.Id;
@@ -280,7 +257,7 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
                 }
             }
 
-            if (assignedHabitacionId == Guid.Empty)
+            if (!assignedHabitacionId.HasValue && dto.HabitacionId.HasValue && dto.HabitacionId.Value != Guid.Empty && !Resoluciones.EsNegativa(dto.Resolucion))
             {
                 throw new InvalidOperationException("No se ha encontrado ninguna habitación activa y libre para las fechas y capacidad seleccionadas.");
             }
@@ -292,59 +269,105 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
         var importeBase = precioNoche * noches;
         var importeIva  = importeBase * (iva / 100m);
 
-        // Obtener huésped para calcular prioridad
         Huesped? huesped = dto.HuespedId.HasValue
             ? await db.Huespedes.FindAsync(dto.HuespedId.Value) : null;
-        var (empleoCat, eval) = EvaluarReserva(huesped, dto.Finalidad);
+        var (empleoCat, eval) = evalSvc.EvaluarReserva(huesped, dto.Finalidad);
+
+        Guid? targetResidenciaId = dto.ResidenciaId;
+        if (!targetResidenciaId.HasValue && assignedHabitacionId.HasValue)
+        {
+            var habObj = await db.Habitaciones.FindAsync(assignedHabitacionId.Value);
+            targetResidenciaId = habObj?.ResidenciaId;
+        }
 
         int nextNum = 0;
         if (!dto.EsBloqueo && dto.HuespedId.HasValue)
         {
-            nextNum = await db.Reservas
-                .Where(r => r.HuespedId != null && !r.EsBloqueo)
-                .MaxAsync(r => (int?)r.NumeroOrden) ?? 0;
-            nextNum += 1;
+            if (dto.NumeroOrden.HasValue && dto.NumeroOrden.Value > 0)
+            {
+                nextNum = dto.NumeroOrden.Value;
+            }
+            else
+            {
+                nextNum = await db.Reservas
+                    .Where(r => (r.ResidenciaId == targetResidenciaId || (r.Habitacion != null && r.Habitacion.ResidenciaId == targetResidenciaId))
+                        && r.HuespedId != null && !r.EsBloqueo && r.Estado != EstadoReserva.Cancelada)
+                    .MaxAsync(r => (int?)r.NumeroOrden) ?? 0;
+                nextNum += 1;
+            }
+        }
+
+        var fnStr = dto.FamiliaNumerosa ?? huesped?.FamiliaNumerosa ?? "NO";
+        var descPct = dto.PorcentajeDescuento.HasValue
+            ? dto.PorcentajeDescuento.Value
+            : (huesped?.PorcentajeDescuento ?? (fnStr == "ESPECIAL" ? 50m : (fnStr == "GENERAL" ? 20m : 0m)));
+
+        string resolucionCalculada;
+        if (!string.IsNullOrWhiteSpace(dto.Resolucion))
+        {
+            resolucionCalculada = dto.Resolucion;
+        }
+        else
+        {
+            bool tieneAlojamiento = assignedHabitacionId.HasValue && assignedHabitacionId.Value != Guid.Empty;
+            resolucionCalculada = DisponibilidadService_CalcularResolucionAutomatica(dto.FechaSolicitud, entrada, salida, tieneAlojamiento);
+        }
+
+        if (Resoluciones.EsNegativa(resolucionCalculada))
+        {
+            assignedHabitacionId = null;
         }
 
         var entity = new Reserva
         {
+            ResidenciaId = targetResidenciaId,
             HabitacionId = assignedHabitacionId,
             HuespedId = dto.HuespedId,
-            NumeroOrden = nextNum,
+            NumeroOrden = dto.EsBloqueo || !dto.HuespedId.HasValue ? 0 : nextNum,
             FechaEntrada = entrada, FechaSalida = salida,
-            NumPersonas = dto.NumPersonas, CamasSupletorias = dto.CamasSupletorias,
+            NumPersonas = dto.NumPersonas, NumNinos = dto.NumNinos, CamasSupletorias = dto.CamasSupletorias,
+            FamiliaNumerosa = fnStr, PorcentajeDescuento = descPct,
+            AlojamientoSolicitado = dto.AlojamientoSolicitado,
             EsBloqueo = dto.EsBloqueo, MotivoBloqueo = dto.MotivoBloqueo,
             TarifaId = dto.TarifaId,
             TarifaNombreSnapshot = tarifa?.NombreTarifa,
-            PrecioNocheAplicado = precioNoche,
-            PorcentajeIvaAplicado = iva,
+            PrecioNocheAplicado = precioNoche, PorcentajeIvaAplicado = iva,
             TotalNoches = noches,
-            ImporteBase = importeBase, ImporteIva = importeIva,
-            ImporteTotal = importeBase + importeIva,
+            ImporteBase = importeBase, ImporteIva = importeIva, ImporteTotal = importeBase + importeIva,
             Estado = dto.EsBloqueo ? EstadoReserva.Bloqueada : EstadoReserva.Confirmada,
+            Pagado = false, FormaPago = null, FechaPago = null,
             Observaciones = dto.Observaciones,
-            Finalidad = dto.Finalidad,
-            Empleo = empleoCat,
-            Evaluacion = eval,
-            Resolucion = dto.Resolucion ?? "SI",
-            FechaSolicitud = dto.FechaSolicitud
+            Finalidad = dto.Finalidad, Empleo = empleoCat, Evaluacion = eval,
+            Resolucion = resolucionCalculada, FechaSolicitud = dto.FechaSolicitud
         };
+
+        using var transaction = await db.Database.BeginTransactionAsync();
         db.Reservas.Add(entity);
         await db.SaveChangesAsync();
-        return (await GetByIdAsync(entity.Id))!;
+        await transaction.CommitAsync();
+
+        logger.LogInformation("Reserva {ReservaId} (Orden {NumeroOrden}) creada correctamente para Huésped {HuespedId} en Habitación {HabitacionId}", entity.Id, entity.NumeroOrden, entity.HuespedId, entity.HabitacionId);
+        var creada = (await GetByIdAsync(entity.Id))!;
+        return new ResultadoOperacionReservaDto(creada, new List<ReservaDto>());
     }
 
-    public async Task<ReservaDto?> UpdateAsync(Guid id, ActualizarReservaDto dto)
+    public async Task<ResultadoOperacionReservaDto?> UpdateAsync(Guid id, ActualizarReservaDto dto)
     {
         var entity = await db.Reservas.FindAsync(id);
-        if (entity is null) return null;
+        if (entity is null)
+        {
+            logger.LogWarning("Intento de actualizar reserva inexistente {ReservaId}", id);
+            return null;
+        }
 
         var entrada = DateOnly.Parse(dto.FechaEntrada);
         var salida  = DateOnly.Parse(dto.FechaSalida);
 
-        var solapamiento = await ComprobarSolapamientoAsync(entity.HabitacionId, dto.FechaEntrada, dto.FechaSalida, id, dto.EsBloqueo);
-        if (solapamiento.HaySolapamiento)
-            throw new InvalidOperationException(solapamiento.Mensaje);
+        string resolucionAnterior = entity.Resolucion;
+
+        Guid? targetHabitacionId = dto.HabitacionId.HasValue
+            ? (dto.HabitacionId.Value == Guid.Empty ? null : dto.HabitacionId.Value)
+            : entity.HabitacionId;
 
         Tarifa? tarifa = dto.TarifaId.HasValue
             ? await db.Tarifas.FindAsync(dto.TarifaId.Value) : null;
@@ -355,13 +378,22 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
         var importeBase = precioNoche * noches;
         var importeIva  = importeBase * (iva / 100m);
 
-        // Obtener huésped para calcular prioridad
         Huesped? huesped = entity.HuespedId.HasValue
             ? await db.Huespedes.FindAsync(entity.HuespedId.Value) : null;
-        var (empleoCat, eval) = EvaluarReserva(huesped, dto.Finalidad);
+
+        if (huesped is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.Empleo)) huesped.Empleo = dto.Empleo;
+            if (!string.IsNullOrWhiteSpace(dto.Situacion)) huesped.Situacion = dto.Situacion;
+        }
+
+        var (empleoCat, eval) = evalSvc.EvaluarReserva(huesped, dto.Finalidad, dto.Empleo, dto.Situacion);
 
         entity.FechaEntrada = entrada; entity.FechaSalida = salida;
-        entity.NumPersonas = dto.NumPersonas; entity.CamasSupletorias = dto.CamasSupletorias;
+        entity.NumPersonas = dto.NumPersonas; entity.NumNinos = dto.NumNinos; entity.CamasSupletorias = dto.CamasSupletorias;
+        if (dto.FamiliaNumerosa != null) entity.FamiliaNumerosa = dto.FamiliaNumerosa;
+        if (dto.PorcentajeDescuento.HasValue) entity.PorcentajeDescuento = dto.PorcentajeDescuento.Value;
+        if (dto.AlojamientoSolicitado != null) entity.AlojamientoSolicitado = dto.AlojamientoSolicitado;
         entity.EsBloqueo = dto.EsBloqueo; entity.MotivoBloqueo = dto.MotivoBloqueo;
         entity.TarifaId = dto.TarifaId;
         if (tarifa is not null) entity.TarifaNombreSnapshot = tarifa.NombreTarifa;
@@ -376,259 +408,152 @@ public class ReservaService(IResidenciaDbContext db) : IReservaService
         entity.Finalidad = dto.Finalidad;
         entity.Empleo = empleoCat;
         entity.Evaluacion = eval;
-        entity.Resolucion = dto.Resolucion ?? "SI";
+
+        string resolucionFinal;
+        if (!string.IsNullOrWhiteSpace(dto.Resolucion))
+        {
+            resolucionFinal = dto.Resolucion;
+        }
+        else
+        {
+            bool tieneAlojamiento = targetHabitacionId.HasValue && targetHabitacionId.Value != Guid.Empty;
+            resolucionFinal = DisponibilidadService_CalcularResolucionAutomatica(dto.FechaSolicitud ?? entity.FechaSolicitud, entrada, salida, tieneAlojamiento);
+        }
+
+        bool esNegativeResolucion = Resoluciones.EsNegativa(resolucionFinal);
+        if (esNegativeResolucion)
+        {
+            targetHabitacionId = null;
+        }
+
+        if (targetHabitacionId.HasValue && targetHabitacionId.Value != Guid.Empty)
+        {
+            var solapamiento = await dispSvc.ComprobarSolapamientoAsync(targetHabitacionId.Value, dto.FechaEntrada, dto.FechaSalida, id, dto.EsBloqueo);
+            if (solapamiento.HaySolapamiento)
+                throw new InvalidOperationException(solapamiento.Mensaje);
+        }
+
+        entity.HabitacionId = targetHabitacionId;
+        entity.Resolucion = resolucionFinal;
         entity.FechaSolicitud = dto.FechaSolicitud;
-        if (dto.EsBloqueo || !entity.HuespedId.HasValue)
+        if (entity.Estado == EstadoReserva.Cancelada || dto.EsBloqueo || !entity.HuespedId.HasValue)
         {
             entity.NumeroOrden = 0;
         }
         else if (entity.NumeroOrden == 0)
         {
             int nextNum = await db.Reservas
-                .Where(r => r.HuespedId != null && !r.EsBloqueo)
+                .Where(r => r.HuespedId != null && !r.EsBloqueo && r.Estado != EstadoReserva.Cancelada)
                 .MaxAsync(r => (int?)r.NumeroOrden) ?? 0;
             entity.NumeroOrden = nextNum + 1;
         }
 
+        using var transaction = await db.Database.BeginTransactionAsync();
+        entity.ActualizadoEn = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        var reevaluadas = new List<ReservaDto>();
+        bool eraPositiva = Resoluciones.EsPositivaOValida(resolucionAnterior);
+        if (eraPositiva && resolucionFinal == Resoluciones.Renuncia)
+        {
+            if (dto.ReevaluarCandidatoId.HasValue && dto.ReevaluarCandidatoId.Value != Guid.Empty)
+            {
+                var candTarget = await db.Reservas
+                    .Include(r => r.Habitacion).ThenInclude(h => h.Residencia)
+                    .Include(r => r.Habitacion).ThenInclude(h => h.TipoHabitacion)
+                    .Include(r => r.Huesped)
+                    .FirstOrDefaultAsync(r => r.Id == dto.ReevaluarCandidatoId.Value);
+
+                if (candTarget is not null && (candTarget.Resolucion == Resoluciones.No || candTarget.Resolucion == Resoluciones.Denegada))
+                {
+                    candTarget.Resolucion = Resoluciones.Reevaluada;
+                    candTarget.ActualizadoEn = DateTime.UtcNow;
+                    await db.SaveChangesAsync();
+                    var candDto = (await GetByIdAsync(candTarget.Id))!;
+                    reevaluadas.Add(candDto);
+                }
+            }
+        }
+
+        await transaction.CommitAsync();
+        logger.LogInformation("Reserva {ReservaId} actualizada correctamente con Resolución {Resolucion}", id, entity.Resolucion);
+
+        var actualizada = (await GetByIdAsync(id))!;
+        return new ResultadoOperacionReservaDto(actualizada, reevaluadas);
+    }
+
+    public async Task<ResultadoOperacionReservaDto?> MoverAsync(Guid id, MoverReservaDto dto)
+    {
+        var entity = await db.Reservas.FindAsync(id);
+        if (entity is null)
+        {
+            logger.LogWarning("Intento de mover reserva inexistente {ReservaId}", id);
+            return null;
+        }
+
+        var entrada = DateOnly.Parse(dto.FechaEntrada);
+        var salida  = DateOnly.Parse(dto.FechaSalida);
+
+        if (salida <= entrada)
+            throw new InvalidOperationException("La fecha de salida debe ser posterior a la de entrada.");
+
+        var solapamiento = await dispSvc.ComprobarSolapamientoAsync(dto.HabitacionId, dto.FechaEntrada, dto.FechaSalida, id, entity.EsBloqueo);
+        if (solapamiento.HaySolapamiento)
+            throw new InvalidOperationException(solapamiento.Mensaje);
+
+        var noches = salida.DayNumber - entrada.DayNumber;
+        var importeBase = entity.PrecioNocheAplicado * noches;
+        var importeIva  = importeBase * (entity.PorcentajeIvaAplicado / 100m);
+
+        entity.HabitacionId = dto.HabitacionId;
+        entity.FechaEntrada = entrada;
+        entity.FechaSalida  = salida;
+        entity.TotalNoches  = noches;
+        entity.ImporteBase  = importeBase;
+        entity.ImporteIva   = importeIva;
+        entity.ImporteTotal = importeBase + importeIva;
         entity.ActualizadoEn = DateTime.UtcNow;
 
+        using var transaction = await db.Database.BeginTransactionAsync();
         await db.SaveChangesAsync();
-        return await GetByIdAsync(id);
+        await transaction.CommitAsync();
+        var actualizada = (await GetByIdAsync(entity.Id))!;
+        return new ResultadoOperacionReservaDto(actualizada, new List<ReservaDto>());
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
         var entity = await db.Reservas.FindAsync(id);
-        if (entity is null) return false;
-        // Cancelar en lugar de borrar para mantener historial
-        entity.Estado = EstadoReserva.Cancelada;
-        entity.ActualizadoEn = DateTime.UtcNow;
+        if (entity is null)
+        {
+            logger.LogWarning("Intento de eliminar reserva inexistente {ReservaId}", id);
+            return false;
+        }
+
+        logger.LogInformation("Eliminando reserva {ReservaId}", id);
+        db.Reservas.Remove(entity);
         await db.SaveChangesAsync();
+        logger.LogInformation("Reserva {ReservaId} eliminada correctamente", id);
         return true;
     }
 
-    public async Task<CalendarioDto> GetCalendarioAsync(string fechaInicioStr, string fechaFinStr, Guid? residenciaId = null)
+    private static string DisponibilidadService_CalcularResolucionAutomatica(DateTime? fechaSolicitud, DateOnly fechaEntrada, DateOnly fechaSalida, bool tieneAlojamiento)
     {
-        var inicio = DateOnly.Parse(fechaInicioStr);
-        var fin    = DateOnly.Parse(fechaFinStr);
+        var fechaSol = fechaSolicitud?.Date ?? DateTime.Today;
+        var entradaDt = fechaEntrada.ToDateTime(TimeOnly.MinValue);
+        var salidaDt  = fechaSalida.ToDateTime(TimeOnly.MinValue);
 
-        var habQuery = db.Habitaciones
-            .Include(h => h.Residencia)
-            .Include(h => h.TipoHabitacion)
-            .Where(h => h.Activa);
-        if (residenciaId.HasValue)
-            habQuery = habQuery.Where(h => h.ResidenciaId == residenciaId.Value);
+        int totalNoches = (salidaDt.Date - entradaDt.Date).Days;
+        int diasAntelacion = (entradaDt.Date - fechaSol.Date).Days;
 
-        var habitacionesDb = await habQuery
-            .OrderBy(h => h.Residencia.Orden).ThenBy(h => h.Orden)
-            .ToListAsync();
+        if (totalNoches > 7 || diasAntelacion > 30) return Resoluciones.Desestimada;
 
-        // Ordenación natural por número en memoria para evitar fallos de traducción de EF
-        var habitaciones = habitacionesDb
-            .OrderBy(h => h.Residencia.Orden)
-            .ThenBy(h => h.Orden)
-            .ThenBy(h => h.Numero, new NaturalStringComparer())
-            .ToList();
+        int dayOfWeek = (int)fechaSol.DayOfWeek;
+        int dayOfWeekMondayBased = dayOfWeek == 0 ? 7 : dayOfWeek;
+        int umbral = 14 - dayOfWeekMondayBased;
 
-        var reservas = await WithIncludes(db.Reservas
-            .Where(r => r.Estado != EstadoReserva.Cancelada
-                && r.FechaEntrada < fin && r.FechaSalida > inicio
-                && (r.EsBloqueo || r.HuespedId == null || r.Resolucion == null || r.Resolucion == "" || r.Resolucion == "SI" || r.Resolucion == "CONCEDIDA" || r.Resolucion == "REEVALUADA")))
-            .ToListAsync();
-
-        var calendario = habitaciones.Select(h => new CalendarioHabitacionDto(
-            h.Id, h.Numero, h.Residencia.Nombre, h.TipoHabitacion.Nombre, h.TipoHabitacion.Codigo,
-            h.Activa, h.Orden,
-            reservas.Where(r => r.HabitacionId == h.Id).Select(ToDto).ToList()
-        )).ToList();
-
-        return new CalendarioDto(fechaInicioStr, fechaFinStr, calendario);
-    }
-
-    private (string EmpleoCategoria, string Evaluacion) EvaluarReserva(Huesped? huesped, string? finalidad)
-    {
-        if (huesped is null) return (string.Empty, string.Empty);
-
-        // 1. Mapear Empleo
-        var e = huesped.Empleo?.Trim().ToLower() ?? string.Empty;
-        string empleoCat = "GC";
-        if (e.Contains("alumno"))
-        {
-            empleoCat = "Alumno";
-        }
-        else if (e.Contains("funcionario"))
-        {
-            empleoCat = "Funcionario en GC";
-        }
-        else if (e.Contains("militar en"))
-        {
-            empleoCat = "Militar en GC";
-        }
-        else if (e.Contains("militar no") || e.Contains("militar"))
-        {
-            empleoCat = "Militar no  GC";
-        }
-        else
-        {
-            empleoCat = "GC";
-        }
-
-        // 2. Mapear Finalidad
-        var f = finalidad?.Trim().ToLower() ?? "otros";
-        string finalidadMapeada = "Otros";
-        if (f.Contains("comision no") || f.Contains("comisión no") || f.Contains("indem"))
-        {
-            finalidadMapeada = "Comisión NO indem.";
-        }
-        else if (f.Contains("comision") || f.Contains("comisión"))
-        {
-            finalidadMapeada = "Comisión";
-        }
-        else if (f.Contains("destino"))
-        {
-            finalidadMapeada = "Destino";
-        }
-        else if (f.Contains("enfermedad"))
-        {
-            finalidadMapeada = "Enfermedad";
-        }
-        else if (f.Contains("urgencia"))
-        {
-            finalidadMapeada = "Urgencia";
-        }
-        else if (f.Contains("sepelio"))
-        {
-            finalidadMapeada = "Sepelio";
-        }
-        else if (f.Contains("estancia"))
-        {
-            finalidadMapeada = "Máx. Estancia";
-        }
-        else
-        {
-            finalidadMapeada = "Otros";
-        }
-
-        // 3. Mapear Situación
-        var s = huesped.Situacion?.Trim().ToLower() ?? "activo";
-        string situacionMapeada = "Activo";
-        if (s.Contains("viogen"))
-        {
-            situacionMapeada = "Viogen";
-        }
-        else if (s.Contains("asoc"))
-        {
-            situacionMapeada = "Asociación";
-        }
-        else if (s.Contains("reserva activo") || s.Contains("reserva activa"))
-        {
-            situacionMapeada = "Reserva activo";
-        }
-        else if (s.Contains("reserva"))
-        {
-            situacionMapeada = "Reserva";
-        }
-        else if (s.Contains("excedencia"))
-        {
-            situacionMapeada = "Excedencia";
-        }
-        else if (s.Contains("especial"))
-        {
-            situacionMapeada = "Especiales";
-        }
-        else if (s.Contains("retirado") || s.Contains("jubilado"))
-        {
-            situacionMapeada = "Retirado";
-        }
-        else if (s.Contains("viuda"))
-        {
-            situacionMapeada = "Viuda";
-        }
-        else if (s.Contains("huerfano") || s.Contains("huérfano"))
-        {
-            situacionMapeada = "Huerfano";
-        }
-        else
-        {
-            situacionMapeada = "Activo";
-        }
-
-        var clave = $"{finalidadMapeada.ToLower()}|{empleoCat.ToLower()}|{situacionMapeada.ToLower()}";
-
-        var matriz = new Dictionary<string, string>
-        {
-            { "comisión no indem.|gc|viogen", "1, 1, 1" },
-            { "comisión no indem.|gc|activo", "1, 1, 2" },
-            { "comisión no indem.|gc|reserva activo", "1, 1, 2" },
-            { "destino|gc|activo", "1, 1, 3" },
-            { "comisión|gc|activo", "1, 1, 4" },
-            { "enfermedad|gc|retirado", "2, 8, 1" },
-            { "comisión|alumno|activo", "1, 2, 2" },
-            { "comisión|militar en gc|activo", "1, 3, 2" },
-            { "destino|militar en gc|activo", "1, 3, 2" },
-            { "comisión|funcionario en gc|activo", "1, 4, 2" },
-            { "destino|funcionario en gc|activo", "1, 4, 2" },
-            { "enfermedad|gc|activo", "2, 1, 1" },
-            { "otros|gc|viogen", "2, 1, 2" },
-            { "urgencia|gc|activo", "2, 1, 3" },
-            { "sepelio|gc|activo", "2, 1, 4" },
-            { "máx. estancia|gc|activo", "2, 1, 5" },
-            { "otros|gc|asociación", "2, 1, 6" },
-            { "otros|gc|activo", "2, 1, 7" },
-            { "otros|gc|reserva activo", "2, 1, 8" },
-            { "otros|alumno|activo", "2, 2, 7" },
-            { "otros|gc|reserva", "2, 3, 7" },
-            { "otros|militar en gc|activo", "2, 4, 7" },
-            { "otros|funcionario en gc|activo", "2, 5, 7" },
-            { "otros|gc|excedencia", "2, 6, 7" },
-            { "otros|gc|especiales", "2, 7, 7" },
-            { "otros|gc|retirado", "2, 8, 7" },
-            { "otros|gc|viuda", "2, 9, 7" },
-            { "otros|gc|huerfano", "2, 9, 7" },
-            { "otros|militar no  gc|activo", "2, 10, 7" },
-            { "otros|militar no  gc|reserva", "2, 10, 7" },
-            { "otros|militar no  gc|retirado", "2, 10, 7" }
-        };
-
-        if (matriz.TryGetValue(clave, out var eval))
-        {
-            return (empleoCat, eval);
-        }
-
-        return (empleoCat, "(NO VÁLIDO)");
-    }
-}
-
-public class NaturalStringComparer : IComparer<string>
-{
-    public int Compare(string? x, string? y)
-    {
-        if (x == y) return 0;
-        if (x == null) return -1;
-        if (y == null) return 1;
-
-        int ix = 0, iy = 0;
-        while (ix < x.Length && iy < y.Length)
-        {
-            if (char.IsDigit(x[ix]) && char.IsDigit(y[iy]))
-            {
-                int startX = ix;
-                while (ix < x.Length && char.IsDigit(x[ix])) ix++;
-                int numX = int.Parse(x.Substring(startX, ix - startX));
-
-                int startY = iy;
-                while (iy < y.Length && char.IsDigit(y[iy])) iy++;
-                int numY = int.Parse(y.Substring(startY, iy - startY));
-
-                if (numX != numY) return numX.CompareTo(numY);
-            }
-            else
-            {
-                int comp = x[ix].CompareTo(y[iy]);
-                if (comp != 0) return comp;
-                ix++; iy++;
-            }
-        }
-        return x.Length.CompareTo(y.Length);
+        bool esProximidad = diasAntelacion <= umbral;
+        if (tieneAlojamiento) return esProximidad ? Resoluciones.Concedida : Resoluciones.Si;
+        else return esProximidad ? Resoluciones.Denegada : Resoluciones.No;
     }
 }

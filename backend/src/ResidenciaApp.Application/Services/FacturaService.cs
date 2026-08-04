@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ResidenciaApp.Application.Dtos;
 using ResidenciaApp.Application.Interfaces;
 using ResidenciaApp.Domain.Entities;
@@ -18,8 +19,10 @@ public interface IFacturaService
     Task<string> GenerarHtmlAsync(Guid id);   // HTML para imprimir / PDF
 }
 
-public class FacturaService(IResidenciaDbContext db) : IFacturaService
+public class FacturaService(IResidenciaDbContext db, ILogger<FacturaService> logger) : IFacturaService
 {
+    private static readonly SemaphoreSlim _facturaLock = new(1, 1);
+
     // ─── helpers ──────────────────────────────────────────────────────────────
     private static LineaFacturaDto ToLineaDto(LineaFactura l) => new(
         l.Id, l.Orden, l.Concepto, l.Cantidad, l.Unidad,
@@ -54,11 +57,13 @@ public class FacturaService(IResidenciaDbContext db) : IFacturaService
         var res = await db.Residencias.FindAsync(residenciaId)
             ?? throw new InvalidOperationException("Residencia no encontrada.");
 
-        // Serie = primeras 3 letras del nombre sin acentos, en mayúsculas
-        var serie = new string(res.Nombre.Normalize(System.Text.NormalizationForm.FormD)
-            .Where(c => c < 128 && char.IsLetter(c))
-            .Take(3)
-            .ToArray()).ToUpper();
+        // Serie = SerieFactura fija de la residencia o fallback a primeras 3 letras del nombre sin acentos
+        var serie = !string.IsNullOrWhiteSpace(res.SerieFactura)
+            ? res.SerieFactura.Trim().ToUpper()
+            : new string(res.Nombre.Normalize(System.Text.NormalizationForm.FormD)
+                .Where(c => c < 128 && char.IsLetter(c))
+                .Take(3)
+                .ToArray()).ToUpper();
 
         var ultimoOrden = await db.Facturas
             .Where(f => f.Serie == serie && f.Ejercicio == ejercicio)
@@ -129,101 +134,148 @@ public class FacturaService(IResidenciaDbContext db) : IFacturaService
         var hoy        = DateOnly.FromDateTime(DateTime.Today);
         var ejercicio  = hoy.Year;
 
-        var (serie, orden, numero) = await SiguienteNumeroAsync(residencia.Id, ejercicio);
-
-        // Línea principal: alojamiento
-        var lineaAloj = new LineaFactura
+        await _facturaLock.WaitAsync();
+        try
         {
-            Orden       = 1,
-            Concepto    = $"Alojamiento {reserva.Habitacion.Numero} — {reserva.FechaEntrada:dd/MM/yyyy} a {reserva.FechaSalida:dd/MM/yyyy}",
-            Cantidad    = reserva.TotalNoches,
-            Unidad      = "noche",
-            PrecioUnidad = reserva.PrecioNocheAplicado,
-            Descuento   = 0,
-            PorcentajeIva = reserva.PorcentajeIvaAplicado
-        };
-        CalcularLinea(lineaAloj);
+            const int maxRetries = 5;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                var (serie, orden, numero) = await SiguienteNumeroAsync(residencia.Id, ejercicio);
 
-        var factura = new Factura
+                var lineaAloj = new LineaFactura
+                {
+                    Orden       = 1,
+                    Concepto    = $"Alojamiento {reserva.Habitacion.Numero} — {reserva.FechaEntrada:dd/MM/yyyy} a {reserva.FechaSalida:dd/MM/yyyy}",
+                    Cantidad    = reserva.TotalNoches,
+                    Unidad      = "noche",
+                    PrecioUnidad = reserva.PrecioNocheAplicado,
+                    Descuento   = 0,
+                    PorcentajeIva = reserva.PorcentajeIvaAplicado
+                };
+                CalcularLinea(lineaAloj);
+
+                var factura = new Factura
+                {
+                    NumeroFactura = numero, Serie = serie, Ejercicio = ejercicio, NumeroOrden = orden,
+                    ResidenciaId  = residencia.Id,
+                    ReservaId     = reserva.Id,
+                    HuespedId     = huesped?.Id,
+                    FechaEmision  = hoy,
+                    FechaVencimiento = hoy.AddDays(30),
+                    DestinatarioNombre    = huesped is null ? "—" : $"{huesped.Nombre} {huesped.Apellidos}",
+                    DestinatarioDni       = huesped?.Dni ?? "—",
+                    DestinatarioDireccion = null,
+                    DestinatarioCp        = huesped?.CodigoPostal,
+                    DestinatarioMunicipio = huesped?.Municipio,
+                    EmisorNombre    = residencia.Nombre,
+                    EmisorCif       = residencia.Cif,
+                    EmisorDireccion = residencia.Direccion,
+                    EmisorTelefono  = residencia.Telefono,
+                    FormaPago       = formaPago ?? reserva.FormaPago,
+                    Estado          = EstadoFactura.Emitida,
+                    Lineas          = new List<LineaFactura> { lineaAloj }
+                };
+                RecalcularTotales(factura);
+
+                db.Facturas.Add(factura);
+                reserva.Facturado = true;
+                reserva.FacturaId = factura.Id;
+                reserva.ActualizadoEn = DateTime.UtcNow;
+
+                using var transaction = await db.Database.BeginTransactionAsync();
+                try
+                {
+                    await db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    logger.LogInformation("Factura {NumeroFactura} ({FacturaId}) creada exitosamente desde Reserva {ReservaId} por {Total}€", factura.NumeroFactura, factura.Id, reserva.Id, factura.Total);
+                    return (await GetByIdAsync(factura.Id))!;
+                }
+                catch (DbUpdateException) when (attempt < maxRetries)
+                {
+                    await transaction.RollbackAsync();
+                    db.Facturas.Remove(factura);
+                    reserva.Facturado = false;
+                    reserva.FacturaId = null;
+                    await Task.Delay(20 * attempt);
+                }
+            }
+            throw new InvalidOperationException("No se pudo asignar un número secuencial único de factura tras varios reintentos.");
+        }
+        finally
         {
-            NumeroFactura = numero, Serie = serie, Ejercicio = ejercicio, NumeroOrden = orden,
-            ResidenciaId  = residencia.Id,
-            ReservaId     = reserva.Id,
-            HuespedId     = huesped?.Id,
-            FechaEmision  = hoy,
-            FechaVencimiento = hoy.AddDays(30),
-            DestinatarioNombre    = huesped is null ? "—" : $"{huesped.Nombre} {huesped.Apellidos}",
-            DestinatarioDni       = huesped?.Dni ?? "—",
-            DestinatarioDireccion = null,
-            DestinatarioCp        = huesped?.CodigoPostal,
-            DestinatarioMunicipio = huesped?.Municipio,
-            EmisorNombre    = residencia.Nombre,
-            EmisorCif       = residencia.Cif,
-            EmisorDireccion = residencia.Direccion,
-            EmisorTelefono  = residencia.Telefono,
-            FormaPago       = formaPago ?? reserva.FormaPago,
-            Estado          = EstadoFactura.Emitida,
-            Lineas          = new List<LineaFactura> { lineaAloj }
-        };
-        RecalcularTotales(factura);
-
-        db.Facturas.Add(factura);
-
-        // Marcar reserva como facturada
-        reserva.Facturado = true;
-        reserva.FacturaId = factura.Id;
-        reserva.ActualizadoEn = DateTime.UtcNow;
-
-        await db.SaveChangesAsync();
-        return (await GetByIdAsync(factura.Id))!;
+            _facturaLock.Release();
+        }
     }
 
     // ─── CREAR MANUAL ─────────────────────────────────────────────────────────
     public async Task<FacturaDto> CrearManualAsync(CrearFacturaDto dto)
     {
         var hoy = DateOnly.Parse(dto.FechaEmision);
-        var (serie, orden, numero) = await SiguienteNumeroAsync(dto.ResidenciaId, hoy.Year);
+        var residencia = await db.Residencias.FindAsync(dto.ResidenciaId)
+            ?? throw new InvalidOperationException("Residencia no encontrada.");
 
-        var residencia = await db.Residencias.FindAsync(dto.ResidenciaId)!;
-
-        var lineas = dto.Lineas.Select((l, i) =>
+        await _facturaLock.WaitAsync();
+        try
         {
-            var linea = new LineaFactura
+            const int maxRetries = 5;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                Orden = l.Orden > 0 ? l.Orden : i + 1,
-                Concepto = l.Concepto, Cantidad = l.Cantidad, Unidad = l.Unidad,
-                PrecioUnidad = l.PrecioUnidad, Descuento = l.Descuento, PorcentajeIva = l.PorcentajeIva
-            };
-            CalcularLinea(linea);
-            return linea;
-        }).ToList();
+                var (serie, orden, numero) = await SiguienteNumeroAsync(dto.ResidenciaId, hoy.Year);
 
-        var factura = new Factura
+                var lineas = dto.Lineas.Select((l, i) =>
+                {
+                    var linea = new LineaFactura
+                    {
+                        Orden = l.Orden > 0 ? l.Orden : i + 1,
+                        Concepto = l.Concepto, Cantidad = l.Cantidad, Unidad = l.Unidad,
+                        PrecioUnidad = l.PrecioUnidad, Descuento = l.Descuento, PorcentajeIva = l.PorcentajeIva
+                    };
+                    CalcularLinea(linea);
+                    return linea;
+                }).ToList();
+
+                var factura = new Factura
+                {
+                    NumeroFactura = numero, Serie = serie, Ejercicio = hoy.Year, NumeroOrden = orden,
+                    ResidenciaId  = dto.ResidenciaId,
+                    ReservaId     = dto.ReservaId,
+                    HuespedId     = dto.HuespedId,
+                    FechaEmision  = hoy,
+                    FechaVencimiento = dto.FechaVencimiento is null ? null : DateOnly.Parse(dto.FechaVencimiento),
+                    DestinatarioNombre    = dto.DestinatarioNombre,
+                    DestinatarioDni       = dto.DestinatarioDni,
+                    DestinatarioDireccion = dto.DestinatarioDireccion,
+                    DestinatarioCp        = dto.DestinatarioCp,
+                    DestinatarioMunicipio = dto.DestinatarioMunicipio,
+                    EmisorNombre    = residencia.Nombre,
+                    EmisorCif       = residencia.Cif,
+                    EmisorDireccion = residencia.Direccion,
+                    EmisorTelefono  = residencia.Telefono,
+                    FormaPago       = dto.FormaPago,
+                    Observaciones   = dto.Observaciones,
+                    Estado          = EstadoFactura.Borrador,
+                    Lineas          = lineas
+                };
+                RecalcularTotales(factura);
+                db.Facturas.Add(factura);
+
+                try
+                {
+                    await db.SaveChangesAsync();
+                    return (await GetByIdAsync(factura.Id))!;
+                }
+                catch (DbUpdateException) when (attempt < maxRetries)
+                {
+                    db.Facturas.Remove(factura);
+                    await Task.Delay(20 * attempt);
+                }
+            }
+            throw new InvalidOperationException("No se pudo asignar un número secuencial único de factura tras varios reintentos.");
+        }
+        finally
         {
-            NumeroFactura = numero, Serie = serie, Ejercicio = hoy.Year, NumeroOrden = orden,
-            ResidenciaId  = dto.ResidenciaId,
-            ReservaId     = dto.ReservaId,
-            HuespedId     = dto.HuespedId,
-            FechaEmision  = hoy,
-            FechaVencimiento = dto.FechaVencimiento is null ? null : DateOnly.Parse(dto.FechaVencimiento),
-            DestinatarioNombre    = dto.DestinatarioNombre,
-            DestinatarioDni       = dto.DestinatarioDni,
-            DestinatarioDireccion = dto.DestinatarioDireccion,
-            DestinatarioCp        = dto.DestinatarioCp,
-            DestinatarioMunicipio = dto.DestinatarioMunicipio,
-            EmisorNombre    = residencia!.Nombre,
-            EmisorCif       = residencia.Cif,
-            EmisorDireccion = residencia.Direccion,
-            EmisorTelefono  = residencia.Telefono,
-            FormaPago       = dto.FormaPago,
-            Observaciones   = dto.Observaciones,
-            Estado          = EstadoFactura.Borrador,
-            Lineas          = lineas
-        };
-        RecalcularTotales(factura);
-        db.Facturas.Add(factura);
-        await db.SaveChangesAsync();
-        return (await GetByIdAsync(factura.Id))!;
+            _facturaLock.Release();
+        }
     }
 
     // ─── ESTADOS ─────────────────────────────────────────────────────────────

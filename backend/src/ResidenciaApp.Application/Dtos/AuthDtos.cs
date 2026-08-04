@@ -1,6 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ResidenciaApp.Application.Dtos;
 
-public record LoginRequest(string Email, string Password);
+public record LoginRequest(
+    [Required(ErrorMessage = "El email es obligatorio"), EmailAddress(ErrorMessage = "Formato de email inválido")] string Email,
+    [Required(ErrorMessage = "La contraseña es obligatoria")] string Password);
 
 public record LoginResponse(string Token, string Email, string FullName);
 

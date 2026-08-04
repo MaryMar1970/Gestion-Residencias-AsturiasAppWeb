@@ -16,8 +16,26 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "residencia.db");
+        var connStr = configuration.GetConnectionString("DefaultConnection") ?? $"Data Source={dbPath}";
+        var provider = configuration["DatabaseProvider"];
+
+        bool useSqlite = string.Equals(provider, "Sqlite", StringComparison.OrdinalIgnoreCase)
+            || connStr.Contains(".db")
+            || (connStr.Contains("Data Source=") && !connStr.Contains("Server="))
+            || File.Exists(dbPath);
+
         services.AddDbContext<ResidenciaDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        {
+            if (useSqlite)
+            {
+                options.UseSqlite($"Data Source={dbPath}");
+            }
+            else
+            {
+                options.UseSqlServer(connStr);
+            }
+        });
 
         services.AddScoped<IResidenciaDbContext>(provider => provider.GetRequiredService<ResidenciaDbContext>());
 
@@ -44,6 +62,19 @@ public static class DependencyInjection
             ExpirationMinutes = int.TryParse(jwtSection["ExpirationMinutes"], out var minutes) ? minutes : 60
         };
 
+        bool isProduction = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Production", StringComparison.OrdinalIgnoreCase);
+
+        if (isProduction && (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 16))
+        {
+            throw new InvalidOperationException("SEGURIDAD CRÍTICA: En el entorno de producción DEBE configurarse una clave 'JwtSettings:Secret' segura y robusta.");
+        }
+
+        var secretStr = string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 16
+            ? "super-secret-key-for-local-development-123456"
+            : jwtSettings.Secret;
+        var issuerStr = string.IsNullOrWhiteSpace(jwtSettings.Issuer) ? "ResidenciaApp" : jwtSettings.Issuer;
+        var audienceStr = string.IsNullOrWhiteSpace(jwtSettings.Audience) ? "ResidenciaAppClient" : jwtSettings.Audience;
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -58,9 +89,9 @@ public static class DependencyInjection
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings.Issuer,
-                    ValidAudience = jwtSettings.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
+                    ValidIssuer = issuerStr,
+                    ValidAudience = audienceStr,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretStr))
                 };
             });
 
@@ -77,6 +108,8 @@ public static class DependencyInjection
 
         // Servicios de reservas
         services.AddScoped<IHuespedService, HuespedService>();
+        services.AddScoped<IEvaluacionService, EvaluacionService>();
+        services.AddScoped<IDisponibilidadService, DisponibilidadService>();
         services.AddScoped<IReservaService, ReservaService>();
 
         // Servicios de facturación

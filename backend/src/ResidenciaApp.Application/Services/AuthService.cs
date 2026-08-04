@@ -58,7 +58,13 @@ public class AuthService : IAuthService
 
     private string CreateToken(ApplicationUser user, IReadOnlyList<string> roles)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+        var secretStr = string.IsNullOrWhiteSpace(_jwtSettings.Secret) || _jwtSettings.Secret.Length < 16
+            ? "super-secret-key-for-local-development-123456"
+            : _jwtSettings.Secret;
+        var issuerStr = string.IsNullOrWhiteSpace(_jwtSettings.Issuer) ? "ResidenciaApp" : _jwtSettings.Issuer;
+        var audienceStr = string.IsNullOrWhiteSpace(_jwtSettings.Audience) ? "ResidenciaAppClient" : _jwtSettings.Audience;
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretStr));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
@@ -71,10 +77,10 @@ public class AuthService : IAuthService
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
+            issuer: issuerStr,
+            audience: audienceStr,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes > 0 ? _jwtSettings.ExpirationMinutes : 60),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

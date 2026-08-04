@@ -1,0 +1,10 @@
+Terminal 1 (Servicio Backend)
+
+cd "H:\APP RESIDENCIAS\2026-07-31"
+dotnet run --project backend/src/ResidenciaApp.Api/ResidenciaApp.Api.csproj
+
+Terminal 2 (Aplicación Frontend)
+
+cd "H:\APP RESIDENCIAS\2026-07-31\frontend"
+cmd /c "npm run dev"
+

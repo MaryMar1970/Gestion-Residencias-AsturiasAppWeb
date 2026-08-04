@@ -80,6 +80,12 @@ public class HabitacionesController(IHabitacionService svc) : ControllerBase
         var r = await svc.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = r.Id }, r);
     }
+    [HttpPost("lote")][Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateBatch(CrearLoteHabitacionesDto dto)
+    {
+        var r = await svc.CreateBatchAsync(dto);
+        return Ok(r);
+    }
     [HttpPut("{id:guid}")][Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(Guid id, UpsertHabitacionDto dto)
     {
@@ -147,4 +153,56 @@ public class FestivosController(IFestivoService svc) : ControllerBase
     [HttpDelete("{id:guid}")][Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id)
         => await svc.DeleteAsync(id) ? NoContent() : NotFound();
+}
+
+[ApiController]
+[Route("api/configuracion/matriz-evaluacion")]
+[Authorize]
+public class MatrizEvaluacionController(ResidenciaApp.Application.Interfaces.IResidenciaDbContext db) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> GetMatriz()
+    {
+        var setting = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(db.SystemSettings, s => s.Key == "MatrizEvaluacion");
+        if (setting == null || string.IsNullOrWhiteSpace(setting.Value))
+        {
+            return Ok(ResidenciaApp.Application.Services.EvaluacionService.MatrizPorDefecto);
+        }
+        try
+        {
+            var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(setting.Value);
+            return Ok(dict ?? ResidenciaApp.Application.Services.EvaluacionService.MatrizPorDefecto);
+        }
+        catch
+        {
+            return Ok(ResidenciaApp.Application.Services.EvaluacionService.MatrizPorDefecto);
+        }
+    }
+
+    [HttpPut]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateMatriz([FromBody] Dictionary<string, string> nuevaMatriz)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(nuevaMatriz);
+        var setting = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(db.SystemSettings, s => s.Key == "MatrizEvaluacion");
+        if (setting == null)
+        {
+            setting = new ResidenciaApp.Domain.Entities.SystemSetting
+            {
+                Key = "MatrizEvaluacion",
+                Value = json,
+                Description = "Matriz de prioridades y evaluación de solicitudes",
+                Category = "Evaluacion"
+            };
+            db.SystemSettings.Add(setting);
+        }
+        else
+        {
+            setting.Value = json;
+            setting.UpdatedAt = DateTime.UtcNow;
+        }
+        await db.SaveChangesAsync();
+        ResidenciaApp.Application.Services.EvaluacionService.InvalidarCacheMatriz();
+        return Ok(nuevaMatriz);
+    }
 }

@@ -1,0 +1,10 @@
+Terminal 1 (Servicio Backend)
+
+cd "c:\Users\jaime_ntymfau\Downloads\VBAProject (2026-07-01, BDAS_GIJÓN-SOTO-OVIEDO_v16.5.5_PRU_Incidencia actualización Hoja Calendario G)\-BDAS_GIJ-N-SOTO-OVIEDO_v16.5.5_"
+dotnet run --project backend/src/ResidenciaApp.Api/ResidenciaApp.Api.csproj
+
+Terminal 2 (Aplicación Frontend)
+
+cd "c:\Users\jaime_ntymfau\Downloads\VBAProject (2026-07-01, BDAS_GIJÓN-SOTO-OVIEDO_v16.5.5_PRU_Incidencia actualización Hoja Calendario G)\-BDAS_GIJ-N-SOTO-OVIEDO_v16.5.5_\frontend"
+cmd /c "npm run dev"
+

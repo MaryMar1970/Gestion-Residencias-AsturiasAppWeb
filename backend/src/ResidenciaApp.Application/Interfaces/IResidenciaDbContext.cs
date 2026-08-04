@@ -18,5 +18,6 @@ public interface IResidenciaDbContext
     DbSet<LineaFactura> LineasFactura { get; }
     DbSet<CodigoPostalInfo> CodigosPostales { get; }
 
+    Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

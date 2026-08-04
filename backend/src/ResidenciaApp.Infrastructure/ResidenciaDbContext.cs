@@ -70,6 +70,7 @@ public class ResidenciaDbContext : IdentityDbContext<ApplicationUser, Applicatio
             entity.HasIndex(x => new { x.ResidenciaId, x.Numero }).IsUnique();
             entity.Property(x => x.Numero).IsRequired().HasMaxLength(20);
             entity.Property(x => x.Nombre).HasMaxLength(100);
+            entity.Property(x => x.TipoCamaPrincipal).HasMaxLength(10).HasDefaultValue("IND");
             entity.HasOne(x => x.Residencia)
                 .WithMany(x => x.Habitaciones)
                 .HasForeignKey(x => x.ResidenciaId)
@@ -118,6 +119,7 @@ public class ResidenciaDbContext : IdentityDbContext<ApplicationUser, Applicatio
             entity.Property(x => x.Situacion).HasMaxLength(100);
             entity.Property(x => x.Finalidad).HasMaxLength(100);
             entity.Property(x => x.EmpleoCategoria).HasMaxLength(100);
+            entity.Property(x => x.PorcentajeDescuento).HasColumnType("decimal(5,2)");
         });
 
         builder.Entity<Reserva>(entity =>
@@ -126,16 +128,23 @@ public class ResidenciaDbContext : IdentityDbContext<ApplicationUser, Applicatio
             entity.Property(x => x.Empleo).HasMaxLength(100);
             entity.Property(x => x.Evaluacion).HasMaxLength(50);
             entity.Property(x => x.PrecioNocheAplicado).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.PorcentajeDescuento).HasColumnType("decimal(5,2)");
             entity.Property(x => x.PorcentajeIvaAplicado).HasColumnType("decimal(5,2)");
             entity.Property(x => x.ImporteBase).HasColumnType("decimal(10,2)");
             entity.Property(x => x.ImporteIva).HasColumnType("decimal(10,2)");
             entity.Property(x => x.ImporteTotal).HasColumnType("decimal(10,2)");
             entity.Property(x => x.FormaPago).HasMaxLength(30);
             entity.Property(x => x.Estado).HasConversion<int>();
+            entity.HasOne(x => x.Residencia)
+                .WithMany()
+                .HasForeignKey(x => x.ResidenciaId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(x => x.Habitacion)
                 .WithMany()
                 .HasForeignKey(x => x.HabitacionId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(x => x.Huesped)
                 .WithMany(x => x.Reservas)
                 .HasForeignKey(x => x.HuespedId)
@@ -173,6 +182,7 @@ public class ResidenciaDbContext : IdentityDbContext<ApplicationUser, Applicatio
 
         builder.Entity<LineaFactura>(entity =>
         {
+            entity.Property(x => x.Cantidad).HasColumnType("decimal(10,2)");
             entity.Property(x => x.PrecioUnidad).HasColumnType("decimal(10,2)");
             entity.Property(x => x.Descuento).HasColumnType("decimal(5,2)");
             entity.Property(x => x.BaseLinea).HasColumnType("decimal(10,2)");

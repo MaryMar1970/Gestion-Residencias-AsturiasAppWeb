@@ -25,7 +25,7 @@ public class ResidenciaService(IResidenciaDbContext db) : IResidenciaService
             .Select(r => new ResidenciaDto(
                 r.Id, r.Nombre, r.RazonSocial, r.Cif,
                 r.Direccion, r.CodigoPostal, r.Municipio, r.Provincia,
-                r.Telefono, r.Email, r.Activa, r.Orden,
+                r.Telefono, r.Email, r.SerieFactura, r.Activa, r.Orden,
                 r.Habitaciones.Count(h => h.Activa)))
             .ToListAsync();
 
@@ -35,7 +35,7 @@ public class ResidenciaService(IResidenciaDbContext db) : IResidenciaService
             .Select(r => new ResidenciaDto(
                 r.Id, r.Nombre, r.RazonSocial, r.Cif,
                 r.Direccion, r.CodigoPostal, r.Municipio, r.Provincia,
-                r.Telefono, r.Email, r.Activa, r.Orden,
+                r.Telefono, r.Email, r.SerieFactura, r.Activa, r.Orden,
                 r.Habitaciones.Count(h => h.Activa)))
             .FirstOrDefaultAsync();
 
@@ -46,14 +46,14 @@ public class ResidenciaService(IResidenciaDbContext db) : IResidenciaService
             Nombre = dto.Nombre, RazonSocial = dto.RazonSocial, Cif = dto.Cif,
             Direccion = dto.Direccion, CodigoPostal = dto.CodigoPostal,
             Municipio = dto.Municipio, Provincia = dto.Provincia,
-            Telefono = dto.Telefono, Email = dto.Email,
+            Telefono = dto.Telefono, Email = dto.Email, SerieFactura = dto.SerieFactura,
             Activa = dto.Activa, Orden = dto.Orden
         };
         db.Residencias.Add(entity);
         await db.SaveChangesAsync();
         return new ResidenciaDto(entity.Id, entity.Nombre, entity.RazonSocial, entity.Cif,
             entity.Direccion, entity.CodigoPostal, entity.Municipio, entity.Provincia,
-            entity.Telefono, entity.Email, entity.Activa, entity.Orden, 0);
+            entity.Telefono, entity.Email, entity.SerieFactura, entity.Activa, entity.Orden, 0);
     }
 
     public async Task<ResidenciaDto?> UpdateAsync(Guid id, UpsertResidenciaDto dto)
@@ -63,14 +63,14 @@ public class ResidenciaService(IResidenciaDbContext db) : IResidenciaService
         entity.Nombre = dto.Nombre; entity.RazonSocial = dto.RazonSocial; entity.Cif = dto.Cif;
         entity.Direccion = dto.Direccion; entity.CodigoPostal = dto.CodigoPostal;
         entity.Municipio = dto.Municipio; entity.Provincia = dto.Provincia;
-        entity.Telefono = dto.Telefono; entity.Email = dto.Email;
+        entity.Telefono = dto.Telefono; entity.Email = dto.Email; entity.SerieFactura = dto.SerieFactura;
         entity.Activa = dto.Activa; entity.Orden = dto.Orden;
         entity.ActualizadoEn = DateTime.UtcNow;
         await db.SaveChangesAsync();
         var total = await db.Habitaciones.CountAsync(h => h.ResidenciaId == id && h.Activa);
         return new ResidenciaDto(entity.Id, entity.Nombre, entity.RazonSocial, entity.Cif,
             entity.Direccion, entity.CodigoPostal, entity.Municipio, entity.Provincia,
-            entity.Telefono, entity.Email, entity.Activa, entity.Orden, total);
+            entity.Telefono, entity.Email, entity.SerieFactura, entity.Activa, entity.Orden, total);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -154,6 +154,7 @@ public interface IHabitacionService
     Task<List<HabitacionDto>> GetAllAsync(Guid? residenciaId = null);
     Task<HabitacionDto?> GetByIdAsync(Guid id);
     Task<HabitacionDto> CreateAsync(UpsertHabitacionDto dto);
+    Task<List<HabitacionDto>> CreateBatchAsync(CrearLoteHabitacionesDto dto);
     Task<HabitacionDto?> UpdateAsync(Guid id, UpsertHabitacionDto dto);
     Task<bool> DeleteAsync(Guid id);
 }
@@ -173,7 +174,7 @@ public class HabitacionService(IResidenciaDbContext db) : IHabitacionService
             .Select(h => new HabitacionDto(
                 h.Id, h.ResidenciaId, h.Residencia.Nombre,
                 h.TipoHabitacionId, h.TipoHabitacion.Nombre, h.TipoHabitacion.Codigo,
-                h.Numero, h.Nombre, h.CapacidadPersonas,
+                h.Numero, h.Nombre, h.TipoCamaPrincipal, h.CapacidadPersonas,
                 h.AdmiteSupletorias, h.PlazasSupletorias,
                 h.Activa, h.Notas, h.Orden))
             .ToListAsync();
@@ -186,7 +187,7 @@ public class HabitacionService(IResidenciaDbContext db) : IHabitacionService
             .Select(h => new HabitacionDto(
                 h.Id, h.ResidenciaId, h.Residencia.Nombre,
                 h.TipoHabitacionId, h.TipoHabitacion.Nombre, h.TipoHabitacion.Codigo,
-                h.Numero, h.Nombre, h.CapacidadPersonas,
+                h.Numero, h.Nombre, h.TipoCamaPrincipal, h.CapacidadPersonas,
                 h.AdmiteSupletorias, h.PlazasSupletorias,
                 h.Activa, h.Notas, h.Orden))
             .FirstOrDefaultAsync();
@@ -196,7 +197,9 @@ public class HabitacionService(IResidenciaDbContext db) : IHabitacionService
         var entity = new Habitacion
         {
             ResidenciaId = dto.ResidenciaId, TipoHabitacionId = dto.TipoHabitacionId,
-            Numero = dto.Numero, Nombre = dto.Nombre, CapacidadPersonas = dto.CapacidadPersonas,
+            Numero = dto.Numero, Nombre = dto.Nombre,
+            TipoCamaPrincipal = string.IsNullOrWhiteSpace(dto.TipoCamaPrincipal) ? "IND" : dto.TipoCamaPrincipal,
+            CapacidadPersonas = dto.CapacidadPersonas,
             AdmiteSupletorias = dto.AdmiteSupletorias, PlazasSupletorias = dto.PlazasSupletorias,
             Activa = dto.Activa, Notas = dto.Notas, Orden = dto.Orden
         };
@@ -205,12 +208,45 @@ public class HabitacionService(IResidenciaDbContext db) : IHabitacionService
         return (await GetByIdAsync(entity.Id))!;
     }
 
+    public async Task<List<HabitacionDto>> CreateBatchAsync(CrearLoteHabitacionesDto dto)
+    {
+        var creadas = new List<Habitacion>();
+        for (int i = 0; i < dto.Cantidad; i++)
+        {
+            var numIndex = dto.NumeroInicio + i;
+            var numStr = string.IsNullOrWhiteSpace(dto.Prefijo) ? numIndex.ToString() : $"{dto.Prefijo}{numIndex}";
+            
+            // Si ya existe en la residencia, omitir para no romper indice único
+            var existe = await db.Habitaciones.AnyAsync(h => h.ResidenciaId == dto.ResidenciaId && h.Numero == numStr);
+            if (existe) continue;
+
+            var entity = new Habitacion
+            {
+                ResidenciaId = dto.ResidenciaId,
+                TipoHabitacionId = dto.TipoHabitacionId,
+                Numero = numStr,
+                Nombre = $"{numStr}",
+                TipoCamaPrincipal = string.IsNullOrWhiteSpace(dto.TipoCamaPrincipal) ? "IND" : dto.TipoCamaPrincipal,
+                CapacidadPersonas = dto.CapacidadPersonas,
+                AdmiteSupletorias = dto.AdmiteSupletorias,
+                PlazasSupletorias = dto.PlazasSupletorias,
+                Activa = true,
+                Orden = numIndex
+            };
+            db.Habitaciones.Add(entity);
+            creadas.Add(entity);
+        }
+        await db.SaveChangesAsync();
+        return await GetAllAsync(dto.ResidenciaId);
+    }
+
     public async Task<HabitacionDto?> UpdateAsync(Guid id, UpsertHabitacionDto dto)
     {
         var entity = await db.Habitaciones.FindAsync(id);
         if (entity is null) return null;
         entity.ResidenciaId = dto.ResidenciaId; entity.TipoHabitacionId = dto.TipoHabitacionId;
         entity.Numero = dto.Numero; entity.Nombre = dto.Nombre;
+        entity.TipoCamaPrincipal = string.IsNullOrWhiteSpace(dto.TipoCamaPrincipal) ? "IND" : dto.TipoCamaPrincipal;
         entity.CapacidadPersonas = dto.CapacidadPersonas;
         entity.AdmiteSupletorias = dto.AdmiteSupletorias; entity.PlazasSupletorias = dto.PlazasSupletorias;
         entity.Activa = dto.Activa; entity.Notas = dto.Notas; entity.Orden = dto.Orden;
@@ -223,6 +259,13 @@ public class HabitacionService(IResidenciaDbContext db) : IHabitacionService
     {
         var entity = await db.Habitaciones.FindAsync(id);
         if (entity is null) return false;
+
+        var reservasAsociadas = await db.Reservas.Where(r => r.HabitacionId == id).ToListAsync();
+        foreach (var r in reservasAsociadas)
+        {
+            r.HabitacionId = null;
+        }
+
         db.Habitaciones.Remove(entity);
         await db.SaveChangesAsync();
         return true;

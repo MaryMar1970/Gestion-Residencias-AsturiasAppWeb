@@ -30,6 +30,10 @@ public class Huesped
     public string? Finalidad { get; set; }                   // Otros, Comisión, etc. (Default finality)
     public string? EmpleoCategoria { get; set; }             // GC, Alumno, etc. (Default category)
 
+    // Descuentos y Bonificaciones
+    public string FamiliaNumerosa { get; set; } = "NO";      // "NO", "GENERAL" (20%), "ESPECIAL" (50%)
+    public decimal PorcentajeDescuento { get; set; } = 0;    // 0, 20, 50
+
     // Lista negra
     public bool EnListaNegra { get; set; } = false;
     public string? MotivoListaNegra { get; set; }

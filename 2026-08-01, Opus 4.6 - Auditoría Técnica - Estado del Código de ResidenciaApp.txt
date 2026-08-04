@@ -1,0 +1,290 @@
+Auditoría Técnica: Estado del Código de ResidenciaApp
+Puntuación General: 6.5 / 10
+Área	Nota	Veredicto
+Arquitectura	⭐⭐⭐⭐	Buena base Clean Architecture, bien separado en capas
+Lógica de negocio	⭐⭐⭐	Funcional pero con hardcoding y acoplamiento
+Calidad del código C#	⭐⭐⭐	Correcto pero con archivos excesivamente grandes
+Frontend React/TS	⭐⭐	Funcional pero crítico en mantenibilidad
+Base de datos / EF Core	⭐⭐⭐	Bien configurado con algunas vulnerabilidades
+Testing	⭐	Inexistente
+🔴 Problemas Críticos (deben resolverse)
+1. Archivos frontend GIGANTES — Imposible de mantener
+Reservas.tsx
+ tiene 164 KB (~4.000+ líneas) en UN SOLO archivo. Contiene al menos 6 componentes mezclados:
+
+CalendarioGantt
+ReservaDetalleModal
+NuevaReservaModal
+ReservasPage
+BloqueosPage + BloqueoModal
+HuespedesPage (Solicitudes)
+App.tsx
+ tiene 64 KB.
+
+Impacto: Cualquier cambio pequeño en el calendario puede romper la lógica de bloqueos o solicitudes. Es imposible que dos personas trabajen en paralelo. El rendimiento del editor/IDE se degrada.
+
+Solución: Extraer cada componente a su propio archivo + crear hooks personalizados (useReservas, useCalendario, useHuespedes).
+
+2. Lógica de evaluación DUPLICADA entre frontend y backend
+La matriz de prioridades (~30 reglas) está copiada literalmente en DOS sitios:
+
+Backend — 
+ReservasService.cs
+ en EvaluarReserva():
+
+csharp
+
+var matriz = new Dictionary<string, string>
+{
+    { "comisión no indem.|gc|viogen", "1, 1, 1" },
+    { "comisión no indem.|gc|activo", "1, 1, 2" },
+    // ... 30+ entradas hardcodeadas
+};
+Frontend — Reservas.tsx en calcularEvaluacion(): idéntica copia.
+
+Impacto: Si añades una regla en el backend pero olvidas el frontend (o viceversa), los resultados serán inconsistentes. Además, esta matriz debería ser configurable desde la base de datos, no hardcodeada.
+
+Solución:
+
+Mover la matriz a una tabla de BD (ReglaEvaluacion) o a SystemSettings como JSON
+Crear endpoint GET /api/configuracion/matriz-evaluacion
+El frontend la descarga y la usa — fuente única de verdad
+3. Race condition en numeración de facturas
+En 
+FacturaService.cs
+, el método SiguienteNumeroAsync:
+
+csharp
+
+var ultimoOrden = await db.Facturas
+    .Where(f => f.Serie == serie && f.Ejercicio == ejercicio)
+    .MaxAsync(f => (int?)f.NumeroOrden) ?? 0;
+var orden = ultimoOrden + 1;  // ← NO es atómico
+Impacto: Si dos usuarios generan facturas simultáneamente, pueden obtener el mismo número de factura. El índice único lo atrapará como excepción no controlada, pero la operación fallará sin reintentar.
+
+Solución: Usar una tabla de contadores con UPDLOCK o ExecuteSqlRaw con UPDATE ... SET numero = numero + 1 OUTPUT INSERTED.numero, o envolver en transacción con retry.
+
+4. HabitacionId = Guid.Empty como sustituto de null — Code smell
+En 
+Reserva.cs
+:
+
+csharp
+
+public Guid HabitacionId { get; set; }  // Non-nullable Guid
+Pero en el código se asigna Guid.Empty cuando la solicitud es denegada:
+
+csharp
+
+if (esNegativeResolucion)
+{
+    assignedHabitacionId = Guid.Empty;  // ← Simula null con Guid.Empty
+}
+Impacto: Guid.Empty no es un FK válido — no hay ninguna Habitación con Id = 00000000-0000-0000-0000-000000000000. Esto rompe la integridad referencial. El DbContext lo permite porque la relación está configurada como IsRequired(false), pero el tipo C# no es nullable.
+
+Solución: Cambiar a public Guid? HabitacionId { get; set; } y usar null en lugar de Guid.Empty.
+
+5. N+1 Queries en búsqueda de disponibilidad
+En ReservaService.GetHabitacionesDisponiblesAsync():
+
+csharp
+
+foreach (var h in todasHab)
+{
+    var solapamiento = await ComprobarSolapamientoAsync(h.Id, ...);
+    // ↑ UNA query SQL por cada habitación
+    if (!solapamiento.HaySolapamiento)
+        libres.Add(...);
+}
+Impacto: Si hay 50 habitaciones, se ejecutan 50 queries SQL para una sola búsqueda de disponibilidad. Con carga concurrente, esto se convierte en un cuello de botella.
+
+Solución: Una sola query que excluya habitaciones ocupadas:
+
+csharp
+
+var habOcupadas = await db.Reservas
+    .Where(r => r.Habitacion.ResidenciaId == residenciaId
+        && r.Estado != EstadoReserva.Cancelada
+        && r.FechaEntrada < salida && r.FechaSalida > entrada)
+    .Select(r => r.HabitacionId)
+    .Distinct().ToListAsync();
+var libres = await db.Habitaciones
+    .Where(h => h.ResidenciaId == residenciaId && h.Activa
+        && !habOcupadas.Contains(h.Id))
+    .ToListAsync();
+6. Ausencia total de tests
+No hay ningún proyecto de test (*.Tests.csproj) en toda la solución. Ni unitarios, ni de integración, ni E2E.
+
+Impacto: Cada cambio es un riesgo. La lógica de evaluación con 30+ reglas, la resolución automática, la facturación — todo se verifica manualmente.
+
+Solución: Crear ResidenciaApp.Tests con al menos:
+
+Tests de EvaluarReserva() para cada combinación de la matriz
+Tests de CalcularResolucionAutomatica() para los casos límite
+Tests de ComprobarSolapamientoAsync() incluyendo turnover
+Tests de SiguienteNumeroAsync() verificando secuencialidad
+🟡 Problemas Importantes (deberían resolverse)
+7. Resolución usa "magic strings" en vez de enum
+EstadoReserva es un enum (✅), pero Resolucion es un string con valores mágicos dispersos por el código:
+
+csharp
+
+// Aparecen en 15+ sitios distintos:
+r.Resolucion == "SI"
+r.Resolucion == "NO"
+r.Resolucion == "CONCEDIDA"
+r.Resolucion == "DENEGADA"
+r.Resolucion == "DESESTIMADA"
+r.Resolucion == "RENUNCIA"
+r.Resolucion == "REEVALUADA"
+Impacto: Un typo como "DENAGADA" pasaría desapercibido y causaría bugs silenciosos.
+
+Solución: Crear enum Resolucion o al menos una clase estática con constantes.
+
+8. Raw SQL de migración en Program.cs
+csharp
+
+dbContext.Database.ExecuteSqlRaw(@"
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'Habitaciones' AND COLUMN_NAME = 'TipoCamaPrincipal')
+    BEGIN
+        ALTER TABLE [Habitaciones] ADD [TipoCamaPrincipal] nvarchar(10) NOT NULL DEFAULT 'IND';
+    END
+    ...
+Impacto: Esto bypassea las migraciones de EF Core. Si alguien ejecuta dotnet ef migrations pensando que el schema está sincronizado, habrá discrepancias. Además, el SQL es específico de SQL Server — rompe la compatibilidad con SQLite.
+
+Solución: Crear migraciones EF Core formales para estos cambios y eliminar el SQL raw.
+
+9. "Healing routines" al inicio — Indica invariantes rotos
+csharp
+
+// Healing routine for cancelled reservations
+var cancelledReservations = dbContext.Reservas
+    .Where(r => r.Estado == EstadoReserva.Cancelada && r.NumeroOrden > 0)
+    .ToList();
+// ... resetear NumeroOrden a 0
+// Healing routine for reservation order numbers
+var reservationsToHeal = dbContext.Reservas
+    .Where(r => r.NumeroOrden == 0 && r.HuespedId != null && !r.EsBloqueo ...)
+    .ToList();
+// ... reasignar NumeroOrden
+// Healing routine for empty Resolucion
+var reservationsWithoutResolution = dbContext.Reservas
+    .Where(r => r.Resolucion == null || r.Resolucion == "")
+    .ToList();
+Impacto: Estas 3 rutinas de "sanado" se ejecutan cada vez que arranca la aplicación y existen porque en algún momento se crearon reservas con datos inconsistentes. Esto indica que los servicios de creación/actualización no están garantizando los invariantes.
+
+Solución: Corregir la raíz del problema en CreateAsync/UpdateAsync para que nunca generen datos inconsistentes, y eliminar las healing routines.
+
+10. ReservasService.cs — Demasiadas responsabilidades en un archivo
+ReservasService.cs
+ tiene ~40KB y contiene:
+
+IHuespedService + HuespedService (CRUD huéspedes)
+IReservaService + ReservaService (CRUD reservas, validación, evaluación, calendario, disponibilidad, reevaluación)
+NaturalStringComparer
+Son al menos 3 servicios en un solo archivo. El método CreateAsync solo tiene ~100 líneas mezclando validación, cálculos, persistencia y lógica de negocio.
+
+Solución: Separar en HuespedService.cs, ReservaService.cs, EvaluacionService.cs, DisponibilidadService.cs.
+
+11. Sin transacciones explícitas en operaciones críticas
+La creación de reserva hace:
+
+Busca/crea huésped → SaveChangesAsync()
+Crea reserva → SaveChangesAsync()
+Si el paso 2 falla, el huésped ya se creó. No hay IDbContextTransaction:
+
+csharp
+
+// En CreateAsync:
+var huesped = await CrearOActualizarHuespedAsync(dto.Huesped);  // SaveChanges interno
+// ... lógica ...
+db.Reservas.Add(entity);
+await db.SaveChangesAsync();  // Segundo SaveChanges
+Solución: Envolver operaciones multi-paso en using var tx = await db.Database.BeginTransactionAsync().
+
+12. Sin paginación real en endpoints de listado
+csharp
+
+// ReservasService.GetAllAsync - devuelve TODAS las reservas de una residencia
+return await q.OrderBy(r => r.FechaEntrada)
+    .Select(r => ToDto(r)).ToListAsync();  // Sin Take/Skip
+// BuscarReservasAsync - hardcoded a 100
+.Take(100).ToListAsync();
+Impacto: Con miles de reservas históricas, las respuestas serán enormes y lentas.
+
+Solución: Añadir parámetros page/pageSize y devolver PaginatedResult<T> con total count.
+
+🟢 Problemas Menores (mejoras recomendadas)
+13. Serie de factura derivada del nombre de residencia
+csharp
+
+var serie = new string(res.Nombre.Normalize(FormD)
+    .Where(c => c < 128 && char.IsLetter(c))
+    .Take(3).ToArray()).ToUpper();
+Si renombran la residencia de "Gijón" a "Residencia Gijón", la serie cambia de "GIJ" a "RES", rompiendo la secuencia.
+
+Solución: Almacenar la serie como campo fijo en la entidad Residencia.
+Problemas Menores (mejoras recomendadas)
+14. ComprobarSolapamientoAsync carga todo a memoria
+csharp
+
+var conflictosRaw = await q.ToListAsync();  // Carga TODOS los conflictos
+var conflictos = conflictosRaw.Where(r => { ... }).ToList();  // Filtra en memoria
+La lógica diferenciada bloqueo/reserva impide hacerlo en SQL puro, pero podría optimizarse con dos queries separadas o un filtro SQL más preciso.
+
+03/08/2026 - PENDIENTE APLICAR 
+
+15. Sin logging en servicios
+No hay ILogger en ningún servicio (ReservaService, FacturaService, etc.). Solo en Program.cs durante el startup.
+
+Solución: Inyectar ILogger<T> y registrar operaciones críticas (creación de reservas, facturación, errores).
+
+16. Sin validación de DTOs en la entrada
+Los DTOs no tienen atributos de validación ([Required], [StringLength], [Range]). La validación es manual dentro de los servicios.
+
+Solución: Añadir FluentValidation o DataAnnotations en los DTOs.
+
+17. Configuración JWT con fallback inseguro
+csharp
+
+var secretStr = string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 16
+    ? "super-secret-key-for-local-development-123456"
+    : jwtSettings.Secret;
+Aceptable para desarrollo local, pero debe fallar en producción si no hay clave configurada.
+
+Resumen Visual
+⚠️ Failed to render Mermaid diagram: Invalid mermaid header
+quadrantChart
+    title Evaluación del Código Actual
+    x-axis Calidad Baja --> Calidad Alta
+    y-axis Impacto Bajo --> Impacto Alto
+    quadrant-1 Resolver urgente
+    quadrant-2 Bien hecho
+    quadrant-3 Deuda técnica
+    quadrant-4 Mejorar cuando se pueda
+    Arquitectura Clean: [0.75, 0.9]
+    Entidades Domain: [0.65, 0.7]
+    Facturación: [0.7, 0.6]
+    Evaluación/Prioridad: [0.55, 0.8]
+    Detección solapes: [0.6, 0.85]
+    Frontend monolítico: [0.15, 0.95]
+    Tests inexistentes: [0.05, 0.9]
+    Race condition facturas: [0.1, 0.7]
+    N+1 queries: [0.2, 0.6]
+    Magic strings: [0.3, 0.5]
+    Healing routines: [0.25, 0.4]
+    Paginación: [0.3, 0.3]
+Mermaid diagram
+Recomendación de Prioridades
+Orden	Acción	Esfuerzo	Beneficio
+1	Separar Reservas.tsx en 6+ archivos	🟡 Medio	🔴 Crítico — sin esto, cada cambio futuro será doloroso
+2	Eliminar duplicación de matriz evaluación	🟢 Bajo	🔴 Alto — fuente única de verdad
+3	Corregir race condition facturas	🟢 Bajo	🔴 Alto — integridad de datos fiscales
+4	Optimizar N+1 en disponibilidad	🟢 Bajo	🟡 Medio — rendimiento
+5	Cambiar HabitacionId a Guid?	🟢 Bajo	🟡 Medio — integridad referencial
+6	Crear enum Resolucion	🟢 Bajo	🟡 Medio — seguridad de tipos
+7	Separar ReservasService.cs en 4 archivos	🟡 Medio	🟡 Medio — mantenibilidad backend
+8	Añadir proyecto de tests	🟡 Medio	🔴 Alto — confianza en cambios
+9	Eliminar SQL raw + healing routines	🟡 Medio	🟡 Medio — limpieza
+10	Implementar GAPs de validación (del plan anterior)	🟡 Medio	🔴 Alto — reglas de negocio

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiFetch } from './api';
+import { apiFetch, formatFechaDisplay } from './api';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type Residencia = { id: string; nombre: string };
@@ -35,7 +35,7 @@ const ESTADO_CLASE: Record<string, string> = {
 export function FacturasPage() {
   const [facturas, setFacturas]           = useState<Factura[]>([]);
   const [residencias, setResidencias]     = useState<Residencia[]>([]);
-  const [filtroRes, setFiltroRes]         = useState('');
+  const [filtroRes, setFiltroRes]         = useState(() => localStorage.getItem('pref_residencia_facturas') || '');
   const [filtroAnio, setFiltroAnio]       = useState(String(new Date().getFullYear()));
   const [filtroEstado, setFiltroEstado]   = useState('');
   const [loading, setLoading]             = useState(true);
@@ -124,7 +124,7 @@ export function FacturasPage() {
         <div className="card-header">
           <h3>🧾 Facturas</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={filtroRes} onChange={e => setFiltroRes(e.target.value)} style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
+            <select value={filtroRes} onChange={e => { const val = e.target.value; setFiltroRes(val); localStorage.setItem('pref_residencia_facturas', val); }} style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
               <option value="">Todas las residencias</option>
               {residencias.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
             </select>
@@ -174,7 +174,7 @@ export function FacturasPage() {
                 {facturas.map(f => (
                   <tr key={f.id} style={{ opacity: f.estado === 'Anulada' ? 0.5 : 1 }}>
                     <td><strong style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{f.numeroFactura}</strong></td>
-                    <td>{f.fechaEmision}</td>
+                    <td>{formatFechaDisplay(f.fechaEmision)}</td>
                     <td>
                       <strong>{f.destinatarioNombre}</strong>
                       {f.destinatarioDni && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{f.destinatarioDni}</div>}
@@ -354,7 +354,7 @@ function FacturarReservaModal({ onSaved, onCancel }: { onSaved: () => void; onCa
                       <strong>{r.huespedNombreCompleto ?? '—'}</strong>
                       <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-muted)' }}>{r.huespedDni}</span>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        {r.residenciaNombre} · Hab. {r.habitacionNumero} · {r.fechaEntrada} → {r.fechaSalida} ({r.totalNoches}n)
+                        {r.residenciaNombre} · Hab. {r.habitacionNumero} · {formatFechaDisplay(r.fechaEntrada)} → {formatFechaDisplay(r.fechaSalida)} ({r.totalNoches}n)
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>

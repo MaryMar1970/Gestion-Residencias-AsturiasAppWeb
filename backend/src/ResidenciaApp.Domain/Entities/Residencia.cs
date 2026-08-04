@@ -12,6 +12,7 @@ public class Residencia
     public string? Provincia { get; set; }
     public string? Telefono { get; set; }
     public string? Email { get; set; }
+    public string? SerieFactura { get; set; }
     public bool Activa { get; set; } = true;
     public int Orden { get; set; } = 0;
     public DateTime CreadoEn { get; set; } = DateTime.UtcNow;

@@ -1,0 +1,51 @@
+Es viable que el usuario pueda configurar la disposicion/tamaño de los campos en cada una de las hojas e, incluso, arrastrar las reservas dentro del calendario de unas fechas a otras y que esos cambios se reflejen directamente en las reservas activas?
+6:50 PM
+Sí, es 100% viable. De hecho, la transición desde Excel VBA a una aplicación web moderna (.NET 8 + React/TypeScript) facilita enormemente este tipo de características avanzadas de interactividad.
+
+A continuación te detallo cómo se estructura cada una de estas funcionalidades y por qué es totalmente factible implementarlas:
+
+1. Arrastrar y soltar reservas en el calendario (Drag & Drop)
+En la interfaz visual del calendario (como la que se está construyendo en 
+
+Reservas.tsx
+):
+
+Interacción en el Frontend: El usuario hace clic en el bloque de una reserva y lo arrastra horizontalmente (para cambiar de fechas) o verticalmente (para reasignar de habitación).
+Procesamiento de Negocio:
+Al soltar la reserva (drag end / drop), el frontend captura la nueva fechaEntrada, fechaSalida y/o habitacionId.
+Se envía una petición HTTP (PUT /api/reservas/{id}) al backend.
+En 
+
+ReservasService.cs
+, el backend valida automáticamente las reglas de negocio:
+¿La nueva habitación/fecha tiene solapamiento con otra reserva activa?
+¿La habitación está bloqueada o en mantenimiento?
+Recálculo automático de noches totales e importe según tarifas.
+Si la validación es correcta, se persiste el cambio en la base de datos SQL Server y el calendario refleja el nuevo estado inmediatamente.
+Si hay algún conflicto (p. ej. habitación ocupada), la reserva vuelve suavemente a su posición original notificando al usuario del motivo.
+2. Configuración personalizada de disposición y tamaño de campos
+Es totalmente posible permitir que cada usuario adapte las vistas a sus necesidades:
+
+Redimensión y visibilidad de columnas: El usuario puede arrastrar los bordes de las columnas para ajustar su ancho, o usar un selector para ocultar/mostrar campos secundarios (ej. DNI, finalidad, tipo de huésped).
+Reordenación de campos: Posibilidad de arrastrar la cabecera de las columnas para cambiar el orden en que se muestran en listas o tablas.
+Persistencia de preferencias:
+Local (localStorage): Para guardar los anchos y orden de columnas en el navegador del usuario actual.
+Servidor (Servicio de Configuración): Almacenar en la base de datos a través de 
+
+ConfiguracionController.cs
+ y 
+
+ConfiguracionService.cs
+ la disposición personalizada de cada pantalla asociada al perfil del usuario, garantizando que conserve su diseño indistintamente del ordenador desde el que acceda.
+3. Reflejo directo y sincronización en tiempo real
+A diferencia de Excel (donde arrastrar celdas puede romper fórmulas, rangos con nombre o macros VBA), en la web:
+
+Integridad de datos garantizada: Las modificaciones por arrastre ejecutan los mismos servicios y validaciones de backend que el formulario manual.
+Sincronización multiusuario (Opcional mediante SignalR / WebSockets): Si un usuario traslada una reserva en su pantalla, los demás operadores conectados pueden ver el bloque moverse en tiempo real sin necesidad de recargar la página.
+Resumen de la Viabilidad
+Característica	Viabilidad	Nivel de Complejidad	Ventaja frente a Excel
+Arrastrar reservas (Drag & Drop)	100% Viable	Media	No rompe estructuras de datos ni celdas adyacentes; valida solapamientos en tiempo real.
+Ajuste de tamaño/ancho de campos	100% Viable	Baja	Guardado automático del diseño sin afectar al resto de usuarios.
+Reordenar/Ocultar campos en hojas	100% Viable	Baja / Media	Configuración por usuario o por rol sin modificar código subyacente.
+Reflejo directo en reservas activas	100% Viable	Baja	Actualización atómica en la base de datos SQL Server.
+Si deseas que comencemos a planificar o implementar la funcionalidad de Drag & Drop en el calendario o la persistencia de diseño de columnas por usuario, indícamelo y nos ponemos a ello.

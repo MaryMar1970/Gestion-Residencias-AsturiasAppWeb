@@ -7,9 +7,10 @@ public class Habitacion
     public Guid TipoHabitacionId { get; set; }
     public string Numero { get; set; } = string.Empty;       // "1", "OF.1", "Ap.2", "EST.1"
     public string? Nombre { get; set; }                       // Nombre descriptivo opcional
-    public int CapacidadPersonas { get; set; } = 1;          // Puede sobreescribir el del tipo
+    public string TipoCamaPrincipal { get; set; } = "IND";   // "IND" (Individual), "TWIN" / "DOB" (2 camas separadas), "MAT" (Doble Matrimonio)
+    public int CapacidadPersonas { get; set; } = 1;          // 1 a 6 pax
     public bool AdmiteSupletorias { get; set; } = false;
-    public int PlazasSupletorias { get; set; } = 0;
+    public int PlazasSupletorias { get; set; } = 0;           // Camas supletorias (SUP 1 pax c/u)
     public bool Activa { get; set; } = true;                  // false = oculta/bloqueada permanentemente
     public string? Notas { get; set; }
     public int Orden { get; set; } = 0;                       // Orden en el calendario
