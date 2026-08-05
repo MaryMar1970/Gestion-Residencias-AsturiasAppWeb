@@ -22,7 +22,7 @@ public class EvaluacionService(IResidenciaDbContext db, ILogger<EvaluacionServic
         { "destino|gc|activo", "1, 1, 3" },
         { "comisión|gc|activo", "1, 1, 4" },
         { "enfermedad|gc|retirado", "2, 8, 1" },
-        { "comisión|alumno|activo", "1, 2, 2" },
+        { "comisión|alumno gc|activo", "1, 2, 2" },
         { "comisión|militar en gc|activo", "1, 3, 2" },
         { "destino|militar en gc|activo", "1, 3, 2" },
         { "comisión|funcionario en gc|activo", "1, 4, 2" },
@@ -35,7 +35,7 @@ public class EvaluacionService(IResidenciaDbContext db, ILogger<EvaluacionServic
         { "otros|gc|asociación", "2, 1, 6" },
         { "otros|gc|activo", "2, 1, 7" },
         { "otros|gc|reserva activo", "2, 1, 8" },
-        { "otros|alumno|activo", "2, 2, 7" },
+        { "otros|alumno gc|activo", "2, 2, 7" },
         { "otros|gc|reserva", "2, 3, 7" },
         { "otros|militar en gc|activo", "2, 4, 7" },
         { "otros|funcionario en gc|activo", "2, 5, 7" },
@@ -52,6 +52,32 @@ public class EvaluacionService(IResidenciaDbContext db, ILogger<EvaluacionServic
     public static void InvalidarCacheMatriz()
     {
         _matrizCached = null;
+    }
+
+    private static string RemoveAccents(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+        var stringBuilder = new System.Text.StringBuilder(capacity: normalizedString.Length);
+
+        for (int i = 0; i < normalizedString.Length; i++)
+        {
+            char c = normalizedString[i];
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+    private static string NormalizeKey(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var clean = RemoveAccents(text).ToLowerInvariant();
+        return System.Text.RegularExpressions.Regex.Replace(clean, @"\s+", " ").Trim();
     }
 
     private Dictionary<string, string> GetMatrizEvaluacion()
@@ -91,19 +117,19 @@ public class EvaluacionService(IResidenciaDbContext db, ILogger<EvaluacionServic
         string empleoCat = "GC";
         if (e.Contains("alumno"))
         {
-            empleoCat = "Alumno";
+            empleoCat = "ALUMNO GC";
         }
         else if (e.Contains("funcionario"))
         {
-            empleoCat = "Funcionario en GC";
+            empleoCat = "FUNCIONARIO EN GC";
         }
         else if (e.Contains("militar en"))
         {
-            empleoCat = "Militar en GC";
+            empleoCat = "MILITAR EN GC";
         }
         else if (e.Contains("militar no") || e.Contains("militar"))
         {
-            empleoCat = "Militar no  GC";
+            empleoCat = "MILITAR NO GC";
         }
         else
         {
@@ -191,17 +217,20 @@ public class EvaluacionService(IResidenciaDbContext db, ILogger<EvaluacionServic
             situacionMapeada = "Activo";
         }
 
-        var clave = $"{finalidadMapeada.ToLower()}|{empleoCat.ToLower()}|{situacionMapeada.ToLower()}";
+        var targetKey = NormalizeKey($"{finalidadMapeada}|{empleoCat}|{situacionMapeada}");
 
         var matriz = GetMatrizEvaluacion();
 
-        if (matriz.TryGetValue(clave, out var eval))
+        foreach (var (k, v) in matriz)
         {
-            logger.LogDebug("Evaluación calculada para clave {Clave}: {Evaluacion}", clave, eval);
-            return (empleoCat, eval);
+            if (NormalizeKey(k) == targetKey)
+            {
+                logger.LogDebug("Evaluación calculada para clave {Clave} (normalizada: {TargetKey}): {Evaluacion}", k, targetKey, v);
+                return (empleoCat, v);
+            }
         }
 
-        logger.LogWarning("No se encontró coincidencia en la matriz para la clave: {Clave}", clave);
+        logger.LogWarning("No se encontró coincidencia en la matriz para la clave: {Clave} (normalizada: {TargetKey})", $"{finalidadMapeada}|{empleoCat}|{situacionMapeada}", targetKey);
         return (empleoCat, "(NO VÁLIDO)");
     }
 }

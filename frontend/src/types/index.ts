@@ -96,6 +96,11 @@ export type Reserva = {
   huespedDni?: string;
   huespedNombre?: string;
   huespedApellidos?: string;
+  huespedTelefono?: string;
+  huespedEmail?: string;
+  huespedSituacion?: string;
+  huespedRango?: string;
+  huespedEmpleoCategoria?: string;
   fechaEntrada: string;
   fechaSalida: string;
   totalNoches: number;
@@ -168,4 +173,4 @@ export type Tarifa = {
   activa: boolean;
 };
 
-export type Page = 'dashboard' | 'residencias' | 'alojamientos' | 'tarifas' | 'festivos' | 'calendario' | 'reservas' | 'huespedes' | 'facturas' | 'bloqueos';
+export type Page = 'dashboard' | 'residencias' | 'alojamientos' | 'tarifas' | 'festivos' | 'evaluacion' | 'calendario' | 'reservas' | 'huespedes' | 'facturas' | 'bloqueos';

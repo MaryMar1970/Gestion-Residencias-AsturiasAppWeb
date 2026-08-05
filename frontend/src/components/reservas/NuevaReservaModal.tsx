@@ -3,6 +3,7 @@ import { apiFetch } from '../../api';
 import { Residencia, Habitacion, Huesped, Tarifa } from '../../types';
 import { toDateStr, addDays, parseLocal } from '../../utils/dateUtils';
 import { validarYCorregirDNI } from '../../utils/dniUtils';
+import { toTitleCase, formatEmail } from '../../utils/textUtils';
 import { CustomDateTimePicker } from '../common/CustomDateTimePicker';
 
 export function NuevaReservaModal({
@@ -13,6 +14,16 @@ export function NuevaReservaModal({
   isSolicitud?: boolean;
   itemToEdit?: any;
 }) {
+
+  const normalizarEmpleo = (val?: string | null) => {
+    if (!val) return 'GC';
+    const v = val.trim().toUpperCase();
+    if (v.includes('ALUMNO')) return 'ALUMNO GC';
+    if (v.includes('FUNCIONARIO')) return 'FUNCIONARIO EN GC';
+    if (v.includes('MILITAR EN')) return 'MILITAR EN GC';
+    if (v.includes('MILITAR NO') || v.includes('MILITAR')) return 'MILITAR NO GC';
+    return 'GC';
+  };
 
   // 1. USESTATE HOOKS
   const [habitaciones, setHabitaciones] = useState<Habitacion[]>([]);
@@ -87,7 +98,8 @@ export function NuevaReservaModal({
     tarifaId: '',
     observaciones: '',
     finalidad: 'Otros',
-    empleo: 'Guardia',
+    empleo: normalizarEmpleo(itemToEdit?.empleo),
+    rango: itemToEdit?.huespedRango || itemToEdit?.rango || 'Guardia',
     situacion: 'Activo',
     resolucion: itemToEdit?.resolucion || 'SI',
     fechaSolicitud: getInitialFechaSolicitud()
@@ -279,7 +291,8 @@ export function NuevaReservaModal({
       tarifaId: itemToEdit.tarifaId || '',
       observaciones: itemToEdit.observaciones || '',
       finalidad: itemToEdit.finalidad || 'Otros',
-      empleo: itemToEdit.empleo || 'Guardia',
+      empleo: normalizarEmpleo(itemToEdit.empleo),
+      rango: itemToEdit.huespedRango || itemToEdit.rango || 'Guardia',
       situacion: itemToEdit.huespedSituacion || 'Activo',
       resolucion: itemToEdit.resolucion || 'SI',
       fechaSolicitud: itemToEdit.fechaSolicitud ? itemToEdit.fechaSolicitud.slice(0, 16) : getLocalDateTimeString()
@@ -297,6 +310,13 @@ export function NuevaReservaModal({
       apiFetch<Huesped>(`/api/huespedes/${itemToEdit.huespedId}`).then(h => {
         if (h) {
           setHuesped(h);
+          setF(p => ({
+            ...p,
+            empleo: normalizarEmpleo(itemToEdit.empleo || h.empleoCategoria),
+            rango: itemToEdit.huespedRango || h.empleo || 'Guardia',
+            situacion: itemToEdit.huespedSituacion || h.situacion || 'Activo',
+            finalidad: itemToEdit.finalidad || h.finalidad || 'Otros'
+          }));
           setHuespedForm({
             dni: h.dni || '',
             nombre: h.nombre || '',
@@ -372,7 +392,8 @@ export function NuevaReservaModal({
     if (h.enListaNegra) { alert(`⚠️ ATENCIÓN: Este huésped está en LISTA NEGRA.\nMotivo: ${h.motivoListaNegra}`); }
     setHuesped(h);
     set('huespedId', h.id);
-    if (h.empleo) set('empleo', h.empleo);
+    if (h.empleo) set('rango', h.empleo);
+    if (h.empleoCategoria) set('empleo', normalizarEmpleo(h.empleoCategoria));
     if (h.situacion) set('situacion', h.situacion);
     if (h.finalidad) set('finalidad', h.finalidad);
     if (h.familiaNumerosa) handleFamiliaNumerosaChange(h.familiaNumerosa);
@@ -579,29 +600,27 @@ export function NuevaReservaModal({
   const ejecutarGuardadoEdicion = async (reevaluarCandId: string | null = null, candNombre: string | null = null) => {
     setLoading(true);
     try {
-      let datosHuespedActualizados = false;
-
-      if (huesped && haCambiadoDatosHuesped) {
+      if (huesped) {
         await apiFetch(`/api/huespedes/${huesped.id}`, {
           method: 'PUT',
           body: JSON.stringify({
             dni: huesped.dni,
-            nombre: huespedForm.nombre.trim(),
-            apellidos: huespedForm.apellidos.trim(),
+            nombre: toTitleCase(huespedForm.nombre),
+            apellidos: toTitleCase(huespedForm.apellidos),
             telefono: huespedForm.telefono?.trim() || null,
-            email: huespedForm.email?.trim() || null,
-            direccion: huespedForm.direccion?.trim() || null,
+            email: formatEmail(huespedForm.email) || null,
+            direccion: toTitleCase(huespedForm.direccion) || null,
             codigoPostal: huespedForm.codigoPostal?.trim() || null,
-            municipio: huespedForm.municipio?.trim() || null,
-            provincia: huespedForm.provincia?.trim() || null,
-            empleo: f.empleo || huesped.empleo,
-            situacion: f.situacion || huesped.situacion,
-            finalidad: f.finalidad || huesped.finalidad,
-            familiaNumerosa: f.familiaNumerosa || huesped.familiaNumerosa,
+            municipio: toTitleCase(huespedForm.municipio) || null,
+            provincia: toTitleCase(huespedForm.provincia) || null,
+            empleo: f.rango || huesped.empleo || 'Guardia',
+            empleoCategoria: f.empleo || huesped.empleoCategoria || 'GC',
+            situacion: f.situacion || huesped.situacion || 'Activo',
+            finalidad: f.finalidad || huesped.finalidad || 'Otros',
+            familiaNumerosa: f.familiaNumerosa || huesped.familiaNumerosa || 'NO',
             tipoHuesped: huespedForm.tipoHuesped || huesped.tipoHuesped || 'Externo'
           })
         });
-        datosHuespedActualizados = true;
       }
 
       await apiFetch(`/api/reservas/${itemToEdit.id}`, {
@@ -623,6 +642,7 @@ export function NuevaReservaModal({
           formaPago: itemToEdit.formaPago || null,
           finalidad: f.finalidad,
           empleo: f.empleo,
+          rango: f.rango,
           situacion: f.situacion,
           resolucion: f.resolucion,
           habitacionId: selectedHabitacionIds[0] || f.habitacionId || itemToEdit.habitacionId || null,
@@ -633,8 +653,6 @@ export function NuevaReservaModal({
 
       if (candNombre) {
         alert(`Se ha registrado la RENUNCIA de la reserva y se ha asignado y reevaluado la solicitud a favor de: ${candNombre}`);
-      } else if (datosHuespedActualizados) {
-        alert('✓ Datos del huésped actualizados correctamente.');
       }
 
       onSaved();
@@ -670,7 +688,8 @@ export function NuevaReservaModal({
 
     if (!residenciaSeleccionadaId) camposFaltantes.push('RESIDENCIA');
     if (!f.fechaSolicitud?.trim()) camposFaltantes.push('FECHA / HORA SOLICITUD');
-    if (!f.empleo) camposFaltantes.push('EMPLEO / RANGO');
+    if (!f.empleo) camposFaltantes.push('EMPLEO');
+    if (!f.rango) camposFaltantes.push('RANGO');
     if (!f.situacion) camposFaltantes.push('SITUACIÓN');
     if (!f.finalidad) camposFaltantes.push('FINALIDAD / MOTIVO');
 
@@ -727,21 +746,22 @@ export function NuevaReservaModal({
           method: 'POST',
           body: JSON.stringify({
             dni: (huespedForm.dni || '').trim().toUpperCase(),
-            nombre: (huespedForm.nombre || '').trim(),
-            apellidos: (huespedForm.apellidos || '').trim(),
+            nombre: toTitleCase(huespedForm.nombre),
+            apellidos: toTitleCase(huespedForm.apellidos),
             telefono: huespedForm.telefono?.trim() || null,
-            email: huespedForm.email?.trim() || null,
-            direccion: huespedForm.direccion?.trim() || null,
+            email: formatEmail(huespedForm.email) || null,
+            direccion: toTitleCase(huespedForm.direccion) || null,
             codigoPostal: huespedForm.codigoPostal?.trim() || null,
-            municipio: huespedForm.municipio?.trim() || null,
-            provincia: huespedForm.provincia?.trim() || null,
+            municipio: toTitleCase(huespedForm.municipio) || null,
+            provincia: toTitleCase(huespedForm.provincia) || null,
             centroOrigen: huespedForm.centroOrigen?.trim() || null,
             departamento: huespedForm.departamento?.trim() || null,
             motivoListaNegra: huespedForm.motivoListaNegra?.trim() || null,
             notas: huespedForm.notas?.trim() || null,
             tipoHuesped: huespedForm.tipoHuesped || 'Externo',
             enListaNegra: !!huespedForm.enListaNegra,
-            empleo: f.empleo || null,
+            empleo: f.rango || null,
+            empleoCategoria: f.empleo || null,
             situacion: f.situacion || null,
             finalidad: f.finalidad || null,
             familiaNumerosa: f.familiaNumerosa || 'NO',
@@ -762,7 +782,8 @@ export function NuevaReservaModal({
             codigoPostal: huespedForm.codigoPostal?.trim() || null,
             municipio: huespedForm.municipio?.trim() || null,
             provincia: huespedForm.provincia?.trim() || null,
-            empleo: f.empleo || huesped.empleo,
+            empleo: f.rango || huesped.empleo,
+            empleoCategoria: f.empleo || huesped.empleoCategoria,
             situacion: f.situacion || huesped.situacion,
             finalidad: f.finalidad || huesped.finalidad,
             familiaNumerosa: f.familiaNumerosa || huesped.familiaNumerosa,
@@ -806,9 +827,13 @@ export function NuevaReservaModal({
   };
 
   const listaEmpleos = [
+    'GC', 'ALUMNO GC', 'FUNCIONARIO EN GC', 'MILITAR EN GC', 'MILITAR NO GC'
+  ];
+
+  const listaRangos = [
     'Guardia', 'Cabo', 'Cabo 1º', 'Cabo Mayor', 'Sargento', 'Sargento 1º', 'Brigada',
     'Subteniente', 'Suboficial Mayor', 'Alférez', 'Teniente', 'Capitán', 'Comandante',
-    'Tte. Coronel', 'Coronel', 'General B', 'General D', 'Funcionario', 'Estudiante', 'Investigador', 'Externo', 'Otro'
+    'Tte. Coronel', 'Coronel', 'General B', 'General D', 'Funcionario', 'Otro'
   ];
 
   const listaSituaciones = [
@@ -1016,13 +1041,21 @@ export function NuevaReservaModal({
                 )}
               </div>
 
-              {/* FILA: EMPLEO | SITUACIÓN | FINALIDAD */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 10 }}>
+              {/* FILA: EMPLEO | RANGO | SITUACIÓN | FINALIDAD */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 1.2fr', gap: 10 }}>
                 <div className="form-group">
-                  <label>EMPLEO / RANGO *</label>
+                  <label>EMPLEO *</label>
                   <select value={f.empleo} onChange={e => set('empleo', e.target.value)} required>
                     {listaEmpleos.map(emp => (
                       <option key={emp} value={emp}>{emp}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>RANGO *</label>
+                  <select value={f.rango} onChange={e => set('rango', e.target.value)} required>
+                    {listaRangos.map(r => (
+                      <option key={r} value={r}>{r}</option>
                     ))}
                   </select>
                 </div>
@@ -1120,11 +1153,11 @@ export function NuevaReservaModal({
                     </div>
                     <div className="form-group">
                       <label>Nombre *</label>
-                      <input value={huespedForm.nombre} onChange={e => setH('nombre', e.target.value)} placeholder="Nombre" required={!huesped} />
+                      <input value={huespedForm.nombre} onChange={e => setH('nombre', e.target.value)} onBlur={e => setH('nombre', toTitleCase(e.target.value))} spellCheck={true} lang="es" placeholder="Nombre" required={!huesped} />
                     </div>
                     <div className="form-group">
                       <label>Apellidos *</label>
-                      <input value={huespedForm.apellidos} onChange={e => setH('apellidos', e.target.value)} placeholder="Apellidos" required={!huesped} />
+                      <input value={huespedForm.apellidos} onChange={e => setH('apellidos', e.target.value)} onBlur={e => setH('apellidos', toTitleCase(e.target.value))} spellCheck={true} lang="es" placeholder="Apellidos" required={!huesped} />
                     </div>
                     <div className="form-group">
                       <label>DTO. F.N. *</label>
@@ -1140,7 +1173,7 @@ export function NuevaReservaModal({
                   <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 80px 1.5fr 1.2fr', gap: 10 }}>
                     <div className="form-group">
                       <label>DIRECCIÓN *</label>
-                      <input value={huespedForm.direccion} onChange={e => setH('direccion', e.target.value)} placeholder="Calle / Avda..." required />
+                      <input value={huespedForm.direccion} onChange={e => setH('direccion', e.target.value)} onBlur={e => setH('direccion', toTitleCase(e.target.value))} spellCheck={true} lang="es" placeholder="Calle / Avda..." required />
                     </div>
                     <div className="form-group" style={{ position: 'relative' }}>
                       <label>C. Postal *</label>
@@ -1148,11 +1181,11 @@ export function NuevaReservaModal({
                     </div>
                     <div className="form-group" style={{ position: 'relative' }}>
                       <label>Población *</label>
-                      <input value={huespedForm.municipio} onChange={e => handleMunicipioChange(e.target.value)} required />
+                      <input value={huespedForm.municipio} onChange={e => handleMunicipioChange(e.target.value)} onBlur={e => setH('municipio', toTitleCase(e.target.value))} spellCheck={true} lang="es" required />
                     </div>
                     <div className="form-group">
                       <label>Provincia *</label>
-                      <input value={huespedForm.provincia} onChange={e => setH('provincia', e.target.value)} required />
+                      <input value={huespedForm.provincia} onChange={e => setH('provincia', e.target.value)} onBlur={e => setH('provincia', toTitleCase(e.target.value))} spellCheck={true} lang="es" required />
                     </div>
                   </div>
 
@@ -1164,7 +1197,7 @@ export function NuevaReservaModal({
                     </div>
                     <div className="form-group">
                       <label>EMAIL</label>
-                      <input type="email" value={huespedForm.email} onChange={e => setH('email', e.target.value)} placeholder="ejemplo@correo.es" />
+                      <input type="email" value={huespedForm.email} onChange={e => setH('email', e.target.value)} onBlur={e => setH('email', formatEmail(e.target.value))} placeholder="ejemplo@correo.es" />
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 // ─── Algoritmo de evaluación (matriz de prioridades dinámica) ──────────────────
 import { apiFetch } from '../api';
+import { normalizeKey } from './textUtils';
 
 let cachedMatriz: Record<string, string> | null = null;
 
@@ -26,11 +27,11 @@ export function calcularEvaluacion(
   situacion: string,
   customMatriz?: Record<string, string>
 ): string {
-  const f = (finalidad || 'Otros').trim().toLowerCase();
+  const f = normalizeKey(finalidad || 'Otros');
   let finalidadMapeada = 'Otros';
-  if (f.includes('comision no') || f.includes('comisión no') || f.includes('indem')) {
+  if (f.includes('comision no') || f.includes('indem')) {
     finalidadMapeada = 'Comisión NO indem.';
-  } else if (f.includes('comision') || f.includes('comisión')) {
+  } else if (f.includes('comision')) {
     finalidadMapeada = 'Comisión';
   } else if (f.includes('destino')) {
     finalidadMapeada = 'Destino';
@@ -44,19 +45,19 @@ export function calcularEvaluacion(
     finalidadMapeada = 'Máx. Estancia';
   }
 
-  const e = (empleoCategoria || 'GC').trim().toLowerCase();
+  const e = normalizeKey(empleoCategoria || 'GC');
   let empleoCat = 'GC';
   if (e.includes('alumno')) {
-    empleoCat = 'Alumno';
+    empleoCat = 'ALUMNO GC';
   } else if (e.includes('funcionario')) {
-    empleoCat = 'Funcionario en GC';
+    empleoCat = 'FUNCIONARIO EN GC';
   } else if (e.includes('militar en')) {
-    empleoCat = 'Militar en GC';
+    empleoCat = 'MILITAR EN GC';
   } else if (e.includes('militar no') || e.includes('militar')) {
-    empleoCat = 'Militar no  GC';
+    empleoCat = 'MILITAR NO GC';
   }
 
-  const s = (situacion || 'Activo').trim().toLowerCase();
+  const s = normalizeKey(situacion || 'Activo');
   let situacionMapeada = 'Activo';
   if (s.includes('viogen')) {
     situacionMapeada = 'Viogen';
@@ -74,15 +75,21 @@ export function calcularEvaluacion(
     situacionMapeada = 'Retirado';
   } else if (s.includes('viuda')) {
     situacionMapeada = 'Viuda';
-  } else if (s.includes('huerfano') || s.includes('huérfano')) {
+  } else if (s.includes('huerfano')) {
     situacionMapeada = 'Huerfano';
   }
 
-  const clave = `${finalidadMapeada.toLowerCase()}|${empleoCat.toLowerCase()}|${situacionMapeada.toLowerCase()}`;
+  const targetKey = normalizeKey(`${finalidadMapeada}|${empleoCat}|${situacionMapeada}`);
 
   const matrizActiva = customMatriz || cachedMatriz || matrizPorDefecto;
 
-  return matrizActiva[clave] || '(NO VÁLIDO)';
+  for (const [k, v] of Object.entries(matrizActiva)) {
+    if (normalizeKey(k) === targetKey) {
+      return v;
+    }
+  }
+
+  return '(NO VÁLIDO)';
 }
 
 export const matrizPorDefecto: Record<string, string> = {
@@ -92,7 +99,7 @@ export const matrizPorDefecto: Record<string, string> = {
   'destino|gc|activo': '1, 1, 3',
   'comisión|gc|activo': '1, 1, 4',
   'enfermedad|gc|retirado': '2, 8, 1',
-  'comisión|alumno|activo': '1, 2, 2',
+  'comisión|alumno gc|activo': '1, 2, 2',
   'comisión|militar en gc|activo': '1, 3, 2',
   'destino|militar en gc|activo': '1, 3, 2',
   'comisión|funcionario en gc|activo': '1, 4, 2',
@@ -105,7 +112,7 @@ export const matrizPorDefecto: Record<string, string> = {
   'otros|gc|asociación': '2, 1, 6',
   'otros|gc|activo': '2, 1, 7',
   'otros|gc|reserva activo': '2, 1, 8',
-  'otros|alumno|activo': '2, 2, 7',
+  'otros|alumno gc|activo': '2, 2, 7',
   'otros|gc|reserva': '2, 3, 7',
   'otros|militar en gc|activo': '2, 4, 7',
   'otros|funcionario en gc|activo': '2, 5, 7',

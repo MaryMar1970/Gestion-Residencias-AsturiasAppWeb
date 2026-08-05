@@ -26,6 +26,7 @@ export function Sidebar({ page, setPage, user, onLogout }: { page: Page; setPage
         {navItem('bloqueos', '🔒', 'Bloqueos')}
         {navItem('tarifas', '💰', 'Tarifas y precios')}
         {navItem('festivos', '🎉', 'Festivos')}
+        {navItem('evaluacion', '⚖️', 'Evaluación solicitudes')}
       </nav>
       <div className="sidebar-footer">
         <div className="user-info">

@@ -22,6 +22,7 @@ import { ResidenciasPage } from './components/configuracion/ResidenciasPage';
 import { AlojamientosPage } from './components/configuracion/AlojamientosPage';
 import { TarifasPage } from './components/configuracion/TarifasPage';
 import { FestivosPage } from './components/configuracion/FestivosPage';
+import { EvaluacionSolicitudesPage } from './components/configuracion/EvaluacionSolicitudesPage';
 
 // ─── Calendario Page (wrapper con modal nueva reserva) ─────────────────────────
 function CalendarioPage() {
@@ -70,6 +71,7 @@ const PAGE_TITLES: Record<Page, { title: string; sub: string }> = {
   alojamientos: { title: 'Alojamientos',           sub: 'Gestión de tipos de habitación y habitaciones por Residencia' },
   tarifas:      { title: 'Tarifas y precios',       sub: 'Configuración de precios e IVA' },
   festivos:     { title: 'Festivos',                sub: 'Calendario de días no laborables' },
+  evaluacion:   { title: 'Evaluación solicitudes',  sub: 'Matriz de prioridades y ponderación de solicitudes' },
 };
 
 // ─── App Root ───────────────────────────────────────────────────────────────────
@@ -142,6 +144,7 @@ export default function App() {
           {page === 'alojamientos' && <AlojamientosPage />}
           {page === 'tarifas'      && <TarifasPage />}
           {page === 'festivos'     && <FestivosPage />}
+          {page === 'evaluacion'   && <EvaluacionSolicitudesPage />}
           {page === 'bloqueos'     && <BloqueosPage />}
         </div>
       </div>

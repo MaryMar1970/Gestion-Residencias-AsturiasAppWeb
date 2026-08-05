@@ -38,6 +38,7 @@ public class ReservaService(IResidenciaDbContext db, IEvaluacionService evalSvc,
             tieneAlojamientoAdjudicado ? (r.Habitacion?.TipoHabitacion?.Nombre ?? null) : null,
             r.HuespedId, r.Huesped is null ? null : $"{r.Huesped.Nombre} {r.Huesped.Apellidos}", r.Huesped?.Dni, r.Huesped?.Nombre, r.Huesped?.Apellidos,
             r.Huesped?.Telefono, r.Huesped?.Email,
+            r.Huesped?.Situacion, r.Huesped?.Empleo, r.Huesped?.EmpleoCategoria,
             r.FechaEntrada.ToString("yyyy-MM-dd"), r.FechaSalida.ToString("yyyy-MM-dd"),
             r.TotalNoches, r.NumPersonas, r.NumNinos, r.CamasSupletorias,
             r.FamiliaNumerosa ?? "NO", r.PorcentajeDescuento,
@@ -383,8 +384,10 @@ public class ReservaService(IResidenciaDbContext db, IEvaluacionService evalSvc,
 
         if (huesped is not null)
         {
-            if (!string.IsNullOrWhiteSpace(dto.Empleo)) huesped.Empleo = dto.Empleo;
+            if (!string.IsNullOrWhiteSpace(dto.Rango)) huesped.Empleo = dto.Rango;
+            if (!string.IsNullOrWhiteSpace(dto.Empleo)) huesped.EmpleoCategoria = dto.Empleo;
             if (!string.IsNullOrWhiteSpace(dto.Situacion)) huesped.Situacion = dto.Situacion;
+            if (!string.IsNullOrWhiteSpace(dto.Finalidad)) huesped.Finalidad = dto.Finalidad;
         }
 
         var (empleoCat, eval) = evalSvc.EvaluarReserva(huesped, dto.Finalidad, dto.Empleo, dto.Situacion);

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch, formatFechaDisplay } from '../../api';
 import { NuevaReservaModal } from '../reservas/NuevaReservaModal';
-import { EditarSolicitudModal } from './EditarSolicitudModal';
 
 export function HuespedesPage() {
   const [solicitudes, setSolicitudes] = useState<any[]>([]);
@@ -256,8 +255,9 @@ export function HuespedesPage() {
       )}
 
       {editando && (
-        <EditarSolicitudModal
-          reserva={editando}
+        <NuevaReservaModal
+          itemToEdit={editando}
+          isSolicitud={true}
           onSaved={() => { setEditando(null); setStatusMsg('Solicitud actualizada correctamente.'); void cargar(); }}
           onCancel={() => setEditando(null)}
         />

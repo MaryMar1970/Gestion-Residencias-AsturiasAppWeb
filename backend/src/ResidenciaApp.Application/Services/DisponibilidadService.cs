@@ -29,6 +29,7 @@ public class DisponibilidadService(IResidenciaDbContext db, ILogger<Disponibilid
             tieneAlojamientoAdjudicado ? (r.Habitacion?.TipoHabitacion?.Nombre ?? null) : null,
             r.HuespedId, r.Huesped is null ? null : $"{r.Huesped.Nombre} {r.Huesped.Apellidos}", r.Huesped?.Dni, r.Huesped?.Nombre, r.Huesped?.Apellidos,
             r.Huesped?.Telefono, r.Huesped?.Email,
+            r.Huesped?.Situacion, r.Huesped?.Empleo, r.Huesped?.EmpleoCategoria,
             r.FechaEntrada.ToString("yyyy-MM-dd"), r.FechaSalida.ToString("yyyy-MM-dd"),
             r.TotalNoches, r.NumPersonas, r.NumNinos, r.CamasSupletorias,
             r.FamiliaNumerosa ?? "NO", r.PorcentajeDescuento,
