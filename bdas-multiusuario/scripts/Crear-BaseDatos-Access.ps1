@@ -2,14 +2,14 @@
 # Script: Crear-BaseDatos-Access.ps1
 # Propósito: Crea la base de datos Microsoft Access (Residencia_BE.accdb)
 #            en H:\ResidenciaBD\ con TODAS las tablas necesarias para la
-#            solución puente multiusuario del BDAS v16.5.5.
+#            solución puente multiusuario del BDAS v16.5.5 (hasta 15 operadores).
 #
 # Tablas creadas:
 #   - Ordenes (unifica RESIDENCIA GIJÓN + SOTO + OVIEDO)
 #   - ContadorFacturas (numeración atómica de facturas por residencia)
 #   - LogActividad (reemplaza hoja LOG)
 #   - ListaNegra (reemplaza hoja LISTA NEGRA)
-#   - Usuarios (reemplaza hoja USUARIOS, opcional)
+#   - Usuarios (gestión de operadores y residencias asignadas)
 #
 # Uso:
 #   powershell -ExecutionPolicy Bypass -File "H:\ResidenciaApp\scripts\Crear-BaseDatos-Access.ps1" -StartingNumOrden 1541
@@ -30,7 +30,7 @@ $ErrorActionPreference = "Stop"
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host "  BDAS — Inicializador de Base de Datos Access (H:\)           " -ForegroundColor Cyan
-Write-Host "  Solución puente multiusuario para 6 operadores               " -ForegroundColor Cyan
+Write-Host "  Solución puente multiusuario para hasta 15 operadores        " -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -211,10 +211,44 @@ CREATE TABLE ListaNegra (
     $cn.Execute("CREATE UNIQUE INDEX idx_LN_DNI ON ListaNegra (DNI);")
     Write-Host "[OK] Tabla 'ListaNegra' creada." -ForegroundColor Green
 
-    # NOTA: La tabla Usuarios NO se crea en Access.
-    # Los operadores del sistema (recepcionistas/admins) varían con poca frecuencia,
-    # por lo que la hoja USUARIOS se mantiene en el Excel local de cada copia.
-    # Si se da de alta/baja un operador, se actualiza la plantilla maestra.
+    # =========================================================================
+    # TABLA: Usuarios
+    # Gestión de operadores y sus residencias asignadas.
+    # Hasta 15 usuarios simultáneos, cada uno asignado a 1-3 residencias.
+    # Login manual con usuario + contraseña (hash SHA-256).
+    # =========================================================================
+    Write-Host "[PROCESANDO] Creando tabla Usuarios..." -ForegroundColor Cyan
+
+    $sqlUsuarios = @"
+CREATE TABLE Usuarios (
+    Id AUTOINCREMENT PRIMARY KEY,
+    NombreUsuario VARCHAR(50) NOT NULL,
+    Clave VARCHAR(128) NOT NULL,
+    NombreCompleto VARCHAR(100),
+    Residencias VARCHAR(60) NOT NULL,
+    Rol VARCHAR(20) DEFAULT 'OPERADOR',
+    Activo BIT NOT NULL DEFAULT True,
+    FechaAlta DATETIME
+);
+"@
+    $cn.Execute($sqlUsuarios)
+    $cn.Execute("CREATE UNIQUE INDEX idx_Usr_NombreUsuario ON Usuarios (NombreUsuario);")
+    Write-Host "[OK] Tabla 'Usuarios' creada." -ForegroundColor Green
+
+    # Función para generar hash SHA-256 (misma lógica que en VBA para compatibilidad)
+    function Get-SHA256Hash([string]$text) {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
+        $hash = $sha256.ComputeHash($bytes)
+        return ($hash | ForEach-Object { $_.ToString("x2") }) -join ""
+    }
+
+    # Insertar un usuario administrador de ejemplo con clave "admin" (CAMBIAR tras despliegue)
+    $adminUser = "admin"
+    $adminClave = Get-SHA256Hash "admin"
+    $cn.Execute("INSERT INTO Usuarios (NombreUsuario, Clave, NombreCompleto, Residencias, Rol, Activo, FechaAlta) VALUES ('$adminUser', '$adminClave', 'Administrador', 'GIJON,SOTO,OVIEDO', 'ADMIN', True, Now());")
+    Write-Host "[OK] Usuario administrador '$adminUser' creado (clave: admin — CAMBIAR)." -ForegroundColor Green
+    Write-Host "     Hash SHA-256: $adminClave" -ForegroundColor DarkGray
 
     # Cerrar conexión
     $cn.Close()
@@ -242,7 +276,7 @@ Write-Host "  BASE DE DATOS CREADA CON ÉXITO                               " -F
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Ubicación:        $dbPath" -ForegroundColor White
-Write-Host "  Tablas creadas:   Ordenes, ContadorFacturas, LogActividad, ListaNegra" -ForegroundColor White
+Write-Host "  Tablas creadas:   Ordenes, ContadorFacturas, LogActividad, ListaNegra, Usuarios" -ForegroundColor White
 Write-Host "  NumOrden desde:   $StartingNumOrden" -ForegroundColor White
 Write-Host "  Facturas desde:   GIJ=$UltimaFacturaGijon SOT=$UltimaFacturaSoto OVI=$UltimaFacturaOviedo" -ForegroundColor White
 Write-Host "  Ejercicio:        $Ejercicio" -ForegroundColor White

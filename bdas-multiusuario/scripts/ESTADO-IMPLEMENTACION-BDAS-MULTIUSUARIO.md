@@ -1,18 +1,20 @@
 # 📋 Estado de Implementación: BDAS Multiusuario (Excel Front-End + Access Back-End en H:\)
 
-> **Última actualización:** 2026-08-10 00:26
-> **Estado global:** Fase de infraestructura COMPLETADA — Pendiente ejecución por fases
+> **Última actualización:** 2026-08-10 00:50
+> **Estado global:** Infraestructura V2 COMPLETADA — Login manual + Archivo único compartido
 
 ---
 
 ## 🎯 Objetivo del Proyecto
 
-Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un sistema **multiusuario para 6 operadores simultáneos**, usando:
+Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un sistema **multiusuario para hasta 15 operadores simultáneos (máx. 5 por residencia)**, usando:
 
-- **Excel** como Front-End visual (cada operador tiene su copia local en el escritorio)
-- **Microsoft Access** (`H:\ResidenciaBD\Residencia_BE.accdb`) como Back-End compartido en la unidad de red `H:\`
+- **Excel** como Front-End visual (un único `.xlsm` compartido en `H:\ResidenciaBD\`)
+- **Microsoft Access** (`H:\ResidenciaBD\Residencia_BE.accdb`) como Back-End compartido
 - **ADO (ActiveX Data Objects)** como puente de conexión entre VBA y Access
-- **Patrón de doble escritura:** los datos se graban en Access (fuente de verdad) Y en la hoja local (caché visual para macros de calendario/impresión)
+- **Login manual** con usuario/contraseña (hash SHA-256) contra tabla Usuarios de Access
+- **Selector de residencia** al arranque (cada usuario puede estar asignado a 1-3 residencias)
+- **Sin guardar el .xlsm**: Access es la única fuente de verdad, las celdas son caché visual en memoria
 
 ---
 
@@ -20,12 +22,15 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
 
 | Archivo | Ubicación | Descripción |
 |---------|-----------|-------------|
-| `Crear-BaseDatos-Access.ps1` | `H:\ResidenciaApp\bdas-multiusuario\scripts\` | Script PowerShell que crea la BD Access con tablas `Ordenes`, `ContadorFacturas`, `LogActividad`, `ListaNegra` e índices |
-| `modDatabase.bas` | `H:\ResidenciaApp\bdas-multiusuario\scripts\` | Módulo VBA (708 líneas) — Capa completa de acceso a datos ADO: inserción atómica, sincronización Access→Excel, búsquedas, lista negra, log, facturación, conexiones de vida corta |
-| `modMigracion.bas` | `H:\ResidenciaApp\bdas-multiusuario\scripts\` | Módulo VBA de migración de datos históricos de hojas Excel a Access (ejecución única) |
-| `Guia-Integracion-VBA.md` | `H:\ResidenciaApp\bdas-multiusuario\scripts\` | Guía paso a paso: crear BD, importar módulo, adaptar macros, desplegar a 6 PCs |
-| `Guia-Modificacion-Modulos-VBA.md` | `H:\ResidenciaApp\bdas-multiusuario\scripts\` | Guía detallada de los 15 módulos VBA existentes a adaptar, con código antes/después |
-| `create-database.sql` | `H:\ResidenciaApp\bdas-multiusuario\scripts\` | Definición SQL de las tablas (referencia) |
+| `Crear-BaseDatos-Access.ps1` | `bdas-multiusuario/scripts/` | Script PowerShell — crea BD Access con 5 tablas: `Ordenes`, `ContadorFacturas`, `LogActividad`, `ListaNegra`, `Usuarios` (con hash SHA-256) |
+| `modDatabase.bas` | `bdas-multiusuario/scripts/` | Módulo VBA — Login manual, hash SHA-256, multi-residencia, CRUD, sincronización, gestión usuarios |
+| `modMigracion.bas` | `bdas-multiusuario/scripts/` | Módulo VBA de migración de datos históricos (ejecución única) |
+| `frmLogin.frm` | `bdas-multiusuario/scripts/` | UserForm de login manual (usuario + contraseña) |
+| `frmSelectorResidencia.frm` | `bdas-multiusuario/scripts/` | UserForm selector de residencia al arranque |
+| `ThisWorkbook_Events.bas` | `bdas-multiusuario/scripts/` | Eventos Workbook_Open (login+sync) y BeforeClose (no guardar) |
+| `Guia-Integracion-VBA.md` | `bdas-multiusuario/scripts/` | Guía paso a paso de integración |
+| `Guia-Modificacion-Modulos-VBA.md` | `bdas-multiusuario/scripts/` | Guía de los 15 módulos VBA a adaptar |
+| `create-database.sql` | `bdas-multiusuario/scripts/` | Definición SQL de las tablas (referencia) |
 
 ---
 
@@ -36,10 +41,15 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
   - `-StartingNumOrden` → el siguiente Nº Orden libre (revisar último usado en el Excel)
   - `-UltimaFacturaGijon`, `-UltimaFacturaSoto`, `-UltimaFacturaOviedo` → últimos nº de factura usados
 - [ ] Verificar que se creó `H:\ResidenciaBD\Residencia_BE.accdb`
+- [ ] Dar de alta a los usuarios reales en la tabla `Usuarios` (con sus residencias y contraseñas)
 
 ### Fase 2: Importar módulos VBA en el Excel BDAS
-- [ ] Abrir el Excel maestro → ALT+F11 → Importar `modDatabase.bas`
+- [ ] Abrir el Excel maestro → ALT+F11
+- [ ] Importar `modDatabase.bas`
 - [ ] Importar `modMigracion.bas`
+- [ ] Crear UserForm `frmLogin` (siguiendo instrucciones en `frmLogin.frm`)
+- [ ] Crear UserForm `frmSelectorResidencia` (siguiendo instrucciones en `frmSelectorResidencia.frm`)
+- [ ] Pegar código de `ThisWorkbook_Events.bas` en ThisWorkbook
 
 ### Fase 3: Migración de datos históricos
 - [ ] Ejecutar `modMigracion.MigrarTodasLasResidencias()` desde el editor VBA (F5)
@@ -47,62 +57,74 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
 - [ ] Los registros se migran de las hojas RESIDENCIA GIJÓN/SOTO/OVIEDO + LISTA NEGRA + LOG
 
 ### Fase 4: Adaptar los 15 módulos VBA existentes (según Guia-Modificacion-Modulos-VBA.md)
-Los módulos a modificar con el patrón de doble escritura son:
+Los módulos a modificar (ya NO doble escritura, solo Access + refrescar caché):
 
 | # | Módulo | Tipo de cambio | Complejidad |
 |---|--------|---------------|-------------|
-| 1 | `FechasPeticion.bas` | Sustituir bloque de grabación | ⭐⭐ Media |
-| 2 | `EvitarDuplicidadSolicitudesGyS.bas` | Sustituir bucle For por consulta SQL | ⭐ Baja |
-| 3 | `AsignarNumFactura.bas` | Sustituir función de bloques por contador atómico | ⭐⭐ Media |
-| 4 | `FacturacionMesGIJON.bas` | Añadir línea de UPDATE tras escritura en celda | ⭐ Baja |
+| 1 | `FechasPeticion.bas` | Solo `InsertarOrdenAtomica()` + `RefrescarCacheVisual()` | ⭐⭐ Media |
+| 2 | `EvitarDuplicidadSolicitudesGyS.bas` | Consulta SQL (sin cambios del plan original) | ⭐ Baja |
+| 3 | `AsignarNumFactura.bas` | Contador atómico (sin cambios) | ⭐⭐ Media |
+| 4 | `FacturacionMesGIJON.bas` | Solo `ActualizarOrden()` + `RefrescarCacheVisual()` | ⭐ Baja |
 | 5 | `FacturacionMesOVIEDO.bas` | Ídem | ⭐ Baja |
 | 6 | `FacturacionMesSOTO.bas` | Ídem | ⭐ Baja |
-| 7 | `MarcarSiPagadosEnResidencia.bas` | Añadir línea de UPDATE | ⭐ Baja |
-| 8 | `ModuloCalendarioGijon.bas` | Añadir 1 línea de sincronización al inicio | ⭐ Baja |
+| 7 | `MarcarSiPagadosEnResidencia.bas` | Solo `ActualizarOrden()` + `RefrescarCacheVisual()` | ⭐ Baja |
+| 8 | `ModuloCalendarioGijon.bas` | Sin cambios (ya sincroniza desde Access) | ⭐ Baja |
 | 9 | `ModuloCalendarioOviedo.bas` | Ídem | ⭐ Baja |
 | 10 | `ModuloCalendarioSoto.bas` | Ídem | ⭐ Baja |
-| 11 | `BusquedaDNIResidencias.bas` | Sustituir Find por consulta SQL | ⭐ Baja |
+| 11 | `BusquedaDNIResidencias.bas` | Consulta SQL (sin cambios) | ⭐ Baja |
 | 12 | `BusquedaOrdenNombreFactura.bas` | Ídem | ⭐ Baja |
-| 13 | `ModuloLOG.bas` | Sustituir 4 líneas por 1 | ⭐ Baja |
-| 14 | `ModListaNegra.bas` | Sustituir Find por consulta SQL | ⭐ Baja |
-| 15 | `ReevaluacionSolicitudes.bas` | Añadir sincronización + UPDATE en bucle | ⭐⭐ Media |
-
-Además:
-- [ ] Añadir eventos `Worksheet_Change` con propagación a Access (módulo 11 de la guía)
-- [ ] Modificar `Workbook_Open` para sincronización al arranque (módulo 12 de la guía)
+| 13 | `ModuloLOG.bas` | `InsertarLog()` (sin cambios) | ⭐ Baja |
+| 14 | `ModListaNegra.bas` | Consulta SQL (sin cambios) | ⭐ Baja |
+| 15 | `ReevaluacionSolicitudes.bas` | Solo `ActualizarOrden()` en bucle + `RefrescarCacheVisual()` | ⭐⭐ Media |
 
 ### Fase 5: Pruebas y despliegue
-- [ ] Probar con 2 copias de Excel abiertas simultáneamente contra la misma BD
-- [ ] Verificar que las inserciones no generan duplicados de Nº Orden
-- [ ] Verificar sincronización de calendario entre operadores
-- [ ] Desplegar a los 6 PCs de producción
+- [ ] Probar con 2 PCs abriendo el .xlsm simultáneamente
+- [ ] Verificar login manual + selector de residencia
+- [ ] Verificar que NO pide guardar al cerrar
+- [ ] Verificar que inserciones de un usuario son visibles tras refrescar en otro
+- [ ] Verificar que no hay duplicados de Nº Orden
+- [ ] Copiar `BDAS_v16.5.5.xlsm` a `H:\ResidenciaBD\`
+- [ ] Crear accesos directos en los 15 PCs
 
 ---
 
 ## 🏗️ Arquitectura de la solución
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    UNIDAD H:\ (RED)                     │
-│                                                         │
-│  H:\ResidenciaBD\Residencia_BE.accdb                    │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  Ordenes (NumOrden AUTOINCREMENT)               │    │
-│  │  ContadorFacturas (por residencia + ejercicio)  │    │
-│  │  LogActividad                                    │    │
-│  │  ListaNegra                                      │    │
-│  └─────────────────────────────────────────────────┘    │
-│                         ▲                               │
-│                    ADO / OLEDB                           │
-│                    (vida corta)                          │
-└─────────────────────────────────────────────────────────┘
-          ▲         ▲         ▲         ▲
-          │         │         │         │
-     ┌────┴──┐ ┌───┴───┐ ┌───┴───┐ ┌───┴───┐
-     │ PC #1 │ │ PC #2 │ │ PC #3 │ │ PC #4 │  ... (hasta 6)
-     │ Excel │ │ Excel │ │ Excel │ │ Excel │
-     │ local │ │ local │ │ local │ │ local │
-     └───────┘ └───────┘ └───────┘ └───────┘
+  ┌─────────────────────────────────────────────────────────────┐
+  │                     H:\ResidenciaBD\                        │
+  │                                                             │
+  │   BDAS_v16.5.5.xlsm ◄── 15 usuarios abren este archivo     │
+  │   (UI / Formularios / VBA)   (cada uno en su instancia      │
+  │   NO se guarda nunca          de Excel, en memoria)         │
+  │        │                                                    │
+  │        │ ADO / OLEDB (conexiones de vida corta)             │
+  │        ▼                                                    │
+  │   Residencia_BE.accdb ◄── FUENTE DE VERDAD                 │
+  │   ┌─────────────────────────────────────────────┐           │
+  │   │  Ordenes          (solicitudes/reservas)    │           │
+  │   │  ContadorFacturas (numeración atómica)      │           │
+  │   │  LogActividad     (auditoría)               │           │
+  │   │  ListaNegra       (DNIs vetados)            │           │
+  │   │  Usuarios         (login + residencias)     │           │
+  │   └─────────────────────────────────────────────┘           │
+  └─────────────────────────────────────────────────────────────┘
+           ▲         ▲         ▲              ▲
+           │         │         │              │
+      ┌────┴──┐ ┌───┴───┐ ┌───┴───┐    ┌─────┴─────┐
+      │ PC #1 │ │ PC #2 │ │ PC #3 │ ...│  PC #15   │
+      │ Excel │ │ Excel │ │ Excel │    │  Excel    │
+      │(memor)│ │(memor)│ │(memor)│    │ (memor)   │
+      └───────┘ └───────┘ └───────┘    └───────────┘
+```
+
+---
+
+## 🔄 Flujo de arranque
+
+```
+Abrir .xlsm → Comprobar BD → frmLogin → Validar credenciales
+    → Selector residencia (si >1) → Sincronizar Access→Excel → Listo
 ```
 
 ---

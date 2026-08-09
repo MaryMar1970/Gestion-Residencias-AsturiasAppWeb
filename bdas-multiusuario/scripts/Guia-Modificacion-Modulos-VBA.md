@@ -3,9 +3,10 @@
 Guía paso a paso para adaptar los 15 módulos VBA críticos del BDAS v16.5.5.
 Cada sección indica **qué buscar** en el código existente y **por qué sustituirlo**.
 
-> **REGLA DE ORO:** Cada módulo se modifica con el patrón de *doble escritura*:
-> los datos se graban en Access (fuente de verdad) **Y** en la hoja local (caché visual),
-> para que las macros de calendario, solapamientos e impresión sigan funcionando sin cambios.
+> **REGLA DE ORO:** Cada módulo se modifica para escribir **solo en Access** (fuente de verdad).
+> Después de cada escritura, se llama a `modDatabase.RefrescarCacheVisual` para actualizar
+> las celdas en memoria (caché visual para calendarios, solapamientos e impresión).
+> **NO se usa doble escritura** — Access es la única fuente de verdad.
 
 ---
 
@@ -13,8 +14,12 @@ Cada sección indica **qué buscar** en el código existente y **por qué sustit
 
 Antes de modificar cualquier módulo, importar en el proyecto VBA (ALT+F11 → Archivo → Importar):
 
-1. `H:\ResidenciaApp\scripts\modDatabase.bas` — Capa de acceso a datos
-2. `H:\ResidenciaApp\scripts\modMigracion.bas` — Migración inicial (se usará una vez)
+1. `H:\ResidenciaApp\bdas-multiusuario\scripts\modDatabase.bas` — Capa de acceso a datos + login
+2. `H:\ResidenciaApp\bdas-multiusuario\scripts\modMigracion.bas` — Migración inicial (se usará una vez)
+
+Además, crear los UserForms siguiendo las instrucciones en:
+3. `H:\ResidenciaApp\bdas-multiusuario\scripts\frmLogin.frm` — Login manual
+4. `H:\ResidenciaApp\bdas-multiusuario\scripts\frmSelectorResidencia.frm` — Selector de residencia
 
 ---
 
