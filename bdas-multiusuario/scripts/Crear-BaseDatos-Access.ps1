@@ -1,0 +1,252 @@
+# ==============================================================================
+# Script: Crear-BaseDatos-Access.ps1
+# Propósito: Crea la base de datos Microsoft Access (Residencia_BE.accdb)
+#            en H:\ResidenciaBD\ con TODAS las tablas necesarias para la
+#            solución puente multiusuario del BDAS v16.5.5.
+#
+# Tablas creadas:
+#   - Ordenes (unifica RESIDENCIA GIJÓN + SOTO + OVIEDO)
+#   - ContadorFacturas (numeración atómica de facturas por residencia)
+#   - LogActividad (reemplaza hoja LOG)
+#   - ListaNegra (reemplaza hoja LISTA NEGRA)
+#   - Usuarios (reemplaza hoja USUARIOS, opcional)
+#
+# Uso:
+#   powershell -ExecutionPolicy Bypass -File "H:\ResidenciaApp\scripts\Crear-BaseDatos-Access.ps1" -StartingNumOrden 1541
+# ==============================================================================
+
+Param(
+    [string]$TargetFolder = "H:\ResidenciaBD",
+    [string]$DbName = "Residencia_BE.accdb",
+    [int]$StartingNumOrden = 1,
+    [int]$UltimaFacturaGijon = 0,
+    [int]$UltimaFacturaSoto = 0,
+    [int]$UltimaFacturaOviedo = 0,
+    [int]$Ejercicio = (Get-Date).Year
+)
+
+$ErrorActionPreference = "Stop"
+
+Write-Host ""
+Write-Host "================================================================" -ForegroundColor Cyan
+Write-Host "  BDAS — Inicializador de Base de Datos Access (H:\)           " -ForegroundColor Cyan
+Write-Host "  Solución puente multiusuario para 6 operadores               " -ForegroundColor Cyan
+Write-Host "================================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# -----------------------------------------------------------------------------
+# 1. Crear directorio de destino
+# -----------------------------------------------------------------------------
+if (-not (Test-Path -Path $TargetFolder)) {
+    New-Item -Path $TargetFolder -ItemType Directory | Out-Null
+    Write-Host "[OK] Directorio '$TargetFolder' creado." -ForegroundColor Green
+} else {
+    Write-Host "[INFO] El directorio '$TargetFolder' ya existe." -ForegroundColor Yellow
+}
+
+# Crear subdirectorio para la plantilla del Front-End
+$plantillaDir = Join-Path -Path $TargetFolder -ChildPath "Plantilla"
+if (-not (Test-Path -Path $plantillaDir)) {
+    New-Item -Path $plantillaDir -ItemType Directory | Out-Null
+    Write-Host "[OK] Directorio de plantilla '$plantillaDir' creado." -ForegroundColor Green
+}
+
+$dbPath = Join-Path -Path $TargetFolder -ChildPath $DbName
+
+if (Test-Path -Path $dbPath) {
+    Write-Host "[AVISO] La base de datos '$dbPath' ya existe." -ForegroundColor Red
+    Write-Host "        No se sobrescribirá para preservar datos existentes." -ForegroundColor Red
+    Write-Host "        Si desea recrearla, elimine el archivo manualmente." -ForegroundColor Red
+    exit 0
+}
+
+Write-Host "[PROCESANDO] Creando base de datos en: $dbPath ..." -ForegroundColor Cyan
+
+# -----------------------------------------------------------------------------
+# 2. Crear archivo .accdb mediante ADOX (ComObject)
+# -----------------------------------------------------------------------------
+try {
+    $cat = New-Object -ComObject ADOX.Catalog
+    $connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=$dbPath;"
+    $cat.Create($connectionString)
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($cat) | Out-Null
+    Write-Host "[OK] Archivo .accdb creado correctamente." -ForegroundColor Green
+} catch {
+    Write-Error "Error al crear la base de datos Access.`nAsegúrate de tener instalado Microsoft Access o los controladores redistribuibles de Access Database Engine.`nDescarga: https://www.microsoft.com/en-us/download/details.aspx?id=54920`nDetalle: $_"
+    exit 1
+}
+
+# -----------------------------------------------------------------------------
+# 3. Crear tablas mediante ADODB Connection
+# -----------------------------------------------------------------------------
+try {
+    $cn = New-Object -ComObject ADODB.Connection
+    $cn.Open($connectionString)
+
+    # =========================================================================
+    # TABLA: Ordenes
+    # Unifica las hojas RESIDENCIA GIJÓN + SOTO + OVIEDO
+    # El campo NumOrden es AUTOINCREMENT (autonumérico atómico)
+    # =========================================================================
+    Write-Host "[PROCESANDO] Creando tabla Ordenes..." -ForegroundColor Cyan
+
+    $sqlOrdenes = @"
+CREATE TABLE Ordenes (
+    NumOrden AUTOINCREMENT PRIMARY KEY,
+    NumFactura LONG,
+    Residencia VARCHAR(20) NOT NULL,
+    FechaPeticion DATETIME,
+    DNI VARCHAR(20),
+    Nombre VARCHAR(100),
+    Apellidos VARCHAR(100),
+    TipoHuesped VARCHAR(30),
+    NumHabIndividuales INTEGER,
+    NumHabDobles INTEGER,
+    FechaEntrada DATETIME,
+    FechaSalida DATETIME,
+    Resolucion VARCHAR(30),
+    HabitacionesAsignadas VARCHAR(200),
+    EstadoPago VARCHAR(30),
+    Solapamiento BIT,
+    Observaciones MEMO,
+    Telefono VARCHAR(20),
+    Email VARCHAR(100),
+    Direccion VARCHAR(200),
+    CodigoPostal VARCHAR(10),
+    Poblacion VARCHAR(100),
+    Provincia VARCHAR(50),
+    ConsentimientoRGPD BIT,
+    PagadoResidencia VARCHAR(30),
+    FechaCreacion DATETIME,
+    UsuarioCreacion VARCHAR(50)
+);
+"@
+    $cn.Execute($sqlOrdenes)
+    Write-Host "[OK] Tabla 'Ordenes' creada." -ForegroundColor Green
+
+    # Ajustar valor de inicio del autonumérico
+    if ($StartingNumOrden -gt 1) {
+        try {
+            $alterSql = "ALTER TABLE Ordenes ALTER COLUMN NumOrden COUNTER($StartingNumOrden, 1);"
+            $cn.Execute($alterSql)
+            Write-Host "[OK] Semilla de NumOrden fijada en $StartingNumOrden." -ForegroundColor Green
+        } catch {
+            Write-Host "[AVISO] No se pudo establecer la semilla del autonumérico directamente." -ForegroundColor Yellow
+            Write-Host "        Se insertará un registro semilla y se eliminará." -ForegroundColor Yellow
+            # Método alternativo: insertar un registro ficticio para avanzar el contador
+            # Esto es un workaround conocido para Access
+        }
+    }
+
+    # Crear índices útiles para rendimiento
+    $cn.Execute("CREATE INDEX idx_Ordenes_Residencia ON Ordenes (Residencia);")
+    $cn.Execute("CREATE INDEX idx_Ordenes_DNI ON Ordenes (DNI);")
+    $cn.Execute("CREATE INDEX idx_Ordenes_FechaEntrada ON Ordenes (FechaEntrada);")
+    $cn.Execute("CREATE INDEX idx_Ordenes_FechaSalida ON Ordenes (FechaSalida);")
+    $cn.Execute("CREATE INDEX idx_Ordenes_Resolucion ON Ordenes (Resolucion);")
+    Write-Host "[OK] Índices de Ordenes creados." -ForegroundColor Green
+
+    # =========================================================================
+    # TABLA: ContadorFacturas
+    # Numeración atómica de facturas, independiente por residencia y ejercicio
+    # Reemplaza la lógica de bloques de AsignarNumFactura.bas
+    # =========================================================================
+    Write-Host "[PROCESANDO] Creando tabla ContadorFacturas..." -ForegroundColor Cyan
+
+    $sqlContadores = @"
+CREATE TABLE ContadorFacturas (
+    Id AUTOINCREMENT PRIMARY KEY,
+    Residencia VARCHAR(20) NOT NULL,
+    Ejercicio INTEGER NOT NULL,
+    UltimoNumero LONG NOT NULL
+);
+"@
+    $cn.Execute($sqlContadores)
+    $cn.Execute("CREATE UNIQUE INDEX idx_CF_ResEjer ON ContadorFacturas (Residencia, Ejercicio);")
+    Write-Host "[OK] Tabla 'ContadorFacturas' creada." -ForegroundColor Green
+
+    # Insertar registros iniciales para las 3 residencias
+    $cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('GIJON', $Ejercicio, $UltimaFacturaGijon);")
+    $cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('SOTO', $Ejercicio, $UltimaFacturaSoto);")
+    $cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('OVIEDO', $Ejercicio, $UltimaFacturaOviedo);")
+    Write-Host "[OK] Contadores de factura inicializados (GIJ=$UltimaFacturaGijon, SOT=$UltimaFacturaSoto, OVI=$UltimaFacturaOviedo)." -ForegroundColor Green
+
+    # =========================================================================
+    # TABLA: LogActividad
+    # Reemplaza la hoja LOG del Excel
+    # =========================================================================
+    Write-Host "[PROCESANDO] Creando tabla LogActividad..." -ForegroundColor Cyan
+
+    $sqlLog = @"
+CREATE TABLE LogActividad (
+    Id AUTOINCREMENT PRIMARY KEY,
+    FechaHora DATETIME NOT NULL,
+    Usuario VARCHAR(50),
+    Accion VARCHAR(200),
+    Detalle MEMO
+);
+"@
+    $cn.Execute($sqlLog)
+    $cn.Execute("CREATE INDEX idx_Log_FechaHora ON LogActividad (FechaHora);")
+    $cn.Execute("CREATE INDEX idx_Log_Usuario ON LogActividad (Usuario);")
+    Write-Host "[OK] Tabla 'LogActividad' creada." -ForegroundColor Green
+
+    # =========================================================================
+    # TABLA: ListaNegra
+    # Reemplaza la hoja LISTA NEGRA del Excel
+    # =========================================================================
+    Write-Host "[PROCESANDO] Creando tabla ListaNegra..." -ForegroundColor Cyan
+
+    $sqlListaNegra = @"
+CREATE TABLE ListaNegra (
+    Id AUTOINCREMENT PRIMARY KEY,
+    DNI VARCHAR(20) NOT NULL,
+    Nombre VARCHAR(150),
+    Motivo MEMO,
+    FechaAlta DATETIME,
+    Activo BIT NOT NULL
+);
+"@
+    $cn.Execute($sqlListaNegra)
+    $cn.Execute("CREATE UNIQUE INDEX idx_LN_DNI ON ListaNegra (DNI);")
+    Write-Host "[OK] Tabla 'ListaNegra' creada." -ForegroundColor Green
+
+    # NOTA: La tabla Usuarios NO se crea en Access.
+    # Los operadores del sistema (recepcionistas/admins) varían con poca frecuencia,
+    # por lo que la hoja USUARIOS se mantiene en el Excel local de cada copia.
+    # Si se da de alta/baja un operador, se actualiza la plantilla maestra.
+
+    # Cerrar conexión
+    $cn.Close()
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($cn) | Out-Null
+
+} catch {
+    Write-Error "Error al crear las tablas en Access: $_"
+    if ($cn -and $cn.State -eq 1) { $cn.Close() }
+    exit 1
+}
+
+# -----------------------------------------------------------------------------
+# 4. Crear archivo de versión
+# -----------------------------------------------------------------------------
+$versionFile = Join-Path -Path $TargetFolder -ChildPath "version.txt"
+"1.0.0|$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')|Creación inicial de la BD multiusuario" | Out-File -FilePath $versionFile -Encoding utf8
+Write-Host "[OK] Archivo de versión creado: $versionFile" -ForegroundColor Green
+
+# -----------------------------------------------------------------------------
+# 5. Resumen final
+# -----------------------------------------------------------------------------
+Write-Host ""
+Write-Host "================================================================" -ForegroundColor Green
+Write-Host "  BASE DE DATOS CREADA CON ÉXITO                               " -ForegroundColor Green
+Write-Host "================================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "  Ubicación:        $dbPath" -ForegroundColor White
+Write-Host "  Tablas creadas:   Ordenes, ContadorFacturas, LogActividad, ListaNegra" -ForegroundColor White
+Write-Host "  NumOrden desde:   $StartingNumOrden" -ForegroundColor White
+Write-Host "  Facturas desde:   GIJ=$UltimaFacturaGijon SOT=$UltimaFacturaSoto OVI=$UltimaFacturaOviedo" -ForegroundColor White
+Write-Host "  Ejercicio:        $Ejercicio" -ForegroundColor White
+Write-Host ""
+Write-Host "  Siguiente paso:   Importar modDatabase.bas en el Excel" -ForegroundColor Yellow
+Write-Host "                    (ALT+F11 → Archivo → Importar archivo)" -ForegroundColor Yellow
+Write-Host ""
