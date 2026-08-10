@@ -5,14 +5,14 @@
 #            solución puente multiusuario del BDAS v16.5.5 (hasta 15 operadores).
 #
 # Tablas creadas:
-#   - Ordenes (unifica RESIDENCIA GIJÓN + SOTO + OVIEDO)
+#   - Ordenes (unifica RESIDENCIA GIJON + SOTO + OVIEDO)
 #   - ContadorFacturas (numeración atómica de facturas por residencia)
 #   - LogActividad (reemplaza hoja LOG)
 #   - ListaNegra (reemplaza hoja LISTA NEGRA)
 #   - Usuarios (gestión de operadores y residencias asignadas)
 #
 # Uso:
-#   powershell -ExecutionPolicy Bypass -File "H:\ResidenciaApp\scripts\Crear-BaseDatos-Access.ps1" -StartingNumOrden 1541
+#   powershell -ExecutionPolicy Bypass -File "H:\ResidenciaApp\bdas-multiusuario\scripts\Crear-BaseDatos-Access.ps1" -StartingNumOrden 1541
 # ==============================================================================
 
 Param(
@@ -27,10 +27,17 @@ Param(
 
 $ErrorActionPreference = "Stop"
 
+# Auto-reejecucion en PowerShell 32-bit si la sesion actual es 64-bit (el proveedor OLEDB ACE es 32-bit)
+if ([Environment]::Is64BitProcess -and (Test-Path "$env:windir\SysWOW64\WindowsPowerShell\v1.0\powershell.exe")) {
+    Write-Host "[INFO] Reejecutando script en PowerShell 32-bit para soporte OLEDB ACE Access..." -ForegroundColor Yellow
+    & "$env:windir\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path @PSBoundParameters
+    exit $LASTEXITCODE
+}
+
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "  BDAS — Inicializador de Base de Datos Access (H:\)           " -ForegroundColor Cyan
-Write-Host "  Solución puente multiusuario para hasta 15 operadores        " -ForegroundColor Cyan
+Write-Host "  BDAS - Inicializador de Base de Datos Access (H:\)           " -ForegroundColor Cyan
+Write-Host "  Solucion puente multiusuario para hasta 15 operadores        " -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -55,7 +62,7 @@ $dbPath = Join-Path -Path $TargetFolder -ChildPath $DbName
 
 if (Test-Path -Path $dbPath) {
     Write-Host "[AVISO] La base de datos '$dbPath' ya existe." -ForegroundColor Red
-    Write-Host "        No se sobrescribirá para preservar datos existentes." -ForegroundColor Red
+    Write-Host "        No se sobrescribira para preservar datos existentes." -ForegroundColor Red
     Write-Host "        Si desea recrearla, elimine el archivo manualmente." -ForegroundColor Red
     exit 0
 }
@@ -72,7 +79,7 @@ try {
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($cat) | Out-Null
     Write-Host "[OK] Archivo .accdb creado correctamente." -ForegroundColor Green
 } catch {
-    Write-Error "Error al crear la base de datos Access.`nAsegúrate de tener instalado Microsoft Access o los controladores redistribuibles de Access Database Engine.`nDescarga: https://www.microsoft.com/en-us/download/details.aspx?id=54920`nDetalle: $_"
+    Write-Error "Error al crear la base de datos Access.`nAsegurate de tener instalado Microsoft Access o los controladores redistribuibles de Access Database Engine.`nDescarga: https://www.microsoft.com/en-us/download/details.aspx?id=54920`nDetalle: $_"
     exit 1
 }
 
@@ -85,8 +92,8 @@ try {
 
     # =========================================================================
     # TABLA: Ordenes
-    # Unifica las hojas RESIDENCIA GIJÓN + SOTO + OVIEDO
-    # El campo NumOrden es AUTOINCREMENT (autonumérico atómico)
+    # Unifica las hojas RESIDENCIA GIJON + SOTO + OVIEDO
+    # El campo NumOrden es AUTOINCREMENT (autonumerico atomico)
     # =========================================================================
     Write-Host "[PROCESANDO] Creando tabla Ordenes..." -ForegroundColor Cyan
 
@@ -121,35 +128,33 @@ CREATE TABLE Ordenes (
     UsuarioCreacion VARCHAR(50)
 );
 "@
-    $cn.Execute($sqlOrdenes)
+    [void]$cn.Execute($sqlOrdenes)
     Write-Host "[OK] Tabla 'Ordenes' creada." -ForegroundColor Green
 
-    # Ajustar valor de inicio del autonumérico
+    # Ajustar valor de inicio del autonumerico
     if ($StartingNumOrden -gt 1) {
         try {
             $alterSql = "ALTER TABLE Ordenes ALTER COLUMN NumOrden COUNTER($StartingNumOrden, 1);"
-            $cn.Execute($alterSql)
+            [void]$cn.Execute($alterSql)
             Write-Host "[OK] Semilla de NumOrden fijada en $StartingNumOrden." -ForegroundColor Green
         } catch {
-            Write-Host "[AVISO] No se pudo establecer la semilla del autonumérico directamente." -ForegroundColor Yellow
-            Write-Host "        Se insertará un registro semilla y se eliminará." -ForegroundColor Yellow
-            # Método alternativo: insertar un registro ficticio para avanzar el contador
-            # Esto es un workaround conocido para Access
+            Write-Host "[AVISO] No se pudo establecer la semilla del autonumerico directamente." -ForegroundColor Yellow
+            Write-Host "        Se insertara un registro semilla y se eliminara." -ForegroundColor Yellow
         }
     }
 
-    # Crear índices útiles para rendimiento
-    $cn.Execute("CREATE INDEX idx_Ordenes_Residencia ON Ordenes (Residencia);")
-    $cn.Execute("CREATE INDEX idx_Ordenes_DNI ON Ordenes (DNI);")
-    $cn.Execute("CREATE INDEX idx_Ordenes_FechaEntrada ON Ordenes (FechaEntrada);")
-    $cn.Execute("CREATE INDEX idx_Ordenes_FechaSalida ON Ordenes (FechaSalida);")
-    $cn.Execute("CREATE INDEX idx_Ordenes_Resolucion ON Ordenes (Resolucion);")
-    Write-Host "[OK] Índices de Ordenes creados." -ForegroundColor Green
+    # Crear indices utiles para rendimiento
+    [void]$cn.Execute("CREATE INDEX idx_Ordenes_Residencia ON Ordenes (Residencia);")
+    [void]$cn.Execute("CREATE INDEX idx_Ordenes_DNI ON Ordenes (DNI);")
+    [void]$cn.Execute("CREATE INDEX idx_Ordenes_FechaEntrada ON Ordenes (FechaEntrada);")
+    [void]$cn.Execute("CREATE INDEX idx_Ordenes_FechaSalida ON Ordenes (FechaSalida);")
+    [void]$cn.Execute("CREATE INDEX idx_Ordenes_Resolucion ON Ordenes (Resolucion);")
+    Write-Host "[OK] Indices de Ordenes creados." -ForegroundColor Green
 
     # =========================================================================
     # TABLA: ContadorFacturas
-    # Numeración atómica de facturas, independiente por residencia y ejercicio
-    # Reemplaza la lógica de bloques de AsignarNumFactura.bas
+    # Numeracion atomica de facturas, independiente por residencia y ejercicio
+    # Reemplaza la logica de bloques de AsignarNumFactura.bas
     # =========================================================================
     Write-Host "[PROCESANDO] Creando tabla ContadorFacturas..." -ForegroundColor Cyan
 
@@ -161,14 +166,14 @@ CREATE TABLE ContadorFacturas (
     UltimoNumero LONG NOT NULL
 );
 "@
-    $cn.Execute($sqlContadores)
-    $cn.Execute("CREATE UNIQUE INDEX idx_CF_ResEjer ON ContadorFacturas (Residencia, Ejercicio);")
+    [void]$cn.Execute($sqlContadores)
+    [void]$cn.Execute("CREATE UNIQUE INDEX idx_CF_ResEjer ON ContadorFacturas (Residencia, Ejercicio);")
     Write-Host "[OK] Tabla 'ContadorFacturas' creada." -ForegroundColor Green
 
     # Insertar registros iniciales para las 3 residencias
-    $cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('GIJON', $Ejercicio, $UltimaFacturaGijon);")
-    $cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('SOTO', $Ejercicio, $UltimaFacturaSoto);")
-    $cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('OVIEDO', $Ejercicio, $UltimaFacturaOviedo);")
+    [void]$cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('GIJON', $Ejercicio, $UltimaFacturaGijon);")
+    [void]$cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('SOTO', $Ejercicio, $UltimaFacturaSoto);")
+    [void]$cn.Execute("INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) VALUES ('OVIEDO', $Ejercicio, $UltimaFacturaOviedo);")
     Write-Host "[OK] Contadores de factura inicializados (GIJ=$UltimaFacturaGijon, SOT=$UltimaFacturaSoto, OVI=$UltimaFacturaOviedo)." -ForegroundColor Green
 
     # =========================================================================
@@ -186,9 +191,9 @@ CREATE TABLE LogActividad (
     Detalle MEMO
 );
 "@
-    $cn.Execute($sqlLog)
-    $cn.Execute("CREATE INDEX idx_Log_FechaHora ON LogActividad (FechaHora);")
-    $cn.Execute("CREATE INDEX idx_Log_Usuario ON LogActividad (Usuario);")
+    [void]$cn.Execute($sqlLog)
+    [void]$cn.Execute("CREATE INDEX idx_Log_FechaHora ON LogActividad (FechaHora);")
+    [void]$cn.Execute("CREATE INDEX idx_Log_Usuario ON LogActividad (Usuario);")
     Write-Host "[OK] Tabla 'LogActividad' creada." -ForegroundColor Green
 
     # =========================================================================
@@ -207,15 +212,15 @@ CREATE TABLE ListaNegra (
     Activo BIT NOT NULL
 );
 "@
-    $cn.Execute($sqlListaNegra)
-    $cn.Execute("CREATE UNIQUE INDEX idx_LN_DNI ON ListaNegra (DNI);")
+    [void]$cn.Execute($sqlListaNegra)
+    [void]$cn.Execute("CREATE UNIQUE INDEX idx_LN_DNI ON ListaNegra (DNI);")
     Write-Host "[OK] Tabla 'ListaNegra' creada." -ForegroundColor Green
 
     # =========================================================================
     # TABLA: Usuarios
-    # Gestión de operadores y sus residencias asignadas.
-    # Hasta 15 usuarios simultáneos, cada uno asignado a 1-3 residencias.
-    # Login manual con usuario + contraseña (hash SHA-256).
+    # Gestion de operadores y sus residencias asignadas.
+    # Hasta 15 usuarios simultaneos, cada uno asignado a 1-3 residencias.
+    # Login manual con usuario + contrasena (hash SHA-256).
     # =========================================================================
     Write-Host "[PROCESANDO] Creando tabla Usuarios..." -ForegroundColor Cyan
 
@@ -231,11 +236,11 @@ CREATE TABLE Usuarios (
     FechaAlta DATETIME
 );
 "@
-    $cn.Execute($sqlUsuarios)
-    $cn.Execute("CREATE UNIQUE INDEX idx_Usr_NombreUsuario ON Usuarios (NombreUsuario);")
+    [void]$cn.Execute($sqlUsuarios)
+    [void]$cn.Execute("CREATE UNIQUE INDEX idx_Usr_NombreUsuario ON Usuarios (NombreUsuario);")
     Write-Host "[OK] Tabla 'Usuarios' creada." -ForegroundColor Green
 
-    # Función para generar hash SHA-256 (misma lógica que en VBA para compatibilidad)
+    # Funcion para generar hash SHA-256 (misma logica que en VBA para compatibilidad)
     function Get-SHA256Hash([string]$text) {
         $sha256 = [System.Security.Cryptography.SHA256]::Create()
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
@@ -246,11 +251,11 @@ CREATE TABLE Usuarios (
     # Insertar un usuario administrador de ejemplo con clave "admin" (CAMBIAR tras despliegue)
     $adminUser = "admin"
     $adminClave = Get-SHA256Hash "admin"
-    $cn.Execute("INSERT INTO Usuarios (NombreUsuario, Clave, NombreCompleto, Residencias, Rol, Activo, FechaAlta) VALUES ('$adminUser', '$adminClave', 'Administrador', 'GIJON,SOTO,OVIEDO', 'ADMIN', True, Now());")
-    Write-Host "[OK] Usuario administrador '$adminUser' creado (clave: admin — CAMBIAR)." -ForegroundColor Green
+    [void]$cn.Execute("INSERT INTO Usuarios (NombreUsuario, Clave, NombreCompleto, Residencias, Rol, Activo, FechaAlta) VALUES ('$adminUser', '$adminClave', 'Administrador', 'GIJON,SOTO,OVIEDO', 'ADMIN', True, Now());")
+    Write-Host "[OK] Usuario administrador '$adminUser' creado (clave: admin - CAMBIAR)." -ForegroundColor Green
     Write-Host "     Hash SHA-256: $adminClave" -ForegroundColor DarkGray
 
-    # Cerrar conexión
+    # Cerrar conexion
     $cn.Close()
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($cn) | Out-Null
 
@@ -261,26 +266,27 @@ CREATE TABLE Usuarios (
 }
 
 # -----------------------------------------------------------------------------
-# 4. Crear archivo de versión
+# 4. Crear archivo de version
 # -----------------------------------------------------------------------------
 $versionFile = Join-Path -Path $TargetFolder -ChildPath "version.txt"
-"1.0.0|$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')|Creación inicial de la BD multiusuario" | Out-File -FilePath $versionFile -Encoding utf8
-Write-Host "[OK] Archivo de versión creado: $versionFile" -ForegroundColor Green
+$nowDate = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+"1.0.0|$nowDate|Creacion inicial de la BD multiusuario" | Out-File -FilePath $versionFile -Encoding utf8
+Write-Host "[OK] Archivo de version creado: $versionFile" -ForegroundColor Green
 
 # -----------------------------------------------------------------------------
 # 5. Resumen final
 # -----------------------------------------------------------------------------
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Green
-Write-Host "  BASE DE DATOS CREADA CON ÉXITO                               " -ForegroundColor Green
+Write-Host "  BASE DE DATOS CREADA CON EXITO                               " -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Ubicación:        $dbPath" -ForegroundColor White
+Write-Host "  Ubicacion:        $dbPath" -ForegroundColor White
 Write-Host "  Tablas creadas:   Ordenes, ContadorFacturas, LogActividad, ListaNegra, Usuarios" -ForegroundColor White
 Write-Host "  NumOrden desde:   $StartingNumOrden" -ForegroundColor White
 Write-Host "  Facturas desde:   GIJ=$UltimaFacturaGijon SOT=$UltimaFacturaSoto OVI=$UltimaFacturaOviedo" -ForegroundColor White
 Write-Host "  Ejercicio:        $Ejercicio" -ForegroundColor White
 Write-Host ""
 Write-Host "  Siguiente paso:   Importar modDatabase.bas en el Excel" -ForegroundColor Yellow
-Write-Host "                    (ALT+F11 → Archivo → Importar archivo)" -ForegroundColor Yellow
+Write-Host "                    (ALT+F11 -> Archivo -> Importar archivo)" -ForegroundColor Yellow
 Write-Host ""

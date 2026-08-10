@@ -36,12 +36,12 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
 
 ## 🔜 PENDIENTE — Plan de ejecución por fases
 
-### Fase 1: Crear la Base de Datos Access en H:\
-- [ ] Ejecutar `Crear-BaseDatos-Access.ps1` con los parámetros correctos:
+### Fase 1: Crear la Base de Datos Access en H:\ (COMPLETADA)
+- [x] Ejecutar `Crear-BaseDatos-Access.ps1` con los parámetros correctos:
   - `-StartingNumOrden` → el siguiente Nº Orden libre (revisar último usado en el Excel)
   - `-UltimaFacturaGijon`, `-UltimaFacturaSoto`, `-UltimaFacturaOviedo` → últimos nº de factura usados
-- [ ] Verificar que se creó `H:\ResidenciaBD\Residencia_BE.accdb`
-- [ ] Dar de alta a los usuarios reales en la tabla `Usuarios` (con sus residencias y contraseñas)
+- [x] Verificar que se creó `H:\ResidenciaBD\Residencia_BE.accdb`
+- [x] Dar de alta a los usuarios reales / administrador en la tabla `Usuarios` (con sus residencias y contraseñas)
 
 ### Fase 2: Importar módulos VBA en el Excel BDAS
 - [ ] Abrir el Excel maestro → ALT+F11
