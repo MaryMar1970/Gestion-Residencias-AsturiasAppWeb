@@ -43,13 +43,17 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
 - [x] Verificar que se creó `H:\ResidenciaBD\Residencia_BE.accdb`
 - [x] Dar de alta a los usuarios reales / administrador en la tabla `Usuarios` (con sus residencias y contraseñas)
 
-### Fase 2: Importar módulos VBA en el Excel BDAS
-- [ ] Abrir el Excel maestro → ALT+F11
-- [ ] Importar `modDatabase.bas`
-- [ ] Importar `modMigracion.bas`
-- [ ] Crear UserForm `frmLogin` (siguiendo instrucciones en `frmLogin.frm`)
-- [ ] Crear UserForm `frmSelectorResidencia` (siguiendo instrucciones en `frmSelectorResidencia.frm`)
-- [ ] Pegar código de `ThisWorkbook_Events.bas` en ThisWorkbook
+### Fase 2: Importar módulos VBA en el Excel BDAS (COMPLETADA)
+- [x] Módulos `modDatabase.bas` y `modMigracion.bas` importados y verificados en `2026-08-07, BDAS_GIJÓN-SOTO-OVIEDO_v16.8.4.xlsm`
+- [x] UserForms `frmLogin.frm` y `frmSelectorResidencia.frm` importados y verificados en el libro maestro
+- [x] Eventos de ciclo de vida (`Workbook_Open`, `Workbook_BeforeClose`) inyectados y verificados en `ThisWorkbook`
+- [x] Importación ejecutada mediante `ImportarVBA.vbs` y verificada por Inspección de `VBComponents`:
+  - `ThisWorkbook`: 86 líneas
+  - `frmLogin`: 129 líneas
+  - `frmSelectorResidencia`: 98 líneas
+  - `modDatabase`: 1118 líneas
+  - `modMigracion`: 354 líneas
+- [x] Guía paso a paso de importación documentada en `Guia-Integracion-VBA.md`
 
 ### Fase 3: Migración de datos históricos
 - [ ] Ejecutar `modMigracion.MigrarTodasLasResidencias()` desde el editor VBA (F5)

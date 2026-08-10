@@ -16,13 +16,32 @@ Esto creará automáticamente el archivo `H:\ResidenciaBD\Residencia_BE.accdb` c
 
 ---
 
-## Paso 2: Importar el Módulo VBA en el Excel Front-End
+## Paso 2: Importar Módulos y UserForms en el Excel Front-End (Fase 2)
 
-1. Abre tu archivo Excel maestro.
+### 2.1. Importación de Módulos Estándar (`.bas`) y UserForms (`.frm`)
+1. Abre tu archivo Excel maestro (`.xlsm`).
 2. Presiona `ALT + F11` para abrir el editor de Visual Basic para Aplicaciones (VBA).
-3. Haz clic con el botón derecho sobre el árbol de proyectos del libro (izquierda) y selecciona **Importar archivo...** (`Ctrl + M`).
-4. Selecciona el archivo `H:\ResidenciaApp\scripts\modDatabase.bas`.
-5. Verás aparecer un nuevo módulo llamado `modDatabase` con todas las funciones de conexión necesarias.
+3. Haz clic con el botón derecho sobre el proyecto en el árbol de navegación (izquierda) y selecciona **Importar archivo...** (o pulsa `Ctrl + M`).
+4. Importa uno a uno los siguientes 4 archivos ubicados en `H:\ResidenciaApp\bdas-multiusuario\scripts\`:
+   - `modDatabase.bas` — Capa de acceso a datos ADO + Autenticación SHA-256 + Sincronización.
+   - `modMigracion.bas` — Módulo para la migración inicial de datos históricos a Access.
+   - `frmLogin.frm` — Formulario visual de login (usuario + contraseña).
+   - `frmSelectorResidencia.frm` — Formulario visual de selección de residencia activa.
+
+> [!TIP]
+> Al importar `frmLogin.frm` y `frmSelectorResidencia.frm`, Excel asociará automáticamente sus archivos de diseño `.frx` correspondientes.
+
+### 2.2. Configuración de Eventos de Inicio y Cierre en `ThisWorkbook`
+1. En el árbol de navegación del Editor VBA (panel izquierdo), haz doble clic sobre el objeto **`ThisWorkbook`**.
+2. Abre el archivo `H:\ResidenciaApp\bdas-multiusuario\scripts\ThisWorkbook_Events.bas` en el Bloc de notas o editor.
+3. Copia todo su contenido y pégalo en el módulo de código de **`ThisWorkbook`**.
+4. Este código gestiona:
+   - `Workbook_Open`: Comprueba la conexión a Access en `H:\`, muestra el formulario de login `frmLogin` y `frmSelectorResidencia`, y sincroniza la residencia activa.
+   - `Workbook_BeforeClose`: Registra la salida (`LOGOUT`) y evita que el archivo `.xlsm` pregunte si guardar cambios (Access es la fuente de verdad).
+
+### 2.3. Verificación de Compilación
+1. En la barra superior del Editor VBA, haz clic en **Depuración** -> **Compilar VBAProject**.
+2. Guarda el libro como **`BDAS_v16.5.5_FrontEnd.xlsm`** (o `Residencia_FrontEnd.xlsm`).
 
 ---
 

@@ -605,8 +605,9 @@ Public Function InsertarOrdenAtomica( _
           "Telefono, Email, Direccion, CodigoPostal, Poblacion, Provincia, " & _
           "Solapamiento, ConsentimientoRGPD, " & _
           "FechaCreacion, UsuarioCreacion" & _
-          ") VALUES (" & _
-          "'" & EscaparSQL(residencia) & "', " & _
+          ") VALUES ("
+          
+    sql = sql & "'" & EscaparSQL(residencia) & "', " & _
           FormatearFechaSQL(fechaPeticion) & ", " & _
           "'" & EscaparSQL(dni) & "', " & _
           "'" & EscaparSQL(nombre) & "', " & _
