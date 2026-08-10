@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "BusquedaDNIResidencias"
+Attribute VB_Name = "BusquedaDNIResidencias"
 'Attribute VB_Name = "BusquedaDNIResidencias"
 ' =============================================================================
 ' M�DULO: BusquedaDNIResidencias
@@ -166,48 +166,46 @@ ErrorHandler:
 End Function
 
 ' =============================================================================
-' FUNCI�N: BuscarYCopiarEnBDAS
-' PROP�SITO: Buscar DNI en hojas BDAS (columna D) y copiar datos si encuentra
-' DEVUELVE: True si encontr� y copi�, False en caso contrario
+' FUNCIÓN: BuscarYCopiarEnBDAS
+' PROPÓSITO: Buscar DNI en Access DB y autofiltrar/copiar datos si se encuentra
+' DEVUELVE: True si encontró y copió, False en caso contrario
 ' =============================================================================
 Private Function BuscarYCopiarEnBDAS(ByVal valorBuscado As Variant, _
                                      ByVal wsDestino As Worksheet, _
                                      ByVal filaDestino As Long) As Boolean
     On Error GoTo ErrorHandler
     
-    Dim hojasBDAS As Variant
-    Dim hojaBDA As Variant
-    Dim wsBDA As Worksheet
-    Dim ultimaFila As Long
-    Dim pos As Variant
+    Dim rs As Object
+    Set rs = modDatabase.BuscarEnOrdenes("DNI", CStr(valorBuscado))
     
-    ' Lista de hojas BDAS a buscar
-    hojasBDAS = Array("BDAS GIJ�N", "BDAS SOTO", "BDAS OVIEDO")
-    
-    For Each hojaBDA In hojasBDAS
-        On Error Resume Next
-        Set wsBDA = ThisWorkbook.Sheets(CStr(hojaBDA))
-        On Error GoTo ErrorHandler
-        
-        If Not wsBDA Is Nothing Then
-            ' Buscar en columna D de la hoja BDAS
-            ultimaFila = wsBDA.Cells(wsBDA.Rows.Count, "D").End(xlUp).Row
-            
-            If ultimaFila > 0 Then
-                pos = Application.Match(valorBuscado, wsBDA.Range("D2:D" & ultimaFila), 0)
-                
-                If Not IsError(pos) Then
-                    ' Encontrado en BDAS - copiar datos
-                    ' Ajustar posici�n porque el rango empieza en fila 2
-                    CopiarDatosDesdeBDAS wsBDA, CLng(pos) + 1, wsDestino, filaDestino
-                    BuscarYCopiarEnBDAS = True
-                    Exit Function
-                End If
+    If Not rs Is Nothing Then
+        If Not rs.EOF Then
+            ' Encontrado en Access DB - autocompletar datos de contacto
+            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "K").Value))) = 0 Then
+                wsDestino.Cells(filaDestino, "K").Value = rs("Nombre").Value
+            End If
+            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "W").Value))) = 0 Then
+                wsDestino.Cells(filaDestino, "W").Value = rs("Telefono").Value
+            End If
+            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "X").Value))) = 0 Then
+                wsDestino.Cells(filaDestino, "X").Value = rs("Direccion").Value
+            End If
+            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "Y").Value))) = 0 Then
+                wsDestino.Cells(filaDestino, "Y").Value = rs("CodigoPostal").Value
+            End If
+            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "Z").Value))) = 0 Then
+                wsDestino.Cells(filaDestino, "Z").Value = rs("Poblacion").Value
+            End If
+            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "AA").Value))) = 0 Then
+                wsDestino.Cells(filaDestino, "AA").Value = rs("Provincia").Value
             End If
             
-            Set wsBDA = Nothing
+            rs.Close
+            BuscarYCopiarEnBDAS = True
+            Exit Function
         End If
-    Next hojaBDA
+        rs.Close
+    End If
     
     BuscarYCopiarEnBDAS = False
     Exit Function
@@ -219,8 +217,8 @@ End Function
 
 ' =============================================================================
 ' PROCEDIMIENTO: CopiarDatosDesdeMismaHoja
-' PROP�SITO: Copia datos de una fila a otra en la misma hoja
-' PAR�METROS:
+' PROPSITO: Copia datos de una fila a otra en la misma hoja
+' PARMETROS:
 '   - ws: hoja donde copiar
 '   - filaOrigen: fila de donde copiar
 '   - filaDestino: fila a donde copiar

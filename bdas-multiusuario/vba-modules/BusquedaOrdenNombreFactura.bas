@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "BusquedaOrdenNombreFactura"
+Attribute VB_Name = "BusquedaOrdenNombreFactura"
 'Attribute VB_Name = "BusquedaOrdenNombreFactura"
 
 Option Explicit
@@ -99,14 +99,34 @@ Private Sub BusquedasResidencia(control As IRibbonControl)
     End If
     
     ' ==============================================================
-    ' NUEVA FUNCIONALIDAD: Buscar tambi�n en BDAS (si est� activado)
+    ' BUSQUEDA EN ACCESS DATABASE (Fuente de verdad multiusuario)
+    ' ==============================================================
+    Dim critStr As String
+    Select Case colNum
+        Case 1: critStr = "NUMORDEN"
+        Case 3: critStr = "NUMFACTURA"
+        Case 9: critStr = "DNI"
+        Case 11: critStr = "NOMBRE"
+        Case Else: critStr = "NOMBRE"
+    End Select
+    
+    Dim rsAccess As Object
+    Set rsAccess = modDatabase.BuscarEnOrdenes(critStr, searchValue)
+    If Not rsAccess Is Nothing Then
+        If Not rsAccess.EOF Then
+            ' Se encontraron resultados en Access DB
+        End If
+    End If
+
+    ' ==============================================================
+    ' NUEVA FUNCIONALIDAD: Buscar tambin en BDAS (si est activado)
     ' ==============================================================
     Dim buscarEnBDASActivado As Boolean
-    buscarEnBDASActivado = BuscarBDASActivado() ' Funci�n del m�dulo ModuloArchivadoDatos
+    buscarEnBDASActivado = BuscarBDASActivado() ' Funcin del mdulo ModuloArchivadoDatos
     
     Dim resultadosBDAS As Collection
     If buscarEnBDASActivado Then
-        ' Determinar tipo de b�squeda para BDAS
+        ' Determinar tipo de bsqueda para BDAS
         Dim tipoBusquedaBDAS As String
         Select Case colNum
             Case 1: tipoBusquedaBDAS = "ORDEN"
