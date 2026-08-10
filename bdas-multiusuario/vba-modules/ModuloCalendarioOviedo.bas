@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "ModuloCalendarioOviedo"
+Attribute VB_Name = "ModuloCalendarioOviedo"
 'Attribute VB_Name = "ModuloCalendarioOviedo" v14.11.3
 Option Explicit
 Private Const COLOR_SOLAPE_ACEPTADO As Long = 15773696 ' RGB(176, 224, 230) = PowderBlue (azul claro)
@@ -107,7 +107,9 @@ Private Sub ActualizarCalendarioInterno(ByVal soloFuturas As Boolean, ByVal usar
     Dim reservasOcultas As Long   ' Contador de reservas en habitaciones ocultas
     Dim fechaCorte As Date        ' Fecha desde la cual se actualiza (si hay cach�)
     Dim colCorte As Long          ' Columna desde la cual se limpia (si hay cach�)
-    Dim estabaProtegida As Boolean  ' Detectar si la hoja del calendario est� protegida
+    Dim fechaCorte As Date        ' Fecha desde la cual se actualiza (si hay cach)
+    Dim colCorte As Long          ' Columna desde la cual se limpia (si hay cach)
+    Dim estabaProtegida As Boolean  ' Detectar si la hoja del calendario est protegida
     
     On Error GoTo ErrorHandler
     
@@ -125,6 +127,9 @@ Private Sub ActualizarCalendarioInterno(ByVal soloFuturas As Boolean, ByVal usar
         MsgBox "ERROR: No se encontraron las hojas necesarias para OVIEDO.", vbCritical, "Error"
         Exit Sub
     End If
+    
+    ' === NUEVO: Sincronizar datos desde Access DB antes de pintar el calendario ===
+    modDatabase.SincronizarHojaDesdeAccess "OVIEDO", wsRes
     
     ' Desproteger la hoja del calendario temporalmente para realizar la limpieza y pintado sin errores
     estabaProtegida = wsCal.ProtectContents

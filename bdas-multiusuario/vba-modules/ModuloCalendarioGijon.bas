@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "ModuloCalendarioGijon"
+Attribute VB_Name = "ModuloCalendarioGijon"
 'Attribute VB_Name = "ModuloCalendarioGijon" v14.11.3
 Option Explicit
 Private Const COLOR_SOLAPE_ACEPTADO As Long = 15773696 ' RGB(176, 224, 230) = PowderBlue (azul claro)
@@ -59,15 +59,18 @@ Private Sub ActualizarCalendarioInterno(ByVal soloFuturas As Boolean, ByVal usar
     On Error GoTo ErrorHandler
     
     On Error Resume Next
-    Set wsRes = ThisWorkbook.Worksheets("RESIDENCIA GIJ�N")
-    Set wsCal = ThisWorkbook.Worksheets("Calendario GIJ�N")
-    Set wsBloq = ThisWorkbook.Worksheets("Habitaciones Bloqueadas GIJ�N")
+    Set wsRes = ThisWorkbook.Worksheets("RESIDENCIA GIJN")
+    Set wsCal = ThisWorkbook.Worksheets("Calendario GIJN")
+    Set wsBloq = ThisWorkbook.Worksheets("Habitaciones Bloqueadas GIJN")
     On Error GoTo ErrorHandler
     
     If wsRes Is Nothing Or wsCal Is Nothing Or wsBloq Is Nothing Then
         MsgBox "ERROR: No se encontraron las hojas necesarias.", vbCritical, "Error"
         Exit Sub
     End If
+    
+    ' === NUEVO: Sincronizar datos desde Access DB antes de pintar el calendario ===
+    modDatabase.SincronizarHojaDesdeAccess "GIJON", wsRes
     
     ' Desproteger la hoja del calendario temporalmente para realizar la limpieza y pintado sin errores
     estabaProtegida = wsCal.ProtectContents

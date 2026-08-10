@@ -75,7 +75,7 @@ vbaDir = bdasDir & "vba-modules\"
 If fso.FolderExists(vbaDir) Then
     Set vbaFolder = fso.GetFolder(vbaDir)
     Dim modsToImport
-    modsToImport = Array("FechasPeticion", "EvitarDuplicidadSolicitudesGyS", "AsignarNumFactura", "FacturacionMesGIJON", "FacturacionMesOVIEDO", "FacturacionMesSOTO", "MarcarSiPagadosEnResidencia")
+    modsToImport = Array("FechasPeticion", "EvitarDuplicidadSolicitudesGyS", "AsignarNumFactura", "FacturacionMesGIJON", "FacturacionMesOVIEDO", "FacturacionMesSOTO", "MarcarSiPagadosEnResidencia", "ModuloCalendarioGijon", "ModuloCalendarioOviedo", "ModuloCalendarioSoto")
     
     Dim mName
     For Each mName In modsToImport

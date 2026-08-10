@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "ModuloCalendarioSoto"
+Attribute VB_Name = "ModuloCalendarioSoto"
 'Attribute VB_Name = "ModuloCalendarioSoto"
 Option Explicit
 
@@ -73,16 +73,20 @@ Private Sub ActualizarCalendarioInterno(ByVal soloFuturas As Boolean, ByVal usar
     Set wsBloq = ThisWorkbook.Worksheets("Apartamentos Bloqueados SOTO")
     On Error GoTo ErrorHandler
     
-    ' VALIDACI�N CR?TICA: Verificar que existen las 3 hojas necesarias
+    ' VALIDACIN CR?TICA: Verificar que existen las 3 hojas necesarias
     If wsRes Is Nothing Or wsCal Is Nothing Or wsBloq Is Nothing Then
         MsgBox "ERROR: No se encontraron las hojas necesarias para SOTO.", vbCritical, "Error"
         Exit Sub
     End If
-        ' Desproteger la hoja del calendario temporalmente para realizar la limpieza y pintado sin errores
+    
+    ' === NUEVO: Sincronizar datos desde Access DB antes de pintar el calendario ===
+    modDatabase.SincronizarHojaDesdeAccess "SOTO", wsRes
+    
+    ' Desproteger la hoja del calendario temporalmente para realizar la limpieza y pintado sin errores
     estabaProtegida = wsCal.ProtectContents
     If estabaProtegida Then wsCal.Unprotect password:=""
     
-    ' OPTIMIZACI�N: Desactivar caracter?sticas de Excel para acelerar el proceso
+    ' OPTIMIZACIN: Desactivar caracter?sticas de Excel para acelerar el proceso
     Application.screenUpdating = False
     Application.enableEvents = False
     Application.calculation = xlCalculationManual
