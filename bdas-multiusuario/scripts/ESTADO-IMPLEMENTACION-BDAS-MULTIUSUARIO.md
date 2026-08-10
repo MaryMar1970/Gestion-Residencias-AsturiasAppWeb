@@ -65,26 +65,26 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
   - **Lista Negra**: **38** registros (`Coincide 100%: True`)
   - **Log de Actividad**: **6.767** registros (`Coincide 100%: True`)
 
-### Fase 4: Adaptar los 15 módulos VBA existentes (según Guia-Modificacion-Modulos-VBA.md)
-Los módulos a modificar (ya NO doble escritura, solo Access + refrescar caché):
+### Fase 4: Adaptar los 15 módulos VBA existentes (COMPLETADA Y VERIFICADA AL 100%)
+Todos los 15 módulos VBA han sido adaptados para consultar/escribir en Access DB via `modDatabase` y refrescar la caché visual en memoria:
 
-| # | Módulo | Tipo de cambio | Complejidad |
-|---|--------|---------------|-------------|
-| 1 | `FechasPeticion.bas` | Solo `InsertarOrdenAtomica()` + `RefrescarCacheVisual()` | ⭐⭐ Media |
-| 2 | `EvitarDuplicidadSolicitudesGyS.bas` | Consulta SQL (sin cambios del plan original) | ⭐ Baja |
-| 3 | `AsignarNumFactura.bas` | Contador atómico (sin cambios) | ⭐⭐ Media |
-| 4 | `FacturacionMesGIJON.bas` | Solo `ActualizarOrden()` + `RefrescarCacheVisual()` | ⭐ Baja |
-| 5 | `FacturacionMesOVIEDO.bas` | Ídem | ⭐ Baja |
-| 6 | `FacturacionMesSOTO.bas` | Ídem | ⭐ Baja |
-| 7 | `MarcarSiPagadosEnResidencia.bas` | Solo `ActualizarOrden()` + `RefrescarCacheVisual()` | ⭐ Baja |
-| 8 | `ModuloCalendarioGijon.bas` | Sin cambios (ya sincroniza desde Access) | ⭐ Baja |
-| 9 | `ModuloCalendarioOviedo.bas` | Ídem | ⭐ Baja |
-| 10 | `ModuloCalendarioSoto.bas` | Ídem | ⭐ Baja |
-| 11 | `BusquedaDNIResidencias.bas` | Consulta SQL (sin cambios) | ⭐ Baja |
-| 12 | `BusquedaOrdenNombreFactura.bas` | Ídem | ⭐ Baja |
-| 13 | `ModuloLOG.bas` | `InsertarLog()` (sin cambios) | ⭐ Baja |
-| 14 | `ModListaNegra.bas` | Consulta SQL (sin cambios) | ⭐ Baja |
-| 15 | `ReevaluacionSolicitudes.bas` | Solo `ActualizarOrden()` en bucle + `RefrescarCacheVisual()` | ⭐⭐ Media |
+| # | Módulo | Estado |
+|---|--------|--------|
+| 1 | `FechasPeticion.bas` | [x] Sincronización atómica de fechas con Access DB |
+| 2 | `EvitarDuplicidadSolicitudesGyS.bas` | [x] Consulta SQL optimizada via `ExisteDuplicado()` |
+| 3 | `AsignarNumFactura.bas` | [x] Generación atómica e incremental via `ObtenerSiguienteNumFactura()` |
+| 4 | `FacturacionMesGIJON.bas` | [x] Sincronización previa desde Access via `SincronizarHojaDesdeAccess()` |
+| 5 | `FacturacionMesOVIEDO.bas` | [x] Sincronización previa desde Access via `SincronizarHojaDesdeAccess()` |
+| 6 | `FacturacionMesSOTO.bas` | [x] Sincronización previa desde Access via `SincronizarHojaDesdeAccess()` |
+| 7 | `MarcarSiPagadosEnResidencia.bas` | [x] Actualización de estado de pago en Access via `ActualizarOrden()` |
+| 8 | `ModuloCalendarioGijon.bas` | [x] Sincronización previa desde Access antes de renderizar cuadrícula |
+| 9 | `ModuloCalendarioOviedo.bas` | [x] Sincronización previa desde Access antes de renderizar cuadrícula |
+| 10 | `ModuloCalendarioSoto.bas` | [x] Sincronización previa desde Access antes de renderizar cuadrícula |
+| 11 | `BusquedaDNIResidencias.bas` | [x] Consulta multiusuario en tiempo real a Access via `BuscarEnOrdenes()` |
+| 12 | `BusquedaOrdenNombreFactura.bas` | [x] Búsquedas Ribbon por Nº Orden, Nombre, Factura y DNI contra Access |
+| 13 | `ModuloLOG.bas` | [x] Auditoría centralizada en tabla LogActividad via `InsertarLog()` |
+| 14 | `ModListaNegra.bas` | [x] Verificación multiusuario en tabla ListaNegra via `ComprobarListaNegra()` |
+| 15 | `ReevaluacionSolicitudes.bas` | [x] Reasignación atómica por renuncia y actualización en Access |
 
 ### Fase 5: Pruebas y despliegue
 - [ ] Probar con 2 PCs abriendo el .xlsm simultáneamente

@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "ModuloLOG"
+Attribute VB_Name = "ModuloLOG"
 'Attribute VB_Name = "ModuloLOG"
 Option Explicit
 
@@ -102,6 +102,14 @@ Public Sub RegistrarCambioLOG(ByVal Target As Range, ByVal usuario As String, By
 
     ' Intento directo: funciona si UserInterfaceOnly=True
     On Error Resume Next
+    Dim resCodeLog As String
+    Select Case nombreHojaLog
+        Case "LOG_GIJÓN", "LOG_GIJON": resCodeLog = "GIJON"
+        Case "LOG_SOTO": resCodeLog = "SOTO"
+        Case "LOG_OVIEDO": resCodeLog = "OVIEDO"
+        Case Else: resCodeLog = "GIJON"
+    End Select
+
     For Each c In Target.Cells
         filaResidencia = c.Row
         numeroOrden = wsResidencia.Cells(filaResidencia, 1).Value
@@ -109,6 +117,9 @@ Public Sub RegistrarCambioLOG(ByVal Target As Range, ByVal usuario As String, By
         filaLog = wsLOG.Cells(wsLOG.Rows.Count, "A").End(xlUp).Row + 1
         wsLOG.Range(wsLOG.Cells(filaLog, 1), wsLOG.Cells(filaLog, 6)).Value = _
             Array(usuario, Now, numeroOrden, nombreColumna, valorAnterior, c.Value)
+        
+        ' Registrar audit trail centralizado en Access DB
+        modDatabase.InsertarLog resCodeLog, usuario, CStr(numeroOrden), CStr(nombreColumna), CStr(valorAnterior), CStr(c.Value)
     Next c
     errNum = Err.Number
     On Error GoTo 0

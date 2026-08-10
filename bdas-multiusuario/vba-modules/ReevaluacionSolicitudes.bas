@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "ReevaluacionSolicitudes"
+Attribute VB_Name = "ReevaluacionSolicitudes"
 ' =========================================================================================
 ' Reevaluaci�n de solicitudes tras RENUNCIA en cualquier hoja RESIDENCIA (GEN�RICO)
 ' =========================================================================================
@@ -560,6 +560,12 @@ Public Sub ReevaluarRenunciaResidencia(ByVal hojaNombre As String, ByVal filaRen
                     ws.Range(candidatas(5, idx)).Value = "REEVALUADA"
                     ws.Cells(filaCandidata, columnaUnidades).Value = habitacionesAdjudicar
                     
+                    ' Sincronizar reevaluación con Access DB
+                    If IsNumeric(candidatas(4, idx)) And CLng(candidatas(4, idx)) > 0 Then
+                        modDatabase.ActualizarOrden CLng(candidatas(4, idx)), "Resolucion", "REEVALUADA"
+                        modDatabase.ActualizarOrden CLng(candidatas(4, idx)), "Habitaciones", CStr(habitacionesAdjudicar)
+                    End If
+                    
                     ' Mensaje de confirmaci�n
                     Dim arrUnidad As Variant
                     arrUnidad = habSeleccionadas
@@ -598,6 +604,11 @@ Public Sub ReevaluarRenunciaResidencia(ByVal hojaNombre As String, ByVal filaRen
                 
                 ws.Range(candidatas(5, idx)).Value = "REEVALUADA"
                 ws.Cells(filaCandidata, columnaUnidades).Value = habitacionesAdjudicar
+                
+                If IsNumeric(candidatas(4, idx)) And CLng(candidatas(4, idx)) > 0 Then
+                    modDatabase.ActualizarOrden CLng(candidatas(4, idx)), "Resolucion", "REEVALUADA"
+                    modDatabase.ActualizarOrden CLng(candidatas(4, idx)), "Habitaciones", CStr(habitacionesAdjudicar)
+                End If
                 
                 Debug.Print "Valor escrito en hoja: " & ws.Cells(filaCandidata, columnaUnidades).Value
                 
@@ -651,6 +662,11 @@ Public Sub ReevaluarRenunciaResidencia(ByVal hojaNombre As String, ByVal filaRen
         
         ws.Range(candidatas(5, idx)).Value = "REEVALUADA"
         ws.Cells(filaCandidata, columnaUnidades).Value = valorUnidadesRenuncia
+        
+        If IsNumeric(candidatas(4, idx)) And CLng(candidatas(4, idx)) > 0 Then
+            modDatabase.ActualizarOrden CLng(candidatas(4, idx)), "Resolucion", "REEVALUADA"
+            modDatabase.ActualizarOrden CLng(candidatas(4, idx)), "Habitaciones", CStr(valorUnidadesRenuncia)
+        End If
         
         If UCase(tipoResidencia) = "OVIEDO" Then
             Dim qFinal As Long, rFinal As Long, sFinal As Long

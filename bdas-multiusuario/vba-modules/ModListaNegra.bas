@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "ModListaNegra"
+Attribute VB_Name = "ModListaNegra"
 '=================================================================================
 ' M�dulo: ModListaNegra
 '
@@ -41,16 +41,23 @@ Public Sub CheckBlacklist(ws As Worksheet, Target As Range)
     ' Recorre celdas editadas en columna I
     For Each cel In rngCambios
         If Trim(cel.Value) <> "" Then
-            Set found = rngLista.Find(What:=cel.Value, LookIn:=xlValues, LookAt:=xlWhole)
-            If Not found Is Nothing Then
-                fecha = wsLista.Cells(found.Row, "B").Value
-                motivo = wsLista.Cells(found.Row, "C").Value
+            ' 1. Comprobar en Access DB (fuente de verdad multiusuario)
+            Dim motivoAcc As String
+            If modDatabase.ComprobarListaNegra(CStr(cel.Value), motivoAcc) Then
+                MsgBox "⚠️ El DNI '" & cel.Value & "' está incluido en la LISTA NEGRA de Access:" & vbCrLf & _
+                       "• Motivo: " & motivoAcc, vbExclamation, "Advertencia: Registro en Lista Negra"
+            Else
+                ' 2. Comprobar en hoja local LISTA NEGRA (fallback)
+                Set found = rngLista.Find(What:=cel.Value, LookIn:=xlValues, LookAt:=xlWhole)
+                If Not found Is Nothing Then
+                    fecha = wsLista.Cells(found.Row, "B").Value
+                    motivo = wsLista.Cells(found.Row, "C").Value
 
-                MsgBox "El DNI '" & cel.Value & "' est� incluido en la hoja LISTA NEGRA:" & vbCrLf & _
-                       "� Fecha de inclusi�n: " & Format(fecha, "dd/mm/yyyy") & vbCrLf & _
-                       "� Motivo: " & motivo, vbExclamation, "Advertencia: Registro en Lista Negra"
+                    MsgBox "El DNI '" & cel.Value & "' está incluido en la hoja LISTA NEGRA:" & vbCrLf & _
+                           "• Fecha de inclusión: " & Format(fecha, "dd/mm/yyyy") & vbCrLf & _
+                           "• Motivo: " & motivo, vbExclamation, "Advertencia: Registro en Lista Negra"
+                End If
             End If
         End If
     Next cel
 End Sub
-
