@@ -1,136 +1,112 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmLogin
-   Caption         =   "BDAS - Inicio de Sesi" & Chr(243) & "n"
-   ClientHeight    =   4200
-   ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   5400
-   StartUpPosition =   1  'CenterOwner
-   Begin MSForms.Label lblTitulo
-      Height          =   480
-      Left            =   240
-      Top             =   240
-      Width           =   4920
-      Caption         =   "BDAS - Residencias"
-      Font.Bold       =   -1
-      Font.Size       =   14
-      TextAlign       =   2
-   End
-   Begin MSForms.Label lblSubtitulo
-      Height          =   360
-      Left            =   240
-      Top             =   720
-      Width           =   4920
-      Caption         =   "Inicio de Sesi" & Chr(243) & "n"
-      Font.Size       =   10
-      TextAlign       =   2
-   End
-   Begin MSForms.Label lblUsuario
-      Height          =   240
-      Left            =   480
-      Top             =   1320
-      Width           =   1440
-      Caption         =   "Usuario:"
-   End
-   Begin MSForms.TextBox txtUsuario
-      Height          =   360
-      Left            =   1920
-      TabIndex        =   0
-      Top             =   1320
-      Width           =   2880
-   End
-   Begin MSForms.Label lblClave
-      Height          =   240
-      Left            =   480
-      Top             =   1920
-      Width           =   1440
-      Caption         =   "Contrase" & Chr(241) & "a:"
-   End
-   Begin MSForms.TextBox txtClave
-      Height          =   360
-      Left            =   1920
-      PasswordChar    =   "*"
-      TabIndex        =   1
-      Top             =   1920
-      Width           =   2880
-   End
-   Begin MSForms.Label lblError
-      ForeColor       =   &H000000FF&
-      Height          =   360
-      Left            =   480
-      Top             =   2520
-      Visible         =   0
-      Width           =   4440
-   End
-   Begin MSForms.CommandButton btnEntrar
-      Caption         =   "Entrar"
-      Default         =   -1
-      Height          =   480
-      Left            =   1200
-      TabIndex        =   2
-      Top             =   3240
-      Width           =   1440
-   End
-   Begin MSForms.CommandButton btnSalir
-      Cancel          =   -1
-      Caption         =   "Salir"
-      Height          =   480
-      Left            =   2880
-      TabIndex        =   3
-      Top             =   3240
-      Width           =   1440
-   End
-End
-Attribute VB_Name = "frmLogin"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = True
-Attribute VB_Exposed = False
 Option Explicit
 
 Private m_Cancelado As Boolean
 
 Private Sub UserForm_Initialize()
-    txtUsuario.Text = ""
-    txtClave.Text = ""
-    lblError.Visible = False
+    Dim ctl As Object
+
+    Me.Caption = "BDAS" & Chr(160) & Chr(8212) & Chr(160) & "Inicio de Sesi" & Chr(243) & "n"
+    Me.Width = 220
+    Me.Height = 170
+    Me.StartUpPosition = 1
+
+    Set ctl = Me.Controls.Add("Forms.Label.1", "lblTitulo", True)
+    ctl.Caption = "BDAS" & Chr(160) & Chr(8212) & Chr(160) & "Residencias"
+    ctl.Left = 6: ctl.Top = 6: ctl.Width = 198: ctl.Height = 24
+    ctl.TextAlign = 2
+    With ctl.Font: .Size = 14: .Bold = True: End With
+
+    Set ctl = Me.Controls.Add("Forms.Label.1", "lblSubtitulo", True)
+    ctl.Caption = "Inicio de Sesi" & Chr(243) & "n"
+    ctl.Left = 6: ctl.Top = 33: ctl.Width = 198: ctl.Height = 18
+    ctl.TextAlign = 2
+
+    Set ctl = Me.Controls.Add("Forms.Label.1", "lblUsuario", True)
+    ctl.Caption = "Usuario:"
+    ctl.Left = 18: ctl.Top = 63: ctl.Width = 54: ctl.Height = 18
+
+    Set ctl = Me.Controls.Add("Forms.TextBox.1", "txtUsuario", True)
+    ctl.Left = 78: ctl.Top = 60: ctl.Width = 126: ctl.Height = 21
+    ctl.TabIndex = 0
+
+    Set ctl = Me.Controls.Add("Forms.Label.1", "lblClave", True)
+    ctl.Caption = "Contrase" & Chr(241) & "a:"
+    ctl.Left = 18: ctl.Top = 90: ctl.Width = 54: ctl.Height = 18
+
+    Set ctl = Me.Controls.Add("Forms.TextBox.1", "txtClave", True)
+    ctl.Left = 78: ctl.Top = 87: ctl.Width = 126: ctl.Height = 21
+    ctl.PasswordChar = "*"
+    ctl.TabIndex = 1
+
+    Set ctl = Me.Controls.Add("Forms.Label.1", "lblError", True)
+    ctl.Caption = ""
+    ctl.Left = 18: ctl.Top = 117: ctl.Width = 186: ctl.Height = 18
+    ctl.ForeColor = RGB(200, 0, 0)
+    ctl.Visible = False
+
+    Set ctl = Me.Controls.Add("Forms.CommandButton.1", "btnEntrar", True)
+    ctl.Caption = "Entrar"
+    ctl.Left = 36: ctl.Top = 141: ctl.Width = 72: ctl.Height = 24
+    ctl.Default = True
+    ctl.TabIndex = 2
+
+    Set ctl = Me.Controls.Add("Forms.CommandButton.1", "btnSalir", True)
+    ctl.Caption = "Salir"
+    ctl.Left = 120: ctl.Top = 141: ctl.Width = 72: ctl.Height = 24
+    ctl.Cancel = True
+    ctl.TabIndex = 3
+
     m_Cancelado = False
-    txtUsuario.SetFocus
+    Me.Controls("txtUsuario").SetFocus
 End Sub
 
 Private Sub btnEntrar_Click()
+    ProcesarLogin
+End Sub
+
+Private Sub ProcesarLogin()
     Dim usuario As String
     Dim clave As String
-    
-    usuario = Trim(txtUsuario.Text)
-    clave = txtClave.Text
-    
+    Dim btnE As Object, lblE As Object, txU As Object, txC As Object
+
+    Set btnE = Me.Controls("btnEntrar")
+    Set lblE = Me.Controls("lblError")
+    Set txU  = Me.Controls("txtUsuario")
+    Set txC  = Me.Controls("txtClave")
+
+    usuario = Trim(txU.Text)
+    clave   = txC.Text
+
+    lblE.Visible = False
+
     If Len(usuario) = 0 Then
-        MostrarError "Introduce tu nombre de usuario."
-        txtUsuario.SetFocus
+        lblE.Caption = "Introduce tu nombre de usuario."
+        lblE.Visible = True
+        txU.SetFocus
         Exit Sub
     End If
-    
     If Len(clave) = 0 Then
-        MostrarError "Introduce tu contrase" & Chr(241) & "a."
-        txtClave.SetFocus
+        lblE.Caption = "Introduce tu contrase" & Chr(241) & "a."
+        lblE.Visible = True
+        txC.SetFocus
         Exit Sub
     End If
-    
-    btnEntrar.Enabled = False
-    btnEntrar.Caption = "Validando..."
+
+    btnE.Enabled = False
+    btnE.Caption = "Validando..."
     DoEvents
-    
+
     If modDatabase.ValidarCredenciales(usuario, clave) Then
         Me.Hide
     Else
-        MostrarError "Usuario o contrase" & Chr(241) & "a incorrectos."
-        txtClave.Text = ""
-        txtClave.SetFocus
+        lblE.Caption = "Usuario o contrase" & Chr(241) & "a incorrectos."
+        lblE.Visible = True
+        txC.Text = ""
+        txC.SetFocus
     End If
-    
-    btnEntrar.Enabled = True
-    btnEntrar.Caption = "Entrar"
+
+    btnE.Enabled = True
+    btnE.Caption = "Entrar"
 End Sub
 
 Private Sub btnSalir_Click()
@@ -146,19 +122,6 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     End If
 End Sub
 
-Private Sub MostrarError(ByVal mensaje As String)
-    lblError.Caption = mensaje
-    lblError.Visible = True
-End Sub
-
 Public Property Get Cancelado() As Boolean
     Cancelado = m_Cancelado
 End Property
-
-Private Sub txtUsuario_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-    lblError.Visible = False
-End Sub
-
-Private Sub txtClave_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-    lblError.Visible = False
-End Sub

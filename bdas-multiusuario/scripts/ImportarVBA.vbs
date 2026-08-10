@@ -54,12 +54,58 @@ RemoveComp "frmLogin"
 RemoveComp "frmSelectorResidencia"
 RemoveComp "modDatabase"
 RemoveComp "modMigracion"
+On Error GoTo 0
 
-WScript.Echo "Importando frmLogin.frm..."
-proj.VBComponents.Import scriptsDir & "frmLogin.frm"
+' ============================================================
+' CREAR frmLogin como UserForm real (vbext_ct_MSForm = 3)
+' Evita el problema del .frm/.frx no importar como Formulario
+' ============================================================
+WScript.Echo "Creando UserForm frmLogin..."
+Dim frmLoginComp, frmLoginCode
+Set frmLoginComp = proj.VBComponents.Add(3)   ' 3 = vbext_ct_MSForm
+frmLoginComp.Name = "frmLogin"
+frmLoginComp.Properties("Caption").Value = "BDAS - Inicio de Sesion"
+frmLoginComp.Properties("Width").Value = 220
+frmLoginComp.Properties("Height").Value = 170
+frmLoginComp.Properties("StartUpPosition").Value = 1
 
-WScript.Echo "Importando frmSelectorResidencia.frm..."
-proj.VBComponents.Import scriptsDir & "frmSelectorResidencia.frm"
+Set fso = CreateObject("Scripting.FileSystemObject")
+If fso.FileExists(scriptsDir & "frmLogin.frm") Then
+    Dim fLogin
+    Set fLogin = fso.OpenTextFile(scriptsDir & "frmLogin.frm", 1)
+    Dim loginFull : loginFull = fLogin.ReadAll()
+    fLogin.Close
+    ' Extraer solo el codigo VBA (desde "Option Explicit" en adelante)
+    Dim loginStart : loginStart = InStr(loginFull, "Option Explicit")
+    If loginStart > 0 Then
+        frmLoginComp.CodeModule.DeleteLines 1, frmLoginComp.CodeModule.CountOfLines
+        frmLoginComp.CodeModule.AddFromString Mid(loginFull, loginStart)
+    End If
+End If
+
+' ============================================================
+' CREAR frmSelectorResidencia como UserForm real
+' ============================================================
+WScript.Echo "Creando UserForm frmSelectorResidencia..."
+Dim frmSelComp, frmSelCode
+Set frmSelComp = proj.VBComponents.Add(3)   ' 3 = vbext_ct_MSForm
+frmSelComp.Name = "frmSelectorResidencia"
+frmSelComp.Properties("Caption").Value = "BDAS - Seleccion de Residencia"
+frmSelComp.Properties("Width").Value = 200
+frmSelComp.Properties("Height").Value = 160
+frmSelComp.Properties("StartUpPosition").Value = 1
+
+If fso.FileExists(scriptsDir & "frmSelectorResidencia.frm") Then
+    Dim fSel
+    Set fSel = fso.OpenTextFile(scriptsDir & "frmSelectorResidencia.frm", 1)
+    Dim selFull : selFull = fSel.ReadAll()
+    fSel.Close
+    Dim selStart : selStart = InStr(selFull, "Option Explicit")
+    If selStart > 0 Then
+        frmSelComp.CodeModule.DeleteLines 1, frmSelComp.CodeModule.CountOfLines
+        frmSelComp.CodeModule.AddFromString Mid(selFull, selStart)
+    End If
+End If
 
 WScript.Echo "Importando modDatabase.bas..."
 proj.VBComponents.Import scriptsDir & "modDatabase.bas"

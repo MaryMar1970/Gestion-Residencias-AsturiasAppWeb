@@ -1,93 +1,88 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmSelectorResidencia
-   Caption         =   "BDAS - Selecci" & Chr(243) & "n de Residencia"
-   ClientHeight    =   3600
-   ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   4800
-   StartUpPosition =   1  'CenterOwner
-   Begin MSForms.Label lblBienvenida
-      Height          =   360
-      Left            =   240
-      Top             =   240
-      Width           =   4320
-      Caption         =   "Bienvenido/a"
-      Font.Bold       =   -1
-      Font.Size       =   12
-      TextAlign       =   2
-   End
-   Begin MSForms.Label lblInstruccion
-      Height          =   360
-      Left            =   240
-      Top             =   720
-      Width           =   4320
-      Caption         =   "Selecciona la residencia con la que vas a trabajar:"
-      TextAlign       =   2
-   End
-   Begin MSForms.ListBox lstResidencias
-      Height          =   1560
-      Left            =   480
-      ListStyle       =   1
-      TabIndex        =   0
-      Top             =   1200
-      Width           =   3840
-   End
-   Begin MSForms.CommandButton btnEntrar
-      Caption         =   "Entrar"
-      Default         =   -1
-      Height          =   480
-      Left            =   1680
-      TabIndex        =   1
-      Top             =   3000
-      Width           =   1440
-   End
-End
-Attribute VB_Name = "frmSelectorResidencia"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = True
-Attribute VB_Exposed = False
 Option Explicit
 
 Private Sub UserForm_Initialize()
-    Dim residencias As Collection
+    Dim residencias As Object  ' Collection
     Dim i As Long
     Dim nombreDisplay As String
-    
-    lblBienvenida.Caption = "Bienvenido/a, " & modDatabase.ObtenerNombreCompleto()
-    
-    lstResidencias.Clear
+    Dim lstR As Object
+    Dim lblB As Object
+    Dim ctl As Object
+
+    Me.Caption = "BDAS" & Chr(160) & Chr(8212) & Chr(160) & "Selecci" & Chr(243) & "n de Residencia"
+    Me.Width = 200
+    Me.Height = 160
+    Me.StartUpPosition = 1
+
+    ' --- Label Bienvenida ---
+    Set ctl = Me.Controls.Add("Forms.Label.1", "lblBienvenida", True)
+    ctl.Left = 6: ctl.Top = 6: ctl.Width = 180: ctl.Height = 24
+    ctl.Caption = "Bienvenido/a"
+    ctl.TextAlign = 2
+    With ctl.Font: .Size = 12: .Bold = True: End With
+
+    ' --- Label Instruccion ---
+    Set ctl = Me.Controls.Add("Forms.Label.1", "lblInstruccion", True)
+    ctl.Left = 6: ctl.Top = 33: ctl.Width = 180: ctl.Height = 24
+    ctl.Caption = "Selecciona tu residencia:"
+    ctl.TextAlign = 2
+
+    ' --- ListBox Residencias ---
+    Set ctl = Me.Controls.Add("Forms.ListBox.1", "lstResidencias", True)
+    ctl.Left = 18: ctl.Top = 60: ctl.Width = 156: ctl.Height = 54
+    ctl.TabIndex = 0
+
+    ' --- Boton Entrar ---
+    Set ctl = Me.Controls.Add("Forms.CommandButton.1", "btnEntrar", True)
+    ctl.Caption = "Entrar"
+    ctl.Left = 57: ctl.Top = 123: ctl.Width = 84: ctl.Height = 24
+    ctl.Default = True
+    ctl.TabIndex = 1
+
+    ' --- Rellenar datos ---
+    Set lblB = Me.Controls("lblBienvenida")
+    lblB.Caption = "Bienvenido/a, " & modDatabase.ObtenerNombreCompleto()
+
+    Set lstR = Me.Controls("lstResidencias")
+    lstR.Clear
     Set residencias = modDatabase.ObtenerResidenciasAsignadas()
-    
+
     For i = 1 To residencias.Count
         Select Case residencias(i)
-            Case "GIJON": nombreDisplay = "Residencia de GIJ" & Chr(211) & "N"
-            Case "SOTO": nombreDisplay = "Residencia de SOTO DEL BARCO"
+            Case "GIJON":  nombreDisplay = "Residencia de GIJ" & Chr(211) & "N"
+            Case "SOTO":   nombreDisplay = "Residencia de SOTO DEL BARCO"
             Case "OVIEDO": nombreDisplay = "Residencia de OVIEDO"
-            Case Else: nombreDisplay = residencias(i)
+            Case Else:     nombreDisplay = residencias(i)
         End Select
-        lstResidencias.AddItem nombreDisplay
+        lstR.AddItem nombreDisplay
     Next i
-    
-    If lstResidencias.ListCount > 0 Then
-        lstResidencias.ListIndex = 0
-    End If
+
+    If lstR.ListCount > 0 Then lstR.ListIndex = 0
 End Sub
 
 Private Sub btnEntrar_Click()
-    Dim residencias As Collection
+    ProcesarSeleccion
+End Sub
+
+Private Sub lstResidencias_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
+    ProcesarSeleccion
+End Sub
+
+Private Sub ProcesarSeleccion()
+    Dim residencias As Object
     Dim selIndex As Long
-    
-    If lstResidencias.ListIndex < 0 Then
-        MsgBox "Selecciona una residencia antes de continuar.", vbExclamation
+    Dim lstR As Object
+
+    Set lstR = Me.Controls("lstResidencias")
+
+    If lstR.ListIndex < 0 Then
+        MsgBox "Selecciona una residencia antes de continuar.", vbExclamation, "BDAS"
         Exit Sub
     End If
-    
+
     Set residencias = modDatabase.ObtenerResidenciasAsignadas()
-    selIndex = lstResidencias.ListIndex + 1
-    
+    selIndex = lstR.ListIndex + 1  ' Collection base 1
+
     modDatabase.EstablecerResidenciaActiva residencias(selIndex)
-    
     Me.Hide
 End Sub
 
@@ -96,8 +91,4 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
         Cancel = True
         Me.Hide
     End If
-End Sub
-
-Private Sub lstResidencias_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-    btnEntrar_Click
 End Sub
