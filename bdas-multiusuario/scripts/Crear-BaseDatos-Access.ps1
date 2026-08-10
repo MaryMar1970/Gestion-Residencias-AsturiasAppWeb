@@ -22,7 +22,8 @@ Param(
     [int]$UltimaFacturaGijon = 0,
     [int]$UltimaFacturaSoto = 0,
     [int]$UltimaFacturaOviedo = 0,
-    [int]$Ejercicio = (Get-Date).Year
+    [int]$Ejercicio = (Get-Date).Year,
+    [switch]$ForceRecreate = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -61,10 +62,15 @@ if (-not (Test-Path -Path $plantillaDir)) {
 $dbPath = Join-Path -Path $TargetFolder -ChildPath $DbName
 
 if (Test-Path -Path $dbPath) {
-    Write-Host "[AVISO] La base de datos '$dbPath' ya existe." -ForegroundColor Red
-    Write-Host "        No se sobrescribira para preservar datos existentes." -ForegroundColor Red
-    Write-Host "        Si desea recrearla, elimine el archivo manualmente." -ForegroundColor Red
-    exit 0
+    if ($ForceRecreate) {
+        Write-Host "[INFO] Recreando base de datos (-ForceRecreate)..." -ForegroundColor Yellow
+        Remove-Item -Path $dbPath -Force
+    } else {
+        Write-Host "[AVISO] La base de datos '$dbPath' ya existe." -ForegroundColor Red
+        Write-Host "        No se sobrescribira para preservar datos existentes." -ForegroundColor Red
+        Write-Host "        Si desea recrearla, elimine el archivo manualmente o use -ForceRecreate." -ForegroundColor Red
+        exit 0
+    }
 }
 
 Write-Host "[PROCESANDO] Creando base de datos en: $dbPath ..." -ForegroundColor Cyan
@@ -99,7 +105,8 @@ try {
 
     $sqlOrdenes = @"
 CREATE TABLE Ordenes (
-    NumOrden AUTOINCREMENT PRIMARY KEY,
+    Id AUTOINCREMENT PRIMARY KEY,
+    NumOrden LONG NOT NULL,
     NumFactura LONG,
     Residencia VARCHAR(20) NOT NULL,
     FechaPeticion DATETIME,

@@ -1,4 +1,4 @@
-Attribute VB_Name = "modDatabase"
+﻿Attribute VB_Name = "modDatabase"
 Option Explicit
 
 ' ==============================================================================
@@ -598,23 +598,14 @@ Public Function InsertarOrdenAtomica( _
     ' Iniciar transacción atómica
     cn.BeginTrans
     
-    ' Obtener el siguiente NumOrden para esta residencia de forma atómica
-    Set rs = cn.Execute("SELECT MAX(NumOrden) FROM Ordenes WHERE Residencia = '" & EscaparSQL(residencia) & "'")
-    If Not rs.EOF And Not IsNull(rs(0).Value) Then
-        nuevoNumOrden = CLng(rs(0).Value) + 1
-    Else
-        nuevoNumOrden = 1
-    End If
-    rs.Close
-    
     sql = "INSERT INTO Ordenes (" & _
-          "NumOrden, Residencia, FechaPeticion, DNI, Nombre, Apellidos, TipoHuesped, " & _
+          "Residencia, FechaPeticion, DNI, Nombre, Apellidos, TipoHuesped, " & _
           "NumHabIndividuales, NumHabDobles, FechaEntrada, FechaSalida, " & _
           "Resolucion, EstadoPago, Observaciones, " & _
           "Telefono, Email, Direccion, CodigoPostal, Poblacion, Provincia, " & _
           "Solapamiento, ConsentimientoRGPD, " & _
           "FechaCreacion, UsuarioCreacion" & _
-          ") VALUES (" & nuevoNumOrden & ", "
+          ") VALUES ("
           
     sql = sql & "'" & EscaparSQL(residencia) & "', " & _
           FormatearFechaSQL(fechaPeticion) & ", " & _
@@ -639,6 +630,13 @@ Public Function InsertarOrdenAtomica( _
           ")"
           
     cn.Execute sql
+    
+    ' Obtener el autonumérico asignado por Access en la misma conexión
+    Set rs = cn.Execute("SELECT @@IDENTITY")
+    If Not rs.EOF Then
+        nuevoNumOrden = CLng(rs(0).Value)
+    End If
+    rs.Close
     
     ' Confirmar transacción
     cn.CommitTrans
@@ -921,8 +919,8 @@ Public Sub SincronizarHojaDesdeAccess( _
     
     On Error GoTo ErrorHandler
     
-    Application.ScreenUpdating = False
-    Application.EnableEvents = False  ' Evitar que Worksheet_Change se dispare durante la carga
+    Application.screenUpdating = False
+    Application.enableEvents = False  ' Evitar que Worksheet_Change se dispare durante la carga
     
     sql = "SELECT * FROM Ordenes WHERE Residencia = '" & EscaparSQL(residencia) & "' ORDER BY NumOrden ASC"
     Set rs = GetRecordset(sql)
@@ -988,8 +986,8 @@ ErrorHandler:
            Err.Description, vbCritical, "Error de Sincronización"
 
 CleanUp:
-    Application.EnableEvents = True
-    Application.ScreenUpdating = True
+    Application.enableEvents = True
+    Application.screenUpdating = True
     If Not rs Is Nothing Then Set rs = Nothing
 End Sub
 

@@ -66,6 +66,26 @@ proj.VBComponents.Import scriptsDir & "modDatabase.bas"
 
 WScript.Echo "Importando modMigracion.bas..."
 proj.VBComponents.Import scriptsDir & "modMigracion.bas"
+
+' Importar módulos modificados de vba-modules
+Dim vbaFolder, vbaFile, modName
+Dim vbaDir
+vbaDir = bdasDir & "vba-modules\"
+
+If fso.FolderExists(vbaDir) Then
+    Set vbaFolder = fso.GetFolder(vbaDir)
+    Dim modsToImport
+    modsToImport = Array("FechasPeticion", "EvitarDuplicidadSolicitudesGyS", "AsignarNumFactura", "FacturacionMesGIJON", "FacturacionMesOVIEDO", "FacturacionMesSOTO", "MarcarSiPagadosEnResidencia")
+    
+    Dim mName
+    For Each mName In modsToImport
+        If fso.FileExists(vbaDir & mName & ".bas") Then
+            WScript.Echo "Re-importando modulo adaptado: " & mName
+            RemoveComp mName
+            proj.VBComponents.Import vbaDir & mName & ".bas"
+        End If
+    Next
+End If
 On Error GoTo 0
 
 WScript.Echo "Actualizando eventos en ThisWorkbook..."

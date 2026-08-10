@@ -55,15 +55,15 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
   - `modMigracion`: 354 líneas
 - [x] Guía paso a paso de importación documentada en `Guia-Integracion-VBA.md`
 
-### Fase 3: Migración de datos históricos (COMPLETADA Y VERIFICADA)
+### Fase 3: Migración de datos históricos (COMPLETADA Y VERIFICADA AL 100%)
 - [x] Ejecución de la migración de datos históricos mediante `Migrar-Datos-Historicos.ps1` en transacción atómica ADODB.
-- [x] Verificación de la integridad de datos en `H:\ResidenciaBD\Residencia_BE.accdb`:
-  - **Órdenes (Total 1.801 registros)**:
-    - GIJÓN: 286 registros
-    - OVIEDO: 1.482 registros
-    - SOTO: 33 registros
-  - **Lista Negra**: 38 registros
-  - **Log de Actividad**: 6.767 registros
+- [x] Verificación de coincidencia exacta al 100% entre las pestañas del libro Excel maestro y `H:\ResidenciaBD\Residencia_BE.accdb`:
+  - **Órdenes (Total 2.120 solicitudes históricas)**:
+    - `RESIDENCIA GIJÓN`: Excel **286** filas ↔ Access **286** registros (`Coincide 100%: True`)
+    - `RESIDENCIA SOTO`: Excel **33** filas ↔ Access **33** registros (`Coincide 100%: True`)
+    - `RESIDENCIA OVIEDO`: Excel **1.801** filas ↔ Access **1.801** registros (`Coincide 100%: True`)
+  - **Lista Negra**: **38** registros (`Coincide 100%: True`)
+  - **Log de Actividad**: **6.767** registros (`Coincide 100%: True`)
 
 ### Fase 4: Adaptar los 15 módulos VBA existentes (según Guia-Modificacion-Modulos-VBA.md)
 Los módulos a modificar (ya NO doble escritura, solo Access + refrescar caché):
