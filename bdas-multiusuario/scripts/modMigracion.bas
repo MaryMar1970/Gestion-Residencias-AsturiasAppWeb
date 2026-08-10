@@ -66,10 +66,10 @@ Public Sub MigrarTodasLasResidencias()
     Dim nLN As Long
     nLN = MigrarListaNegra()
     
-    ' --- Migrar LOG ---
-    Application.StatusBar = "Migrando LOG..."
+    ' --- Migrar LOGs ---
+    Application.StatusBar = "Migrando LOGs..."
     Dim nLog As Long
-    nLog = MigrarLog()
+    nLog = MigrarLogHoja("LOG_GIJÓN") + MigrarLogHoja("LOG_SOTO") + MigrarLogHoja("LOG_OVIEDO")
     
     On Error GoTo 0
     
@@ -90,12 +90,6 @@ End Sub
 
 ''' Migra una hoja de residencia completa a la tabla Ordenes de Access.
 ''' Retorna el número de registros migrados, o -1 si hay error.
-'''
-''' IMPORTANTE: Ajustar el mapeo de columnas según la estructura real de cada hoja.
-''' Las columnas indicadas son las documentadas en el análisis del BDAS:
-'''   A=NumOrden, C=NumFactura, K=Nombre, L=FechaEntrada, M=FechaSalida,
-'''   P=Resolución, Q=NumHabInd, R=NumHabDob, S=HabitacionesAsignadas (Gij/Soto),
-'''   T=HabitacionesAsignadas (Oviedo), AA=EstadoPago (Gij/Soto), AB=EstadoPago (Oviedo)
 Public Function MigrarHojaResidencia( _
     ByVal nombreHoja As String, _
     ByVal codigoResidencia As String _
@@ -120,15 +114,26 @@ Public Function MigrarHojaResidencia( _
     migrados = 0
     errores = 0
     
-    ' Determinar columnas de habitaciones y estado de pago según residencia
-    Dim colHabitaciones As Long
-    Dim colEstadoPago As Long
+    ' Determinar columnas según residencia (Oviedo desplaza +1 por CAMA SUPLE. en Col 19)
+    Dim colHabitaciones As Long, colTelefono As Long, colDireccion As Long
+    Dim colCP As Long, colPoblacion As Long, colProvincia As Long, colEstadoPago As Long
+    
     If UCase(codigoResidencia) = "OVIEDO" Then
-        colHabitaciones = 20  ' Col T
-        colEstadoPago = 28    ' Col AB
+        colHabitaciones = 20  ' Col T (NÚM HAB.)
+        colTelefono = 23      ' Col W (TELEFONO)
+        colDireccion = 24     ' Col X (DIRECCIÓN)
+        colCP = 25            ' Col Y (CP)
+        colPoblacion = 26     ' Col Z (POBLACIÓN)
+        colProvincia = 27     ' Col AA (PROVINCIA)
+        colEstadoPago = 28    ' Col AB (PAGADO)
     Else
-        colHabitaciones = 19  ' Col S
-        colEstadoPago = 27    ' Col AA
+        colHabitaciones = 19  ' Col S (NÚM HAB.)
+        colTelefono = 22      ' Col V (TELEFONO)
+        colDireccion = 23     ' Col W (DIRECCIÓN)
+        colCP = 24            ' Col X (CP)
+        colPoblacion = 25     ' Col Y (POBLACIÓN)
+        colProvincia = 26     ' Col Z (PROVINCIA)
+        colEstadoPago = 27    ' Col AA (PAGADO)
     End If
     
     For fila = 2 To ultimaFila
@@ -141,16 +146,24 @@ Public Function MigrarHojaResidencia( _
             
             ' Construir INSERT con los valores de cada columna
             sql = "INSERT INTO Ordenes (" & _
-                  "NumOrden, NumFactura, Residencia, " & _
-                  "DNI, Nombre, Apellidos, " & _
+                  "NumOrden, FechaPeticion, NumFactura, Residencia, " & _
+                  "DNI, Nombre, " & _
                   "NumHabIndividuales, NumHabDobles, " & _
                   "FechaEntrada, FechaSalida, " & _
-                  "Resolucion, HabitacionesAsignadas, EstadoPago, " & _
-                  "Observaciones, FechaCreacion, UsuarioCreacion" & _
+                  "Resolucion, HabitacionesAsignadas, " & _
+                  "Telefono, Direccion, CodigoPostal, Poblacion, Provincia, " & _
+                  "EstadoPago, FechaCreacion, UsuarioCreacion" & _
                   ") VALUES ("
             
             ' NumOrden (A)
             sql = sql & numOrden & ", "
+            
+            ' FechaPeticion (B)
+            If IsDate(ws.Cells(fila, 2).Value) Then
+                sql = sql & modDatabase.FormatearFechaSQL(CDate(ws.Cells(fila, 2).Value)) & ", "
+            Else
+                sql = sql & "NULL, "
+            End If
             
             ' NumFactura (C) — puede estar vacío
             If IsNumeric(ws.Cells(fila, 3).Value) And ws.Cells(fila, 3).Value > 0 Then
@@ -162,20 +175,17 @@ Public Function MigrarHojaResidencia( _
             ' Residencia
             sql = sql & "'" & modDatabase.EscaparSQL(codigoResidencia) & "', "
             
-            ' DNI (E aprox — AJUSTAR según columna real)
-            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, 5).Value, ""))) & "', "
+            ' DNI (I = Col 9)
+            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, 9).Value, ""))) & "', "
             
-            ' Nombre (K)
+            ' Nombre (K = Col 11)
             sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, 11).Value, ""))) & "', "
             
-            ' Apellidos (F aprox — AJUSTAR según columna real)
-            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, 6).Value, ""))) & "', "
-            
-            ' NumHabIndividuales (Q), NumHabDobles (R)
+            ' NumHabIndividuales (Q = Col 17), NumHabDobles (R = Col 18)
             sql = sql & CLng(Nz(ws.Cells(fila, 17).Value, 0)) & ", "
             sql = sql & CLng(Nz(ws.Cells(fila, 18).Value, 0)) & ", "
             
-            ' FechaEntrada (L), FechaSalida (M)
+            ' FechaEntrada (L = Col 12), FechaSalida (M = Col 13)
             If IsDate(ws.Cells(fila, 12).Value) Then
                 sql = sql & modDatabase.FormatearFechaSQL(CDate(ws.Cells(fila, 12).Value)) & ", "
             Else
@@ -188,17 +198,21 @@ Public Function MigrarHojaResidencia( _
                 sql = sql & "NULL, "
             End If
             
-            ' Resolución (P)
+            ' Resolución (P = Col 16)
             sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, 16).Value, ""))) & "', "
             
-            ' HabitacionesAsignadas (S o T según residencia)
+            ' HabitacionesAsignadas
             sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colHabitaciones).Value, ""))) & "', "
             
-            ' EstadoPago (AA o AB según residencia)
-            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colEstadoPago).Value, ""))) & "', "
+            ' Telefono, Direccion, CodigoPostal, Poblacion, Provincia
+            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colTelefono).Value, ""))) & "', "
+            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colDireccion).Value, ""))) & "', "
+            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colCP).Value, ""))) & "', "
+            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colPoblacion).Value, ""))) & "', "
+            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colProvincia).Value, ""))) & "', "
             
-            ' Observaciones (columna variable — AJUSTAR)
-            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, 25).Value, ""))) & "', "
+            ' EstadoPago
+            sql = sql & "'" & modDatabase.EscaparSQL(CStr(Nz(ws.Cells(fila, colEstadoPago).Value, ""))) & "', "
             
             ' FechaCreacion, UsuarioCreacion
             sql = sql & modDatabase.FormatearFechaHoraSQL(Now) & ", "
@@ -267,17 +281,17 @@ Public Function MigrarListaNegra() As Long
     MigrarListaNegra = migrados
 End Function
 
-''' Migra la hoja LOG a la tabla LogActividad de Access.
-Public Function MigrarLog() As Long
+''' Migra una hoja de LOG a la tabla LogActividad de Access.
+Public Function MigrarLogHoja(ByVal nombreHoja As String) As Long
     Dim ws As Worksheet
     Dim fila As Long, ultimaFila As Long, migrados As Long
     
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("LOG")
+    Set ws = ThisWorkbook.Sheets(nombreHoja)
     On Error GoTo 0
     
     If ws Is Nothing Then
-        MigrarLog = 0
+        MigrarLogHoja = 0
         Exit Function
     End If
     
@@ -299,7 +313,11 @@ Public Function MigrarLog() As Long
         End If
     Next fila
     
-    MigrarLog = migrados
+    MigrarLogHoja = migrados
+End Function
+
+Public Function MigrarLog() As Long
+    MigrarLog = MigrarLogHoja("LOG_GIJÓN") + MigrarLogHoja("LOG_SOTO") + MigrarLogHoja("LOG_OVIEDO")
 End Function
 
 ''' Verifica la integridad de la migración comparando conteos.
@@ -310,9 +328,9 @@ Public Sub VerificarMigracion()
     ' Contar filas en cada hoja
     Dim wsGij As Long, wsSot As Long, wsOvi As Long
     On Error Resume Next
-    wsGij = ThisWorkbook.Sheets("RESIDENCIA GIJÓN").Cells(Rows.Count, 1).End(xlUp).Row - 1
-    wsSot = ThisWorkbook.Sheets("RESIDENCIA SOTO").Cells(Rows.Count, 1).End(xlUp).Row - 1
-    wsOvi = ThisWorkbook.Sheets("RESIDENCIA OVIEDO").Cells(Rows.Count, 1).End(xlUp).Row - 1
+    wsGij = ThisWorkbook.Sheets("BDAS GIJÓN").Cells(Rows.Count, 1).End(xlUp).Row - 1
+    wsSot = ThisWorkbook.Sheets("BDAS SOTO").Cells(Rows.Count, 1).End(xlUp).Row - 1
+    wsOvi = ThisWorkbook.Sheets("BDAS OVIEDO").Cells(Rows.Count, 1).End(xlUp).Row - 1
     On Error GoTo 0
     
     ' Contar registros en Access

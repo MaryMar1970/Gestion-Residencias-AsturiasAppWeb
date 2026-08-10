@@ -400,9 +400,9 @@ End Function
 ''' Retorna el nombre de la hoja Excel correspondiente a una residencia.
 Public Function ObtenerNombreHoja(ByVal residencia As String) As String
     Select Case UCase(Trim(residencia))
-        Case "GIJON": ObtenerNombreHoja = "RESIDENCIA GIJÓN"
-        Case "SOTO": ObtenerNombreHoja = "RESIDENCIA SOTO"
-        Case "OVIEDO": ObtenerNombreHoja = "RESIDENCIA OVIEDO"
+        Case "GIJON": ObtenerNombreHoja = "BDAS GIJÓN"
+        Case "SOTO": ObtenerNombreHoja = "BDAS SOTO"
+        Case "OVIEDO": ObtenerNombreHoja = "BDAS OVIEDO"
         Case Else: ObtenerNombreHoja = ""
     End Select
 End Function

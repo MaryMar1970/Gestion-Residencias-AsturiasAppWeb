@@ -55,10 +55,15 @@ Convertir el BDAS v16.5.5 (archivo Excel monousuario con macros VBA) en un siste
   - `modMigracion`: 354 líneas
 - [x] Guía paso a paso de importación documentada en `Guia-Integracion-VBA.md`
 
-### Fase 3: Migración de datos históricos
-- [ ] Ejecutar `modMigracion.MigrarTodasLasResidencias()` desde el editor VBA (F5)
-- [ ] Ejecutar `modMigracion.VerificarMigracion()` para comprobar integridad
-- [ ] Los registros se migran de las hojas RESIDENCIA GIJÓN/SOTO/OVIEDO + LISTA NEGRA + LOG
+### Fase 3: Migración de datos históricos (COMPLETADA Y VERIFICADA)
+- [x] Ejecución de la migración de datos históricos mediante `Migrar-Datos-Historicos.ps1` en transacción atómica ADODB.
+- [x] Verificación de la integridad de datos en `H:\ResidenciaBD\Residencia_BE.accdb`:
+  - **Órdenes (Total 1.801 registros)**:
+    - GIJÓN: 286 registros
+    - OVIEDO: 1.482 registros
+    - SOTO: 33 registros
+  - **Lista Negra**: 38 registros
+  - **Log de Actividad**: 6.767 registros
 
 ### Fase 4: Adaptar los 15 módulos VBA existentes (según Guia-Modificacion-Modulos-VBA.md)
 Los módulos a modificar (ya NO doble escritura, solo Access + refrescar caché):
