@@ -1,64 +1,15 @@
-Attribute VB_Name = "modDatabase"
 Option Explicit
+
+#If VBA7 Then
+    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#Else
+    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#End If
 
 ' ==============================================================================
 ' Módulo: modDatabase.bas
 ' Propósito: Capa de acceso a datos ADO entre Excel Front-End y MS Access
 '            Back-End (H:\ResidenciaBD\Residencia_BE.accdb)
-'
-' Arquitectura: Archivo .xlsm ÚNICO compartido en H:\ (hasta 15 operadores)
-'   - El .xlsm se abre en memoria por cada usuario (solo lectura aceptable)
-'   - Access es la ÚNICA fuente de verdad
-'   - Las celdas de Excel son caché visual en memoria (NO se guardan al .xlsm)
-'   - Login automático por Environ("USERNAME") contra tabla Usuarios de Access
-'
-' Todas las conexiones siguen el patrón de VIDA CORTA:
-'   Abrir -> Ejecutar -> Cerrar (inmediatamente)
-'
-' Funciones disponibles:
-'   CONEXIÓN Y LOGIN:
-'   - GetConnectionString()              -> Cadena de conexión OLEDB
-'   - ComprobarConexion()                -> Test de conectividad con Access
-'   - LoginUsuario()                     -> Login automático por Windows username
-'   - ObtenerUsuarioActual()             -> Nombre de usuario Windows actual
-'   - ObtenerNombreCompleto()            -> Nombre completo del usuario logueado
-'   - ObtenerRolUsuario()                -> Rol del usuario (OPERADOR/ADMIN)
-'
-'   RESIDENCIAS:
-'   - ObtenerResidenciasAsignadas()      -> Collection con las residencias del usuario
-'   - ObtenerResidenciaActiva()          -> Residencia seleccionada actualmente
-'   - CambiarResidenciaActiva(res)       -> Cambiar la residencia activa
-'   - TieneAccesoAResidencia(res)        -> Verificar permiso sobre una residencia
-'
-'   OPERACIONES CRUD:
-'   - ExecuteNonQuery(sql)               -> INSERT/UPDATE/DELETE
-'   - ExecuteScalar(sql)                 -> SELECT que retorna un solo valor
-'   - GetRecordset(sql)                  -> SELECT que retorna un Recordset desconectado
-'   - InsertarOrdenAtomica(...)          -> Alta de solicitud con N Orden atómico
-'   - ActualizarOrden(...)               -> UPDATE genérico por N Orden
-'   - ActualizarOrdenMultiple(...)       -> UPDATE múltiples campos por N Orden
-'   - ObtenerSiguienteNumFactura()       -> Incremento atómico del contador de facturas
-'
-'   BÚSQUEDAS:
-'   - BuscarEnOrdenes(...)               -> SELECT con filtro para búsquedas
-'   - ExisteDuplicado(...)               -> Verificar duplicados de solicitud
-'   - ComprobarListaNegra(dni)           -> Verificar si un DNI está vetado
-'   - AnadirAListaNegra(...)             -> Añadir DNI a lista negra
-'
-'   SINCRONIZACIÓN:
-'   - SincronizarHojaDesdeAccess(...)    -> Volcar datos de Access a una hoja Excel
-'   - SincronizarResidenciaActiva()      -> Sincronizar solo la residencia seleccionada
-'   - SincronizarTodasMisResidencias()   -> Sincronizar todas las residencias del usuario
-'   - RefrescarCacheVisual()             -> Alias para SincronizarResidenciaActiva
-'   - ActivarHojaResidenciaActiva()      -> Navegar a la hoja de la residencia activa
-'
-'   LOG:
-'   - InsertarLog(...)                   -> Escribir en LogActividad
-'
-'   UTILIDADES:
-'   - EscaparSQL(texto)                  -> Sanitizar texto contra inyección SQL
-'   - FormatearFechaSQL(fecha)           -> Formato fecha para Access SQL
-'   - FormatearFechaHoraSQL(fecha)       -> Formato fecha+hora para Access SQL
 ' ==============================================================================
 
 Private Const DB_PATH As String = "H:\ResidenciaBD\Residencia_BE.accdb"
@@ -81,6 +32,15 @@ Private m_ResidenciaActiva As String          ' La residencia seleccionada actua
 Private m_LoginCompletado As Boolean          ' Flag para evitar doble login
 
 Private Const MAX_INTENTOS_LOGIN As Integer = 3  ' Intentos máximos antes de cerrar
+
+''' Realiza una pausa de N milisegundos cediendo control con DoEvents.
+Public Sub PausaMS(ByVal milisegundos As Long)
+    On Error Resume Next
+    If milisegundos > 0 Then
+        Sleep milisegundos
+    End If
+    DoEvents
+End Sub
 
 ' ===========================
 ' HASH SHA-256 (para contraseñas)
@@ -375,6 +335,7 @@ End Function
 ''' No verifica permisos: el formulario solo muestra residencias permitidas.
 Public Sub EstablecerResidenciaActiva(ByVal residencia As String)
     m_ResidenciaActiva = UCase(Trim(residencia))
+    MostrarHojasResidencia m_ResidenciaActiva
 End Sub
 
 ''' Verifica si el usuario tiene acceso a una residencia específica.
@@ -400,11 +361,29 @@ End Function
 ''' Retorna el nombre de la hoja Excel correspondiente a una residencia.
 Public Function ObtenerNombreHoja(ByVal residencia As String) As String
     Select Case UCase(Trim(residencia))
-        Case "GIJON": ObtenerNombreHoja = "BDAS GIJÓN"
+        Case "GIJON": ObtenerNombreHoja = "BDAS GIJ" & Chr(211) & "N"
         Case "SOTO": ObtenerNombreHoja = "BDAS SOTO"
         Case "OVIEDO": ObtenerNombreHoja = "BDAS OVIEDO"
         Case Else: ObtenerNombreHoja = ""
     End Select
+End Function
+
+''' Busca y retorna una hoja de forma segura sin lanzar Error 9.
+Public Function ObtenerHojaSegura(ByVal nombreHoja As String) As Worksheet
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(nombreHoja)
+    If ws Is Nothing Then
+        Dim altName As String
+        altName = Replace(nombreHoja, "GIJ" & Chr(211) & "N", "GIJON")
+        Set ws = ThisWorkbook.Sheets(altName)
+    End If
+    If ws Is Nothing Then
+        altName = Replace(nombreHoja, "GIJON", "GIJ" & Chr(211) & "N")
+        Set ws = ThisWorkbook.Sheets(altName)
+    End If
+    On Error GoTo 0
+    Set ObtenerHojaSegura = ws
 End Function
 
 ' ===========================
@@ -589,75 +568,88 @@ Public Function InsertarOrdenAtomica( _
     Dim rs As Object
     Dim sql As String
     Dim nuevoNumOrden As Long
+    Dim intentos As Integer
+    Dim exito As Boolean
     
-    On Error GoTo ErrorHandler
+    intentos = 5
+    exito = False
     
-    Set cn = CreateObject("ADODB.Connection")
-    cn.Open GetConnectionString()
-    
-    ' Iniciar transacción atómica
-    cn.BeginTrans
-    
-    ' Obtener el siguiente NumOrden para esta residencia de forma atómica
-    Set rs = cn.Execute("SELECT MAX(NumOrden) FROM Ordenes WHERE Residencia = '" & EscaparSQL(residencia) & "'")
-    If Not rs.EOF And Not IsNull(rs(0).Value) Then
-        nuevoNumOrden = CLng(rs(0).Value) + 1
-    Else
-        nuevoNumOrden = 1
-    End If
-    rs.Close
-    
-    sql = "INSERT INTO Ordenes (" & _
-          "NumOrden, Residencia, FechaPeticion, DNI, Nombre, Apellidos, TipoHuesped, " & _
-          "NumHabIndividuales, NumHabDobles, FechaEntrada, FechaSalida, " & _
-          "Resolucion, EstadoPago, Observaciones, " & _
-          "Telefono, Email, Direccion, CodigoPostal, Poblacion, Provincia, " & _
-          "Solapamiento, ConsentimientoRGPD, " & _
-          "FechaCreacion, UsuarioCreacion" & _
-          ") VALUES (" & nuevoNumOrden & ", "
-          
-    sql = sql & "'" & EscaparSQL(residencia) & "', " & _
-          FormatearFechaSQL(fechaPeticion) & ", " & _
-          "'" & EscaparSQL(dni) & "', " & _
-          "'" & EscaparSQL(nombre) & "', " & _
-          "'" & EscaparSQL(apellidos) & "', " & _
-          "'" & EscaparSQL(tipoHuesped) & "', " & _
-          numHabInd & ", " & numHabDob & ", " & _
-          FormatearFechaSQL(fechaEntrada) & ", " & _
-          FormatearFechaSQL(fechaSalida) & ", " & _
-          "'', '', " & _
-          "'" & EscaparSQL(observaciones) & "', " & _
-          "'" & EscaparSQL(telefono) & "', " & _
-          "'" & EscaparSQL(email) & "', " & _
-          "'" & EscaparSQL(direccion) & "', " & _
-          "'" & EscaparSQL(codigoPostal) & "', " & _
-          "'" & EscaparSQL(poblacion) & "', " & _
-          "'" & EscaparSQL(provincia) & "', " & _
-          "0, 0, " & _
-          FormatearFechaHoraSQL(Now) & ", " & _
-          "'" & EscaparSQL(m_NombreUsuario) & "'" & _
-          ")"
-          
-    cn.Execute sql
-    
-    ' Confirmar transacción
-    cn.CommitTrans
-    cn.Close
-    
-    InsertarOrdenAtomica = nuevoNumOrden
-    GoTo CleanUp
-
-ErrorHandler:
-    If Not cn Is Nothing Then
-        If cn.State = adStateOpen Then
-            On Error Resume Next
-            cn.RollbackTrans
-            On Error GoTo 0
+    Do While intentos > 0 And Not exito
+        On Error Resume Next
+        Err.Clear
+        
+        Set cn = CreateObject("ADODB.Connection")
+        cn.Open GetConnectionString()
+        
+        If Err.Number = 0 Then
+            cn.BeginTrans
+            
+            Set rs = cn.Execute("SELECT MAX(NumOrden) FROM Ordenes WHERE Residencia = '" & EscaparSQL(residencia) & "'")
+            If Not rs.EOF And Not IsNull(rs(0).Value) Then
+                nuevoNumOrden = CLng(rs(0).Value) + 1
+            Else
+                nuevoNumOrden = 1
+            End If
+            rs.Close
+            
+            sql = "INSERT INTO Ordenes (" & _
+                  "NumOrden, Residencia, FechaPeticion, DNI, Nombre, Apellidos, TipoHuesped, " & _
+                  "NumHabIndividuales, NumHabDobles, FechaEntrada, FechaSalida, " & _
+                  "Resolucion, EstadoPago, Observaciones, " & _
+                  "Telefono, Email, Direccion, CodigoPostal, Poblacion, Provincia, " & _
+                  "Solapamiento, ConsentimientoRGPD, " & _
+                  "FechaCreacion, UsuarioCreacion" & _
+                  ") VALUES (" & nuevoNumOrden & ", "
+                  
+            sql = sql & "'" & EscaparSQL(residencia) & "', " & _
+                  FormatearFechaSQL(fechaPeticion) & ", " & _
+                  "'" & EscaparSQL(dni) & "', " & _
+                  "'" & EscaparSQL(nombre) & "', " & _
+                  "'" & EscaparSQL(apellidos) & "', " & _
+                  "'" & EscaparSQL(tipoHuesped) & "', " & _
+                  numHabInd & ", " & numHabDob & ", " & _
+                  FormatearFechaSQL(fechaEntrada) & ", " & _
+                  FormatearFechaSQL(fechaSalida) & ", "
+                  
+            sql = sql & "'', '', " & _
+                  "'" & EscaparSQL(observaciones) & "', " & _
+                  "'" & EscaparSQL(telefono) & "', " & _
+                  "'" & EscaparSQL(email) & "', " & _
+                  "'" & EscaparSQL(direccion) & "', " & _
+                  "'" & EscaparSQL(codigoPostal) & "', " & _
+                  "'" & EscaparSQL(poblacion) & "', " & _
+                  "'" & EscaparSQL(provincia) & "', " & _
+                  "0, 0, " & _
+                  FormatearFechaHoraSQL(Now) & ", " & _
+                  "'" & EscaparSQL(m_NombreUsuario) & "'" & _
+                  ")"
+                  
+            cn.Execute sql
+            
+            If Err.Number = 0 Then
+                cn.CommitTrans
+                exito = True
+            Else
+                cn.RollbackTrans
+            End If
+            
+            cn.Close
         End If
+        
+        If Not exito Then
+            intentos = intentos - 1
+            PausaMS 50
+        End If
+    Loop
+    
+    If exito Then
+        InsertarOrdenAtomica = nuevoNumOrden
+    Else
+        MsgBox "No se pudo asignar un Nº ORDEN atómico tras varios intentos concurrentes.", vbCritical, "Error Concurrencia"
+        InsertarOrdenAtomica = 0
     End If
-    MsgBox "Error al grabar la nueva orden en Access:" & vbCrLf & _
-           Err.Description, vbCritical, "Error de Inserción"
-    InsertarOrdenAtomica = 0
+    
+    GoTo CleanUp
 
 CleanUp:
     If Not rs Is Nothing Then Set rs = Nothing
@@ -900,6 +892,25 @@ End Function
 ' SINCRONIZACIÓN ACCESS -> EXCEL (CACHÉ VISUAL)
 ' ===========================
 
+Private Function ObtenerValorCampo(ByRef rs As Object, ByVal nombreCampo As String, Optional ByVal defaultVal As Variant = Null) As Variant
+    Dim fld As Object
+    If rs Is Nothing Then
+        ObtenerValorCampo = defaultVal
+        Exit Function
+    End If
+    For Each fld In rs.Fields
+        If StrComp(fld.Name, nombreCampo, vbTextCompare) = 0 Then
+            If IsNull(fld.Value) Then
+                ObtenerValorCampo = defaultVal
+            Else
+                ObtenerValorCampo = fld.Value
+            End If
+            Exit Function
+        End If
+    Next fld
+    ObtenerValorCampo = defaultVal
+End Function
+
 ''' Descarga todos los registros de una residencia desde Access y los vuelca
 ''' en la hoja Excel correspondiente, sobreescribiendo los datos existentes.
 '''
@@ -924,6 +935,24 @@ Public Sub SincronizarHojaDesdeAccess( _
     Application.ScreenUpdating = False
     Application.EnableEvents = False  ' Evitar que Worksheet_Change se dispare durante la carga
     
+    Dim estabaProtegida As Boolean
+    estabaProtegida = hoja.ProtectContents
+    If estabaProtegida Then
+        On Error Resume Next
+        Dim pwdHojas As String
+        pwdHojas = ModuloConfigSegura.ObtenerPasswordHojas()
+        If Len(pwdHojas) > 0 Then
+            hoja.Unprotect Password:=pwdHojas
+        End If
+        If hoja.ProtectContents Then
+            hoja.Unprotect Password:=""
+        End If
+        If hoja.ProtectContents Then
+            hoja.Unprotect
+        End If
+        On Error GoTo ErrorHandler
+    End If
+
     sql = "SELECT * FROM Ordenes WHERE Residencia = '" & EscaparSQL(residencia) & "' ORDER BY NumOrden ASC"
     Set rs = GetRecordset(sql)
     
@@ -947,34 +976,133 @@ Public Sub SincronizarHojaDesdeAccess( _
     Dim fila As Long
     fila = filaInicio
     
+    Dim isOviedo As Boolean
+    Dim vVal As Variant
+    isOviedo = (UCase(Trim(residencia)) = "OVIEDO")
+    
     Do While Not rs.EOF
-        hoja.Cells(fila, 1).Value = rs("NumOrden").Value                  ' Col A
-        If Not IsNull(rs("NumFactura").Value) Then _
-            hoja.Cells(fila, 3).Value = rs("NumFactura").Value            ' Col C
-        hoja.Cells(fila, 11).Value = rs("Nombre").Value                   ' Col K
-        hoja.Cells(fila, 12).Value = rs("FechaEntrada").Value             ' Col L
-        hoja.Cells(fila, 13).Value = rs("FechaSalida").Value              ' Col M
-        hoja.Cells(fila, 16).Value = rs("Resolucion").Value               ' Col P
+        hoja.Cells(fila, 1).Value = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
         
-        ' Columna de habitaciones: S para Gijón/Soto, T para Oviedo
-        If UCase(residencia) = "OVIEDO" Then
-            hoja.Cells(fila, 20).Value = rs("HabitacionesAsignadas").Value ' Col T
+        vVal = ObtenerValorCampo(rs, "FechaPeticion")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 2).Value = vVal                       ' Col B (FECHA PETICION)
+        
+        vVal = ObtenerValorCampo(rs, "NumFactura")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 3).Value = vVal                       ' Col C (NÚM FACT)
+        
+        vVal = ObtenerValorCampo(rs, "Finalidad")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 4).Value = vVal                       ' Col D (FINALIDAD)
+        
+        vVal = ObtenerValorCampo(rs, "Empleo")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 5).Value = vVal                       ' Col E (EMPLEO)
+        
+        vVal = ObtenerValorCampo(rs, "Situacion")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 6).Value = vVal                       ' Col F (SITUACION)
+        
+        vVal = ObtenerValorCampo(rs, "Evaluacion")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 7).Value = vVal                       ' Col G (EVALUACIÓN)
+        
+        vVal = ObtenerValorCampo(rs, "Comision")
+        If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "Turno")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 8).Value = vVal                       ' Col H (COMISIÓN / TURNO)
+        
+        vVal = ObtenerValorCampo(rs, "DNI")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 9).Value = vVal                       ' Col I (DNI)
+        
+        vVal = ObtenerValorCampo(rs, "Rango")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 10).Value = vVal                      ' Col J (RANGO)
+        
+        vVal = ObtenerValorCampo(rs, "Nombre")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 11).Value = vVal                      ' Col K (Nombre)
+        
+        vVal = ObtenerValorCampo(rs, "FechaEntrada")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 12).Value = vVal                      ' Col L (ENTRADA)
+        
+        vVal = ObtenerValorCampo(rs, "FechaSalida")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 13).Value = vVal                      ' Col M (SALIDA)
+        
+        vVal = ObtenerValorCampo(rs, "DiasUso")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 14).Value = vVal                      ' Col N (DIAS USO)
+        
+        vVal = ObtenerValorCampo(rs, "PAX")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 15).Value = vVal                      ' Col O (PAX)
+        
+        vVal = ObtenerValorCampo(rs, "Resolucion")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 16).Value = vVal                      ' Col P (RESOLUCION)
+        
+        vVal = ObtenerValorCampo(rs, "NumHabIndividuales")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 17).Value = vVal                      ' Col Q (HAB. IND. / PRECIO APTO)
+        
+        vVal = ObtenerValorCampo(rs, "NumHabDobles")
+        If Not IsNull(vVal) Then hoja.Cells(fila, 18).Value = vVal                      ' Col R (HAB. DOBLE / SUPLE OCUPAN)
+        
+        If isOviedo Then
+            vVal = ObtenerValorCampo(rs, "CamaSuple")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 19).Value = vVal                  ' Col S (CAMA SUPLE.)
+            
+            vVal = ObtenerValorCampo(rs, "HabitacionesAsignadas")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 20).Value = vVal                  ' Col T (NÚM HAB.)
+            
+            vVal = ObtenerValorCampo(rs, "DtoFamNum")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 21).Value = vVal                  ' Col U (DTO. FAM. NUM.)
+            
+            vVal = ObtenerValorCampo(rs, "Importe")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 22).Value = vVal                  ' Col V (IMPORTE)
+            
+            vVal = ObtenerValorCampo(rs, "Telefono")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 23).Value = vVal                  ' Col W (TELEFONO)
+            
+            vVal = ObtenerValorCampo(rs, "Direccion")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 24).Value = vVal                  ' Col X (DIRECCIÓN)
+            
+            vVal = ObtenerValorCampo(rs, "CP")
+            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 25).Value = vVal                  ' Col Y (CP)
+            
+            vVal = ObtenerValorCampo(rs, "Poblacion")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 26).Value = vVal                  ' Col Z (POBLACIÓN)
+            
+            vVal = ObtenerValorCampo(rs, "Provincia")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 27).Value = vVal                  ' Col AA (PROVINCIA)
+            
+            vVal = ObtenerValorCampo(rs, "EstadoPago")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 28).Value = vVal                  ' Col AB (PAGADO)
+            
+            vVal = ObtenerValorCampo(rs, "FechaGrabacion")
+            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 32).Value = vVal                  ' Col AF (GRABACIÓN SOLICITUD)
         Else
-            hoja.Cells(fila, 19).Value = rs("HabitacionesAsignadas").Value ' Col S
+            vVal = ObtenerValorCampo(rs, "HabitacionesAsignadas")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 19).Value = vVal                  ' Col S (NÚM HAB. / APTO)
+            
+            vVal = ObtenerValorCampo(rs, "DtoFamNum")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 20).Value = vVal                  ' Col T (DTO. FAM. NUM.)
+            
+            vVal = ObtenerValorCampo(rs, "Importe")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 21).Value = vVal                  ' Col U (IMPORTE)
+            
+            vVal = ObtenerValorCampo(rs, "Telefono")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 22).Value = vVal                  ' Col V (TELEFONO)
+            
+            vVal = ObtenerValorCampo(rs, "Direccion")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 23).Value = vVal                  ' Col W (DIRECCIÓN)
+            
+            vVal = ObtenerValorCampo(rs, "CP")
+            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 24).Value = vVal                  ' Col X (CP)
+            
+            vVal = ObtenerValorCampo(rs, "Poblacion")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 25).Value = vVal                  ' Col Y (POBLACIÓN)
+            
+            vVal = ObtenerValorCampo(rs, "Provincia")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 26).Value = vVal                  ' Col Z (PROVINCIA)
+            
+            vVal = ObtenerValorCampo(rs, "EstadoPago")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 27).Value = vVal                  ' Col AA (PAGADO)
+            
+            vVal = ObtenerValorCampo(rs, "FechaGrabacion")
+            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
+            If Not IsNull(vVal) Then hoja.Cells(fila, 28).Value = vVal                  ' Col AB (GRABACIÓN SOLICITUD)
         End If
-        
-        ' Columna de estado de pago: AA para Gijón/Soto, AB para Oviedo
-        If UCase(residencia) = "OVIEDO" Then
-            hoja.Cells(fila, 28).Value = rs("EstadoPago").Value           ' Col AB
-        Else
-            hoja.Cells(fila, 27).Value = rs("EstadoPago").Value           ' Col AA
-        End If
-        
-        ' Campos adicionales que también están en las hojas
-        hoja.Cells(fila, 5).Value = rs("DNI").Value                       ' Col E (aprox)
-        hoja.Cells(fila, 6).Value = rs("Apellidos").Value                 ' Col F (aprox)
-        hoja.Cells(fila, 17).Value = rs("NumHabIndividuales").Value       ' Col Q
-        hoja.Cells(fila, 18).Value = rs("NumHabDobles").Value             ' Col R
         
         rs.MoveNext
         fila = fila + 1
@@ -988,6 +1116,11 @@ ErrorHandler:
            Err.Description, vbCritical, "Error de Sincronización"
 
 CleanUp:
+    If estabaProtegida Then
+        On Error Resume Next
+        hoja.Protect Password:=ModuloConfigSegura.ObtenerPasswordHojas(), UserInterfaceOnly:=True
+        On Error GoTo 0
+    End If
     Application.EnableEvents = True
     Application.ScreenUpdating = True
     If Not rs Is Nothing Then Set rs = Nothing
@@ -1003,13 +1136,10 @@ Public Sub SincronizarResidenciaActiva()
     
     Dim nombreHoja As String
     nombreHoja = ObtenerNombreHoja(m_ResidenciaActiva)
-    
     If Len(nombreHoja) = 0 Then Exit Sub
     
-    On Error Resume Next
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Sheets(nombreHoja)
-    On Error GoTo 0
+    Set ws = ObtenerHojaSegura(nombreHoja)
     
     If Not ws Is Nothing Then
         Application.StatusBar = "Sincronizando datos de " & nombreHoja & "..."
@@ -1031,11 +1161,10 @@ Public Sub SincronizarTodasMisResidencias()
     For i = 1 To m_ResidenciasAsignadas.Count
         residencia = m_ResidenciasAsignadas(i)
         nombreHoja = ObtenerNombreHoja(residencia)
+        Set ws = Nothing
         
         If Len(nombreHoja) > 0 Then
-            On Error Resume Next
-            Set ws = ThisWorkbook.Sheets(nombreHoja)
-            On Error GoTo 0
+            Set ws = ObtenerHojaSegura(nombreHoja)
             
             If Not ws Is Nothing Then
                 Application.StatusBar = "Sincronizando " & nombreHoja & " (" & i & " de " & m_ResidenciasAsignadas.Count & ")..."
@@ -1053,16 +1182,134 @@ Public Sub RefrescarCacheVisual()
     SincronizarResidenciaActiva
 End Sub
 
-''' Activa (muestra) la hoja Excel de la residencia actualmente seleccionada.
-Public Sub ActivarHojaResidenciaActiva()
-    Dim nombreHoja As String
-    nombreHoja = ObtenerNombreHoja(m_ResidenciaActiva)
-    
-    If Len(nombreHoja) > 0 Then
+Private Sub DesprotegerEstructuraLibro(ByRef estabaProtegida As Boolean)
+    estabaProtegida = ThisWorkbook.ProtectStructure
+    If estabaProtegida Then
         On Error Resume Next
-        ThisWorkbook.Sheets(nombreHoja).Activate
+        Dim pwd As String
+        pwd = ModuloConfigSegura.ObtenerPasswordHojasYEstructura()
+        If Len(pwd) > 0 Then
+            ThisWorkbook.Unprotect Password:=pwd
+        End If
+        If ThisWorkbook.ProtectStructure Then
+            pwd = ModuloConfigSegura.ObtenerPasswordHojas()
+            If Len(pwd) > 0 Then ThisWorkbook.Unprotect Password:=pwd
+        End If
+        If ThisWorkbook.ProtectStructure Then
+            ThisWorkbook.Unprotect Password:=""
+        End If
+        If ThisWorkbook.ProtectStructure Then
+            ThisWorkbook.Unprotect
+        End If
         On Error GoTo 0
     End If
+End Sub
+
+Private Sub ReprotegerEstructuraLibro(ByVal estabaProtegida As Boolean)
+    If estabaProtegida Then
+        On Error Resume Next
+        Dim pwd As String
+        pwd = ModuloConfigSegura.ObtenerPasswordHojasYEstructura()
+        If Len(pwd) = 0 Then pwd = ModuloConfigSegura.ObtenerPasswordHojas()
+        
+        If Len(pwd) > 0 Then
+            ThisWorkbook.Protect Password:=pwd, Structure:=True, Windows:=False
+        Else
+            ThisWorkbook.Protect Structure:=True, Windows:=False
+        End If
+        On Error GoTo 0
+    End If
+End Sub
+
+''' Muestra las hojas RESIDENCIA, RESUMEN y Calendario de las residencias permitidas al usuario,
+''' activa la hoja principal de la residencia seleccionada y oculta la hoja INICIO.
+Public Sub MostrarHojasResidencia(Optional ByVal residenciaEspecifica As String = "")
+    Dim i As Long
+    Dim res As String
+    Dim wsResidencia As Worksheet, wsResumen As Worksheet, wsCalendario As Worksheet
+    Dim wsActivar As Worksheet
+    Dim resSeleccionada As String
+    Dim libroProtegida As Boolean
+    
+    resSeleccionada = UCase(Trim(residenciaEspecifica))
+    If Len(resSeleccionada) = 0 Then resSeleccionada = UCase(Trim(m_ResidenciaActiva))
+    
+    On Error Resume Next
+    Application.ScreenUpdating = False
+    
+    ' Desproteger la estructura del libro si está protegida (necesario para cambiar Visible de hojas)
+    DesprotegerEstructuraLibro libroProtegida
+    
+    Dim colResidencias As Object
+    Set colResidencias = m_ResidenciasAsignadas
+    
+    If colResidencias Is Nothing Then
+        Set colResidencias = CreateObject("System.Collections.ArrayList")
+        If Len(resSeleccionada) > 0 Then colResidencias.Add resSeleccionada
+    ElseIf colResidencias.Count = 0 Then
+        If Len(resSeleccionada) > 0 Then colResidencias.Add resSeleccionada
+    End If
+    
+    For i = 1 To colResidencias.Count
+        res = UCase(Trim(colResidencias(i)))
+        Set wsResidencia = Nothing
+        Set wsResumen = Nothing
+        Set wsCalendario = Nothing
+        
+        Select Case res
+            Case "GIJON"
+                Set wsResidencia = ObtenerHojaSegura("RESIDENCIA GIJ" & Chr(211) & "N")
+                Set wsResumen = ObtenerHojaSegura("RESUMEN GIJ" & Chr(211) & "N")
+                Set wsCalendario = ObtenerHojaSegura("Calendario GIJ" & Chr(211) & "N")
+            Case "SOTO"
+                Set wsResidencia = ObtenerHojaSegura("RESIDENCIA SOTO")
+                Set wsResumen = ObtenerHojaSegura("RESUMEN SOTO")
+                Set wsCalendario = ObtenerHojaSegura("Calendario SOTO")
+            Case "OVIEDO"
+                Set wsResidencia = ObtenerHojaSegura("RESIDENCIA OVIEDO")
+                Set wsResumen = ObtenerHojaSegura("RESUMEN OVIEDO")
+                Set wsCalendario = ObtenerHojaSegura("Calendario OVIEDO")
+        End Select
+        
+        If Not wsResidencia Is Nothing Then wsResidencia.Visible = xlSheetVisible
+        If Not wsResumen Is Nothing Then wsResumen.Visible = xlSheetVisible
+        If Not wsCalendario Is Nothing Then wsCalendario.Visible = xlSheetVisible
+        
+        If res = resSeleccionada And Not wsResidencia Is Nothing Then
+            Set wsActivar = wsResidencia
+        End If
+    Next i
+    
+    If Not wsActivar Is Nothing Then
+        wsActivar.Activate
+    Else
+        Select Case resSeleccionada
+            Case "GIJON":  Set wsActivar = ObtenerHojaSegura("RESIDENCIA GIJ" & Chr(211) & "N")
+            Case "SOTO":   Set wsActivar = ObtenerHojaSegura("RESIDENCIA SOTO")
+            Case "OVIEDO": Set wsActivar = ObtenerHojaSegura("RESIDENCIA OVIEDO")
+        End Select
+        If Not wsActivar Is Nothing Then
+            wsActivar.Visible = xlSheetVisible
+            wsActivar.Activate
+        End If
+    End If
+    
+    Dim wsInicio As Worksheet
+    Set wsInicio = ObtenerHojaSegura("INICIO")
+    If Not wsInicio Is Nothing Then
+        wsInicio.Visible = xlSheetHidden
+    End If
+    
+    ' Reproteger la estructura del libro si estaba protegida
+    ReprotegerEstructuraLibro libroProtegida
+    
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+End Sub
+
+''' Activa (muestra) la hoja Excel de la residencia actualmente seleccionada.
+Public Sub ActivarHojaResidenciaActiva()
+    MostrarHojasResidencia m_ResidenciaActiva
 End Sub
 
 ' ===========================

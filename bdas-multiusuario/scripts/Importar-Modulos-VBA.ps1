@@ -93,36 +93,63 @@ try {
 
     $vbProj = $wb.VBProject
 
-    # Helper function to remove component if exists
-    function Remove-VBComponentIfExists($proj, $compName) {
-        foreach ($comp in $proj.VBComponents) {
-            if ($comp.Name -eq $compName) {
-                Write-Host "[INFO] Reemplazando componente existente '$compName'..." -ForegroundColor Yellow
-                $proj.VBComponents.Remove($comp)
-                break
+    function Import-OrUpdate-VBComponent($proj, $compName, $filePath) {
+        $comp = $null
+        try { $comp = $proj.VBComponents.Item($compName) } catch {}
+        $code = Get-Content $filePath -Raw -Encoding utf8
+        if ($comp -ne $null) {
+            Write-Host "[INFO] Actualizando contenido del módulo existente '$compName'..." -ForegroundColor Yellow
+            if ($comp.CodeModule.CountOfLines -gt 0) {
+                $comp.CodeModule.DeleteLines(1, $comp.CodeModule.CountOfLines)
             }
+            $comp.CodeModule.AddFromString($code)
+        } else {
+            Write-Host "[INFO] Importando módulo '$compName'..." -ForegroundColor Green
+            [void]$proj.VBComponents.Import($filePath)
         }
     }
 
-    # 1. Importar modDatabase
-    Remove-VBComponentIfExists $vbProj "modDatabase"
-    [void]$vbProj.VBComponents.Import($modDatabasePath)
-    Write-Host "[OK] Módulo 'modDatabase' importado." -ForegroundColor Green
+    # 1. Importar/Actualizar modDatabase
+    Import-OrUpdate-VBComponent $vbProj "modDatabase" $modDatabasePath
+    Write-Host "[OK] Módulo 'modDatabase' procesado." -ForegroundColor Green
 
-    # 2. Importar modMigracion
-    Remove-VBComponentIfExists $vbProj "modMigracion"
-    [void]$vbProj.VBComponents.Import($modMigracionPath)
-    Write-Host "[OK] Módulo 'modMigracion' importado." -ForegroundColor Green
+    # 2. Importar/Actualizar modMigracion
+    Import-OrUpdate-VBComponent $vbProj "modMigracion" $modMigracionPath
+    Write-Host "[OK] Módulo 'modMigracion' procesado." -ForegroundColor Green
 
-    # 3. Importar frmLogin
-    Remove-VBComponentIfExists $vbProj "frmLogin"
+    # 3. Importar frmLogin (UserForm)
+    try {
+        $c = $vbProj.VBComponents.Item("frmLogin")
+        if ($c) { $vbProj.VBComponents.Remove($c) }
+    } catch {}
     [void]$vbProj.VBComponents.Import($frmLoginPath)
     Write-Host "[OK] UserForm 'frmLogin' importado." -ForegroundColor Green
 
-    # 4. Importar frmSelectorResidencia
-    Remove-VBComponentIfExists $vbProj "frmSelectorResidencia"
+    # 4. Importar frmSelectorResidencia (UserForm)
+    try {
+        $c = $vbProj.VBComponents.Item("frmSelectorResidencia")
+        if ($c) { $vbProj.VBComponents.Remove($c) }
+    } catch {}
     [void]$vbProj.VBComponents.Import($frmSelectorPath)
     Write-Host "[OK] UserForm 'frmSelectorResidencia' importado." -ForegroundColor Green
+
+    # 4.5. Re-importar/Actualizar los 15 módulos VBA adaptados
+    $vbaDir = Join-Path (Split-Path $ScriptsDir) "vba-modules"
+    if (Test-Path $vbaDir) {
+        $modsToImport = @("FechasPeticion", "EvitarDuplicidadSolicitudesGyS", "AsignarNumFactura", `
+                          "FacturacionMesGIJON", "FacturacionMesOVIEDO", "FacturacionMesSOTO", `
+                          "MarcarSiPagadosEnResidencia", "ModuloCalendarioGijon", `
+                          "ModuloCalendarioOviedo", "ModuloCalendarioSoto", `
+                          "BusquedaDNIResidencias", "BusquedaOrdenNombreFactura", `
+                          "ModuloLOG", "ModListaNegra", "ReevaluacionSolicitudes")
+        foreach ($mName in $modsToImport) {
+            $mPath = Join-Path $vbaDir "$mName.bas"
+            if (Test-Path $mPath) {
+                Import-OrUpdate-VBComponent $vbProj $mName $mPath
+                Write-Host "[OK] Módulo adaptado '$mName' procesado." -ForegroundColor Green
+            }
+        }
+    }
 
     # 5. Inyectar eventos en ThisWorkbook
     $thisWorkbookComp = $vbProj.VBComponents.Item("ThisWorkbook")

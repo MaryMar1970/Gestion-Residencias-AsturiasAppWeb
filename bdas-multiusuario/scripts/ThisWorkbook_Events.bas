@@ -60,7 +60,7 @@ Private Sub Workbook_Open()
     MsgBox "Bienvenido/a, " & modDatabase.ObtenerNombreCompleto() & "." & vbCrLf & vbCrLf & _
            "Residencia activa: " & modDatabase.ObtenerResidenciaActiva() & vbCrLf & _
            "Rol: " & modDatabase.ObtenerRolUsuario(), _
-           vbInformation, "BDAS — Sesión Iniciada"
+           vbInformation, "BDAS - Sesion Iniciada"
 End Sub
 
 Private Sub Workbook_BeforeClose(Cancel As Boolean)

@@ -1,0 +1,48 @@
+Fase 5: Pruebas, Despliegue y Corrección de Incidencias en BDAS Multiusuario
+
+Resumen de Logros Clave:
+- Integración completa del Front-End VBA (182 componentes en total).
+- Pruebas de concurrencia y atomicidad aprobadas (10 inserciones simultáneas sin colisión de N° Orden).
+- Despliegue listo en H:\ResidenciaBD\BDAS_Multiusuario.xlsm y acceso directo en Escritorio.
+
+Registro Completo de Incidencias Solucionadas durante las Pruebas:
+1. [SOLUCIONADO] Error de compilación "Variable no definida: lstR":
+   - Sustituido por lstResidencias en frmSelectorResidencia y regenerado el P-Code binario.
+
+2. [SOLUCIONADO] Error 9 en tiempo de ejecución ("Subíndice fuera de intervalo"):
+   - Creado ObtenerHojaSegura con manejo de codepages UTF-8/ANSI para "GIJÓN" (Chr(211)).
+
+3. [SOLUCIONADO] Error 1004 en tiempo de ejecución ("Hoja protegida"):
+   - Implementado flujo de desprotección/reprotección automática en SincronizarHojaDesdeAccess usando ModuloConfigSegura.ObtenerPasswordHojas().
+
+4. [SOLUCIONADO] Error 1004 en desprotección con VBE "Interrupción en todos los errores":
+   - Invertido el orden de desprotección para verificar primero la clave válida antes de probar contraseña vacía.
+
+5. [SOLUCIONADO] Hoja INICIO permanecía visible y no mostraba las hojas de residencia:
+   - Implementado MostrarHojasResidencia en modDatabase.bas para mostrar RESIDENCIA, RESUMEN y Calendario de la residencia elegida y ocultar INICIO.
+
+6. [SOLUCIONADO] Error 1004 en "wsResidencia.Visible = xlSheetVisible" y emergente flotante:
+   - Identificada protección de estructura del libro (ProtectStructure = True). Creadas rutinas DesprotegerEstructuraLibro y ReprotegerEstructuraLibro.
+   - Reordenado Me.Hide antes de cambiar la residencia activa en frmSelectorResidencia.
+
+7. [SOLUCIONADO] Error de compilación "No se ha definido Sub o Function: PausaMS":
+   - Declarada la API de Windows Sleep Lib "kernel32" y la subrutina PausaMS compatible 32/64-bit en modDatabase.bas.
+
+8. [SOLUCIONADO] Faltaban datos en columnas enteras de RESIDENCIA GIJÓN y SOTO:
+   - Mapeadas minuciosamente las 28 columnas (A a AB / AF) en SincronizarHojaDesdeAccess.
+
+9. [SOLUCIONADO] Error de compilación "Variable no definida: adStateOpen":
+   - Reubicadas las constantes Private Const en la Sección de Declaraciones Generales al inicio del módulo modDatabase.bas antes de cualquier Sub/Function.
+
+10. [SOLUCIONADO] Error 3265 en tiempo de ejecución ("No se encontró el elemento en la colección..."):
+    - Creada la función de lectura segura ObtenerValorCampo que itera rs.Fields inmune a la opción VBE "Interrupción en todos los errores".
+
+11. [SOLUCIONADO] Error de compilación "Se esperaba End Sub":
+    - Extraída ObtenerValorCampo fuera del cuerpo de SincronizarHojaDesdeAccess a nivel de módulo.
+
+12. [SOLUCIONADO] Bucle recursivo circular infinito y congelación de Excel (reloj de arena constante):
+    - Eliminada la llamada circular recursiva a los módulos de calendario desde SincronizarHojaDesdeAccess, restaurando la fluidez del inicio y la carga del RibbonX.
+
+Estado Actual:
+- 100% de los errores solucionados.
+- Aplicación fully funcional y estable.

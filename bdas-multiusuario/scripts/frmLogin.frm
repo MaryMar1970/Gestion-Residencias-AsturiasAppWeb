@@ -1,60 +1,62 @@
 Option Explicit
 
 Private m_Cancelado As Boolean
+Private WithEvents btnEntrar As MSForms.CommandButton
+Private WithEvents btnSalir As MSForms.CommandButton
 
 Private Sub UserForm_Initialize()
     Dim ctl As Object
 
-    Me.Caption = "BDAS" & Chr(160) & Chr(8212) & Chr(160) & "Inicio de Sesi" & Chr(243) & "n"
-    Me.Width = 220
-    Me.Height = 170
+    Me.Caption = "BDAS - Inicio de Sesi" & Chr(243) & "n"
+    Me.Width = 250
+    Me.Height = 210
     Me.StartUpPosition = 1
 
     Set ctl = Me.Controls.Add("Forms.Label.1", "lblTitulo", True)
-    ctl.Caption = "BDAS" & Chr(160) & Chr(8212) & Chr(160) & "Residencias"
-    ctl.Left = 6: ctl.Top = 6: ctl.Width = 198: ctl.Height = 24
+    ctl.Caption = "BDAS - Residencias"
+    ctl.Left = 10: ctl.Top = 10: ctl.Width = 224: ctl.Height = 24
     ctl.TextAlign = 2
     With ctl.Font: .Size = 14: .Bold = True: End With
 
     Set ctl = Me.Controls.Add("Forms.Label.1", "lblSubtitulo", True)
     ctl.Caption = "Inicio de Sesi" & Chr(243) & "n"
-    ctl.Left = 6: ctl.Top = 33: ctl.Width = 198: ctl.Height = 18
+    ctl.Left = 10: ctl.Top = 34: ctl.Width = 224: ctl.Height = 18
     ctl.TextAlign = 2
 
     Set ctl = Me.Controls.Add("Forms.Label.1", "lblUsuario", True)
     ctl.Caption = "Usuario:"
-    ctl.Left = 18: ctl.Top = 63: ctl.Width = 54: ctl.Height = 18
+    ctl.Left = 18: ctl.Top = 62: ctl.Width = 60: ctl.Height = 18
 
     Set ctl = Me.Controls.Add("Forms.TextBox.1", "txtUsuario", True)
-    ctl.Left = 78: ctl.Top = 60: ctl.Width = 126: ctl.Height = 21
+    ctl.Left = 84: ctl.Top = 60: ctl.Width = 140: ctl.Height = 22
     ctl.TabIndex = 0
 
     Set ctl = Me.Controls.Add("Forms.Label.1", "lblClave", True)
     ctl.Caption = "Contrase" & Chr(241) & "a:"
-    ctl.Left = 18: ctl.Top = 90: ctl.Width = 54: ctl.Height = 18
+    ctl.Left = 18: ctl.Top = 92: ctl.Width = 60: ctl.Height = 18
 
     Set ctl = Me.Controls.Add("Forms.TextBox.1", "txtClave", True)
-    ctl.Left = 78: ctl.Top = 87: ctl.Width = 126: ctl.Height = 21
+    ctl.Left = 84: ctl.Top = 90: ctl.Width = 140: ctl.Height = 22
     ctl.PasswordChar = "*"
     ctl.TabIndex = 1
 
     Set ctl = Me.Controls.Add("Forms.Label.1", "lblError", True)
     ctl.Caption = ""
-    ctl.Left = 18: ctl.Top = 117: ctl.Width = 186: ctl.Height = 18
+    ctl.Left = 18: ctl.Top = 118: ctl.Width = 206: ctl.Height = 18
     ctl.ForeColor = RGB(200, 0, 0)
     ctl.Visible = False
 
-    Set ctl = Me.Controls.Add("Forms.CommandButton.1", "btnEntrar", True)
-    ctl.Caption = "Entrar"
-    ctl.Left = 36: ctl.Top = 141: ctl.Width = 72: ctl.Height = 24
-    ctl.Default = True
-    ctl.TabIndex = 2
+    Set btnEntrar = Me.Controls.Add("Forms.CommandButton.1", "btnEntrar", True)
+    btnEntrar.Caption = "Entrar"
+    btnEntrar.Left = 36: btnEntrar.Top = 142: btnEntrar.Width = 80: btnEntrar.Height = 26
+    btnEntrar.Default = True
+    btnEntrar.TabIndex = 2
 
-    Set ctl = Me.Controls.Add("Forms.CommandButton.1", "btnSalir", True)
-    ctl.Caption = "Salir"
-    ctl.Left = 120: ctl.Top = 141: ctl.Width = 72: ctl.Height = 24
-    ctl.Cancel = True
-    ctl.TabIndex = 3
+    Set btnSalir = Me.Controls.Add("Forms.CommandButton.1", "btnSalir", True)
+    btnSalir.Caption = "Salir"
+    btnSalir.Left = 130: btnSalir.Top = 142: btnSalir.Width = 80: btnSalir.Height = 26
+    btnSalir.Cancel = True
+    btnSalir.TabIndex = 3
 
     m_Cancelado = False
     Me.Controls("txtUsuario").SetFocus
