@@ -1,3 +1,4 @@
+Attribute VB_Name = "modDatabase"
 Option Explicit
 
 #If VBA7 Then
@@ -361,27 +362,59 @@ End Function
 ''' Retorna el nombre de la hoja Excel correspondiente a una residencia.
 Public Function ObtenerNombreHoja(ByVal residencia As String) As String
     Select Case UCase(Trim(residencia))
-        Case "GIJON": ObtenerNombreHoja = "BDAS GIJ" & Chr(211) & "N"
+        Case "GIJON": ObtenerNombreHoja = "BDAS GIJÓN"
         Case "SOTO": ObtenerNombreHoja = "BDAS SOTO"
         Case "OVIEDO": ObtenerNombreHoja = "BDAS OVIEDO"
         Case Else: ObtenerNombreHoja = ""
     End Select
 End Function
 
-''' Busca y retorna una hoja de forma segura sin lanzar Error 9.
+''' Busca y retorna una hoja de forma segura por nombre, sin lanzar nunca Error 9.
 Public Function ObtenerHojaSegura(ByVal nombreHoja As String) As Worksheet
     Dim ws As Worksheet
+    Dim buscado As String
+    Dim actual As String
+    
+    Set ObtenerHojaSegura = Nothing
+    If Len(Trim(nombreHoja)) = 0 Then Exit Function
+    
+    ' 1. Búsqueda por coincidencia de texto directa
+    For Each ws In ThisWorkbook.Worksheets
+        If StrComp(ws.Name, nombreHoja, vbTextCompare) = 0 Then
+            Set ObtenerHojaSegura = ws
+            Exit Function
+        End If
+    Next ws
+    
+    ' 2. Búsqueda normalizada (tolerante a tildes o codificación)
+    buscado = UCase(Trim(nombreHoja))
+    buscado = Replace(buscado, "Ó", "O")
+    buscado = Replace(buscado, "Í", "I")
+    buscado = Replace(buscado, "Á", "A")
+    buscado = Replace(buscado, "É", "E")
+    buscado = Replace(buscado, "Ú", "U")
+    buscado = Replace(buscado, "Ñ", "N")
+    buscado = Replace(buscado, " ", "")
+    
+    For Each ws In ThisWorkbook.Worksheets
+        actual = UCase(Trim(ws.Name))
+        actual = Replace(actual, "Ó", "O")
+        actual = Replace(actual, "Í", "I")
+        actual = Replace(actual, "Á", "A")
+        actual = Replace(actual, "É", "E")
+        actual = Replace(actual, "Ú", "U")
+        actual = Replace(actual, "Ñ", "N")
+        actual = Replace(actual, " ", "")
+        
+        If actual = buscado Then
+            Set ObtenerHojaSegura = ws
+            Exit Function
+        End If
+    Next ws
+    
+    ' 3. Intento directo por compatibilidad
     On Error Resume Next
     Set ws = ThisWorkbook.Sheets(nombreHoja)
-    If ws Is Nothing Then
-        Dim altName As String
-        altName = Replace(nombreHoja, "GIJ" & Chr(211) & "N", "GIJON")
-        Set ws = ThisWorkbook.Sheets(altName)
-    End If
-    If ws Is Nothing Then
-        altName = Replace(nombreHoja, "GIJON", "GIJ" & Chr(211) & "N")
-        Set ws = ThisWorkbook.Sheets(altName)
-    End If
     On Error GoTo 0
     Set ObtenerHojaSegura = ws
 End Function
@@ -967,146 +1000,96 @@ Public Sub SincronizarHojaDesdeAccess( _
     ' Limpiar datos antiguos de la hoja (preservar cabeceras en fila 1)
     ultimaFila = hoja.Cells(hoja.Rows.Count, 1).End(xlUp).Row
     If ultimaFila >= filaInicio Then
-        hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(ultimaFila, 30)).ClearContents
+        hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(ultimaFila, 32)).ClearContents
     End If
-    
-    ' Volcar datos del Recordset a las celdas
-    ' NOTA: El mapeo de columnas debe coincidir con las columnas de la hoja original
-    ' Columna A = NumOrden, C = NumFactura, K = Nombre, L = FechaEntrada, etc.
-    Dim fila As Long
-    fila = filaInicio
     
     Dim isOviedo As Boolean
     Dim vVal As Variant
     isOviedo = (UCase(Trim(residencia)) = "OVIEDO")
     
-    Do While Not rs.EOF
-        hoja.Cells(fila, 1).Value = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
+    Dim maxCols As Long
+    If isOviedo Then maxCols = 32 Else maxCols = 28
+    
+    ' Obtener total de registros
+    Dim totalRows As Long
+    rs.MoveLast
+    totalRows = rs.RecordCount
+    rs.MoveFirst
+    
+    If totalRows > 0 Then
+        Dim arrData() As Variant
+        ReDim arrData(1 To totalRows, 1 To maxCols)
         
-        vVal = ObtenerValorCampo(rs, "FechaPeticion")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 2).Value = vVal                       ' Col B (FECHA PETICION)
+        Dim r As Long
+        For r = 1 To totalRows
+            arrData(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
+            arrData(r, 2) = ObtenerValorCampo(rs, "FechaPeticion")               ' Col B (FECHA PETICION)
+            arrData(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (NÚM FACT)
+            arrData(r, 4) = ObtenerValorCampo(rs, "Finalidad")                   ' Col D (FINALIDAD)
+            arrData(r, 5) = ObtenerValorCampo(rs, "Empleo")                      ' Col E (EMPLEO)
+            arrData(r, 6) = ObtenerValorCampo(rs, "Situacion")                   ' Col F (SITUACION)
+            arrData(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIÓN)
+            
+            vVal = ObtenerValorCampo(rs, "Comision")
+            If IsNull(vVal) Or Len(Trim(CStr(vVal))) = 0 Then vVal = ObtenerValorCampo(rs, "Turno")
+            arrData(r, 8) = vVal                                                 ' Col H (COMISIÓN / TURNO)
+            
+            arrData(r, 9) = ObtenerValorCampo(rs, "DNI")                         ' Col I (DNI)
+            arrData(r, 10) = ObtenerValorCampo(rs, "Rango")                      ' Col J (RANGO)
+            arrData(r, 11) = ObtenerValorCampo(rs, "Nombre")                     ' Col K (Nombre)
+            arrData(r, 12) = ObtenerValorCampo(rs, "FechaEntrada")               ' Col L (ENTRADA)
+            arrData(r, 13) = ObtenerValorCampo(rs, "FechaSalida")                ' Col M (SALIDA)
+            arrData(r, 14) = ObtenerValorCampo(rs, "DiasUso")                    ' Col N (DIAS USO)
+            arrData(r, 15) = ObtenerValorCampo(rs, "PAX")                        ' Col O (PAX)
+            arrData(r, 16) = ObtenerValorCampo(rs, "Resolucion")                 ' Col P (RESOLUCION)
+            arrData(r, 17) = ObtenerValorCampo(rs, "NumHabIndividuales")         ' Col Q (HAB. IND. / PRECIO APTO)
+            arrData(r, 18) = ObtenerValorCampo(rs, "NumHabDobles")               ' Col R (HAB. DOBLE / SUPLE OCUPAN)
+            
+            If isOviedo Then
+                arrData(r, 19) = ObtenerValorCampo(rs, "CamaSuple")              ' Col S (CAMA SUPLE.)
+                arrData(r, 20) = ObtenerValorCampo(rs, "HabitacionesAsignadas")  ' Col T (NÚM HAB.)
+                arrData(r, 21) = ObtenerValorCampo(rs, "DtoFamNum")              ' Col U (DTO. FAM. NUM.)
+                arrData(r, 22) = ObtenerValorCampo(rs, "Importe")                ' Col V (IMPORTE)
+                arrData(r, 23) = ObtenerValorCampo(rs, "Telefono")               ' Col W (TELEFONO)
+                arrData(r, 24) = ObtenerValorCampo(rs, "Direccion")              ' Col X (DIRECCIÓN)
+                
+                vVal = ObtenerValorCampo(rs, "CP")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
+                arrData(r, 25) = vVal                                             ' Col Y (CP)
+                
+                arrData(r, 26) = ObtenerValorCampo(rs, "Poblacion")              ' Col Z (POBLACIÓN)
+                arrData(r, 27) = ObtenerValorCampo(rs, "Provincia")              ' Col AA (PROVINCIA)
+                arrData(r, 28) = ObtenerValorCampo(rs, "EstadoPago")             ' Col AB (PAGADO)
+                
+                vVal = ObtenerValorCampo(rs, "FechaGrabacion")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
+                arrData(r, 32) = vVal                                             ' Col AF (GRABACIÓN SOLICITUD)
+            Else
+                arrData(r, 19) = ObtenerValorCampo(rs, "HabitacionesAsignadas")  ' Col S (NÚM HAB. / APTO)
+                arrData(r, 20) = ObtenerValorCampo(rs, "DtoFamNum")              ' Col T (DTO. FAM. NUM.)
+                arrData(r, 21) = ObtenerValorCampo(rs, "Importe")                ' Col U (IMPORTE)
+                arrData(r, 22) = ObtenerValorCampo(rs, "Telefono")               ' Col V (TELEFONO)
+                arrData(r, 23) = ObtenerValorCampo(rs, "Direccion")              ' Col W (DIRECCIÓN)
+                
+                vVal = ObtenerValorCampo(rs, "CP")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
+                arrData(r, 24) = vVal                                             ' Col X (CP)
+                
+                arrData(r, 25) = ObtenerValorCampo(rs, "Poblacion")              ' Col Y (POBLACIÓN)
+                arrData(r, 26) = ObtenerValorCampo(rs, "Provincia")              ' Col Z (PROVINCIA)
+                arrData(r, 27) = ObtenerValorCampo(rs, "EstadoPago")             ' Col AA (PAGADO)
+                
+                vVal = ObtenerValorCampo(rs, "FechaGrabacion")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
+                arrData(r, 28) = vVal                                             ' Col AB (GRABACIÓN SOLICITUD)
+            End If
+            
+            rs.MoveNext
+        Next r
         
-        vVal = ObtenerValorCampo(rs, "NumFactura")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 3).Value = vVal                       ' Col C (NÚM FACT)
-        
-        vVal = ObtenerValorCampo(rs, "Finalidad")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 4).Value = vVal                       ' Col D (FINALIDAD)
-        
-        vVal = ObtenerValorCampo(rs, "Empleo")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 5).Value = vVal                       ' Col E (EMPLEO)
-        
-        vVal = ObtenerValorCampo(rs, "Situacion")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 6).Value = vVal                       ' Col F (SITUACION)
-        
-        vVal = ObtenerValorCampo(rs, "Evaluacion")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 7).Value = vVal                       ' Col G (EVALUACIÓN)
-        
-        vVal = ObtenerValorCampo(rs, "Comision")
-        If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "Turno")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 8).Value = vVal                       ' Col H (COMISIÓN / TURNO)
-        
-        vVal = ObtenerValorCampo(rs, "DNI")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 9).Value = vVal                       ' Col I (DNI)
-        
-        vVal = ObtenerValorCampo(rs, "Rango")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 10).Value = vVal                      ' Col J (RANGO)
-        
-        vVal = ObtenerValorCampo(rs, "Nombre")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 11).Value = vVal                      ' Col K (Nombre)
-        
-        vVal = ObtenerValorCampo(rs, "FechaEntrada")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 12).Value = vVal                      ' Col L (ENTRADA)
-        
-        vVal = ObtenerValorCampo(rs, "FechaSalida")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 13).Value = vVal                      ' Col M (SALIDA)
-        
-        vVal = ObtenerValorCampo(rs, "DiasUso")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 14).Value = vVal                      ' Col N (DIAS USO)
-        
-        vVal = ObtenerValorCampo(rs, "PAX")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 15).Value = vVal                      ' Col O (PAX)
-        
-        vVal = ObtenerValorCampo(rs, "Resolucion")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 16).Value = vVal                      ' Col P (RESOLUCION)
-        
-        vVal = ObtenerValorCampo(rs, "NumHabIndividuales")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 17).Value = vVal                      ' Col Q (HAB. IND. / PRECIO APTO)
-        
-        vVal = ObtenerValorCampo(rs, "NumHabDobles")
-        If Not IsNull(vVal) Then hoja.Cells(fila, 18).Value = vVal                      ' Col R (HAB. DOBLE / SUPLE OCUPAN)
-        
-        If isOviedo Then
-            vVal = ObtenerValorCampo(rs, "CamaSuple")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 19).Value = vVal                  ' Col S (CAMA SUPLE.)
-            
-            vVal = ObtenerValorCampo(rs, "HabitacionesAsignadas")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 20).Value = vVal                  ' Col T (NÚM HAB.)
-            
-            vVal = ObtenerValorCampo(rs, "DtoFamNum")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 21).Value = vVal                  ' Col U (DTO. FAM. NUM.)
-            
-            vVal = ObtenerValorCampo(rs, "Importe")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 22).Value = vVal                  ' Col V (IMPORTE)
-            
-            vVal = ObtenerValorCampo(rs, "Telefono")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 23).Value = vVal                  ' Col W (TELEFONO)
-            
-            vVal = ObtenerValorCampo(rs, "Direccion")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 24).Value = vVal                  ' Col X (DIRECCIÓN)
-            
-            vVal = ObtenerValorCampo(rs, "CP")
-            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 25).Value = vVal                  ' Col Y (CP)
-            
-            vVal = ObtenerValorCampo(rs, "Poblacion")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 26).Value = vVal                  ' Col Z (POBLACIÓN)
-            
-            vVal = ObtenerValorCampo(rs, "Provincia")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 27).Value = vVal                  ' Col AA (PROVINCIA)
-            
-            vVal = ObtenerValorCampo(rs, "EstadoPago")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 28).Value = vVal                  ' Col AB (PAGADO)
-            
-            vVal = ObtenerValorCampo(rs, "FechaGrabacion")
-            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 32).Value = vVal                  ' Col AF (GRABACIÓN SOLICITUD)
-        Else
-            vVal = ObtenerValorCampo(rs, "HabitacionesAsignadas")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 19).Value = vVal                  ' Col S (NÚM HAB. / APTO)
-            
-            vVal = ObtenerValorCampo(rs, "DtoFamNum")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 20).Value = vVal                  ' Col T (DTO. FAM. NUM.)
-            
-            vVal = ObtenerValorCampo(rs, "Importe")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 21).Value = vVal                  ' Col U (IMPORTE)
-            
-            vVal = ObtenerValorCampo(rs, "Telefono")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 22).Value = vVal                  ' Col V (TELEFONO)
-            
-            vVal = ObtenerValorCampo(rs, "Direccion")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 23).Value = vVal                  ' Col W (DIRECCIÓN)
-            
-            vVal = ObtenerValorCampo(rs, "CP")
-            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 24).Value = vVal                  ' Col X (CP)
-            
-            vVal = ObtenerValorCampo(rs, "Poblacion")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 25).Value = vVal                  ' Col Y (POBLACIÓN)
-            
-            vVal = ObtenerValorCampo(rs, "Provincia")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 26).Value = vVal                  ' Col Z (PROVINCIA)
-            
-            vVal = ObtenerValorCampo(rs, "EstadoPago")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 27).Value = vVal                  ' Col AA (PAGADO)
-            
-            vVal = ObtenerValorCampo(rs, "FechaGrabacion")
-            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
-            If Not IsNull(vVal) Then hoja.Cells(fila, 28).Value = vVal                  ' Col AB (GRABACIÓN SOLICITUD)
-        End If
-        
-        rs.MoveNext
-        fila = fila + 1
-    Loop
+        ' Volcado ultra-rápido en una sola llamada de bloque COM
+        hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(filaInicio + totalRows - 1, maxCols)).Value = arrData
+    End If
     
     rs.Close
     GoTo CleanUp
@@ -1258,9 +1241,9 @@ Public Sub MostrarHojasResidencia(Optional ByVal residenciaEspecifica As String 
         
         Select Case res
             Case "GIJON"
-                Set wsResidencia = ObtenerHojaSegura("RESIDENCIA GIJ" & Chr(211) & "N")
-                Set wsResumen = ObtenerHojaSegura("RESUMEN GIJ" & Chr(211) & "N")
-                Set wsCalendario = ObtenerHojaSegura("Calendario GIJ" & Chr(211) & "N")
+                Set wsResidencia = ObtenerHojaSegura("RESIDENCIA GIJÓN")
+                Set wsResumen = ObtenerHojaSegura("RESUMEN GIJÓN")
+                Set wsCalendario = ObtenerHojaSegura("Calendario GIJÓN")
             Case "SOTO"
                 Set wsResidencia = ObtenerHojaSegura("RESIDENCIA SOTO")
                 Set wsResumen = ObtenerHojaSegura("RESUMEN SOTO")
@@ -1284,7 +1267,7 @@ Public Sub MostrarHojasResidencia(Optional ByVal residenciaEspecifica As String 
         wsActivar.Activate
     Else
         Select Case resSeleccionada
-            Case "GIJON":  Set wsActivar = ObtenerHojaSegura("RESIDENCIA GIJ" & Chr(211) & "N")
+            Case "GIJON":  Set wsActivar = ObtenerHojaSegura("RESIDENCIA GIJÓN")
             Case "SOTO":   Set wsActivar = ObtenerHojaSegura("RESIDENCIA SOTO")
             Case "OVIEDO": Set wsActivar = ObtenerHojaSegura("RESIDENCIA OVIEDO")
         End Select

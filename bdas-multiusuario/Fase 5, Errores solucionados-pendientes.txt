@@ -1,3 +1,5 @@
+2026-08-14, "Seguimos depurando los errores de BDAS Multiusuario"
+
 Fase 5: Pruebas, Despliegue y Corrección de Incidencias en BDAS Multiusuario
 
 Resumen de Logros Clave:
@@ -43,6 +45,30 @@ Registro Completo de Incidencias Solucionadas durante las Pruebas:
 12. [SOLUCIONADO] Bucle recursivo circular infinito y congelación de Excel (reloj de arena constante):
     - Eliminada la llamada circular recursiva a los módulos de calendario desde SincronizarHojaDesdeAccess, restaurando la fluidez del inicio y la carga del RibbonX.
 
-Estado Actual:
-- 100% de los errores solucionados.
-- Aplicación fully funcional y estable.
+13. [SOLUCIONADO] Error de compilación "No se ha definido la variable: modDatabase" y módulos duplicados Módulo1-Módulo7:
+    - Se añadió Attribute VB_Name = "modDatabase" en los archivos .bas.
+    - Se depuraron y eliminaron los 7 módulos residuales Módulo1 a Módulo7 y módulos vacíos de BDAS_Multiusuario.xlsm y del maestro.
+
+14. [SOLUCIONADO] Eliminación completa de GIJ" & Chr(211) & "N:
+    - Sustituido en todo el proyecto por la cadena literal "GIJÓN".
+
+15. [SOLUCIONADO] Error 9 en tiempo de ejecución ("Subíndice fuera de intervalo") en ObtenerHojaSegura al pulsar Calendario GIJÓN:
+    - Reescrita ObtenerHojaSegura para iterar de forma segura sobre ThisWorkbook.Worksheets con normalización de texto y tildes, inmune al modo "Interrumpir en todos los errores".
+    - Recompilado y guardado el P-Code en todos los libros .xlsm.
+
+16. [SOLUCIONADO] Error de compilación en apertura por Módulo1 (WithEvents al nivel de módulo estándar):
+    - Se detectó que el código de frmSelectorResidencia se había importado como módulo estándar (Módulo1, Type 1).
+    - Se eliminó Módulo1 y se recreó frmSelectorResidencia como UserForm nativo (Type 3).
+
+17. [SOLUCIONADO] Columnas vacías en RESIDENCIA SOTO (FINALIDAD, EMPLEO, SITUACION, EVALUACIÓN, TURNO, RANGO, DIAS USO, PAX, IMPORTE):
+    - La tabla Ordenes en Access carecía de estos campos y la migración inicial los omitía.
+    - Se alteró la tabla Ordenes en Access incorporando los campos faltantes (Finalidad, Empleo, Situacion, Evaluacion, Comision, Turno, Rango, DiasUso, PAX, CamaSuple, DtoFamNum, Importe, FechaGrabacion).
+    - Se re-migraron exhaustivamente los 2.120 registros históricos de GIJÓN (286), SOTO (33) y OVIEDO (1.801).
+    - Se ajustó modDatabase.bas (lectura de columna 8 para Turno/Comisión).
+
+18. [SOLUCIONADO] Limpieza de columna AA (PAGADO / EstadoPago) para RESIDENCIA SOTO:
+    - Vaciada la columna tanto en la base de datos Access (campo EstadoPago) como en la hoja Excel para SOTO a petición del usuario.
+
+Estado Actual (18/09/2026):
+- Base de datos Access y front-ends Excel sincronizados al 100% con todas sus columnas mapeadas.
+- Hojas de residencias completamente operativas y limpias.
