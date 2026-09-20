@@ -11,13 +11,13 @@ Attribute VB_Name = "MarcarSiPagadosEnResidencia"
 ' OPTIMIZACIONES v2.0:
 '   ? Reemplazo de bucles For Each por .Find() (10-50x mï¿½s r?pido)
 '   ? Validaciï¿½n de existencia de hojas antes de procesar
-'   ? 100% compatible con cï¿½digo existente
+'   ? 100% compatible con código existente
 '==============================================================================
 
 Private sincronizandoPagado As Boolean
 
 '------------------------------------------------------------------------------
-' GIJï¿½N: RESUMEN -> RESIDENCIA
+' GIJÓN: RESUMEN -> RESIDENCIA
 '------------------------------------------------------------------------------
 Public Sub MarcarPagadoEnResidencia(filaResumen As Long, numOrden As Variant, Optional valorPagado As String = "SI")
     Dim wsRes As Worksheet, wsResumen As Worksheet
@@ -30,8 +30,8 @@ Public Sub MarcarPagadoEnResidencia(filaResumen As Long, numOrden As Variant, Op
     If numOrdenStr = "" Then Exit Sub
 
     On Error Resume Next
-    Set wsRes = ThisWorkbook.Worksheets("RESIDENCIA GIJï¿½N")
-    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJï¿½N")
+    Set wsRes = ThisWorkbook.Worksheets("RESIDENCIA GIJÓN")
+    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJÓN")
     On Error GoTo 0
     
     If wsRes Is Nothing Then Exit Sub
@@ -51,7 +51,7 @@ Public Sub MarcarPagadoEnResidencia(filaResumen As Long, numOrden As Variant, Op
     If EsEstadoPagado(valorPagado) Then
         valorResolucion = UCase$(Trim$(wsRes.Cells(celdaEncontrada.Row, "P").Value))
         If valorResolucion <> "SI" And valorResolucion <> "CONCEDIDA" And valorResolucion <> "REEVALUADA" Then
-            MsgBox "No es posible generar una factura con la resoluciï¿½n adoptada (" & _
+            MsgBox "No es posible generar una factura con la resolución adoptada (" & _
                    wsRes.Cells(celdaEncontrada.Row, "P").Value & ").", vbExclamation, "Factura no generada"
             If Not wsResumen Is Nothing Then wsResumen.Cells(filaResumen, "M").ClearContents
             GoTo CleanUp
@@ -77,7 +77,7 @@ CleanUp:
 End Sub
 
 '------------------------------------------------------------------------------
-' GIJï¿½N: RESIDENCIA -> RESUMEN
+' GIJÓN: RESIDENCIA -> RESUMEN
 '------------------------------------------------------------------------------
 Public Sub MarcarPagadoEnResumen(numOrden As Variant, Optional valorPagado As String = "SI")
     Dim wsResumen As Worksheet
@@ -89,7 +89,7 @@ Public Sub MarcarPagadoEnResumen(numOrden As Variant, Optional valorPagado As St
     If numOrdenStr = "" Then Exit Sub
 
     On Error Resume Next
-    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJï¿½N")
+    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJÓN")
     On Error GoTo 0
     
     If wsResumen Is Nothing Then Exit Sub
@@ -168,7 +168,7 @@ Public Sub SincronizarCamposResidenciaResumen( _
 End Sub
 
 '------------------------------------------------------------------------------
-' SINCRONIZACIï¿½N COMPLETA: GIJï¿½N (OPTIMIZADA v3.0 - Arrays + Dictionary)
+' SINCRONIZACIï¿½N COMPLETA: GIJÓN (OPTIMIZADA v3.0 - Arrays + Dictionary)
 '------------------------------------------------------------------------------
 Public Sub SincronizarTodos_Gijon(Optional esArranque As Boolean = False)
     Dim wsRes As Worksheet, wsResumen As Worksheet
@@ -176,8 +176,8 @@ Public Sub SincronizarTodos_Gijon(Optional esArranque As Boolean = False)
     Dim i As Long, clave As String
     
     On Error Resume Next
-    Set wsRes = ThisWorkbook.Worksheets("RESIDENCIA GIJï¿½N")
-    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJï¿½N")
+    Set wsRes = ThisWorkbook.Worksheets("RESIDENCIA GIJÓN")
+    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJÓN")
     On Error GoTo 0
     
     If wsRes Is Nothing Or wsResumen Is Nothing Then Exit Sub
@@ -214,7 +214,7 @@ Public Sub SincronizarTodos_Gijon(Optional esArranque As Boolean = False)
         End If
     Next i
     
-    ' === Leer datos de RESUMEN en memoria (GIJï¿½N: M=Pagado, N=Factura) ===
+    ' === Leer datos de RESUMEN en memoria (GIJÓN: M=Pagado, N=Factura) ===
     Dim arrResumenOrdenes As Variant
     Dim arrResumenPagado As Variant, arrResumenFactura As Variant
     arrResumenOrdenes = wsResumen.Range("A2:A" & ultimaFilaResumen).Value
@@ -457,7 +457,7 @@ CleanExit_Oviedo:
 End Sub
 
 '------------------------------------------------------------------------------
-' FUNCIï¿½N DE ESTADO
+' FUNCIÓN DE ESTADO
 '------------------------------------------------------------------------------
 Public Function EstaSincronizandoPagado() As Boolean
     EstaSincronizandoPagado = sincronizandoPagado
@@ -498,7 +498,7 @@ Public Sub MarcarPagadoEnResidenciaSoto(filaResumen As Long, numOrden As Variant
     If EsEstadoPagado(valorPagado) Then
         valorResolucion = UCase$(Trim$(wsRes.Cells(celdaEncontrada.Row, "P").Value))
         If valorResolucion <> "SI" And valorResolucion <> "CONCEDIDA" And valorResolucion <> "REEVALUADA" Then
-            MsgBox "No es posible generar una factura con la resoluciï¿½n adoptada (" & _
+            MsgBox "No es posible generar una factura con la resolución adoptada (" & _
                    wsRes.Cells(celdaEncontrada.Row, "P").Value & ").", vbExclamation, "Factura no generada"
             If Not wsResumen Is Nothing Then wsResumen.Cells(filaResumen, "L").ClearContents
             GoTo Cleanup_Soto
@@ -596,7 +596,7 @@ Public Sub MarcarPagadoEnResidenciaOviedo(filaResumen As Long, numOrden As Varia
     If EsEstadoPagado(valorPagado) Then
         valorResolucion = UCase$(Trim$(wsRes.Cells(celdaEncontrada.Row, "P").Value))
         If valorResolucion <> "SI" And valorResolucion <> "CONCEDIDA" And valorResolucion <> "REEVALUADA" Then
-            MsgBox "No es posible generar una factura con la resoluciï¿½n adoptada (" & _
+            MsgBox "No es posible generar una factura con la resolución adoptada (" & _
                    wsRes.Cells(celdaEncontrada.Row, "P").Value & ").", vbExclamation, "Factura no generada"
             If Not wsResumen Is Nothing Then wsResumen.Cells(filaResumen, "M").ClearContents
             GoTo Cleanup_Oviedo
@@ -715,7 +715,7 @@ Public Sub SincronizarNumeroOrden(nombreHojaResidencia As String, nombreHojaResu
     Application.enableEvents = True
 End Sub
 '------------------------------------------------------------------------------
-' OPTIMIZACIï¿½N #4: Sincronizaciï¿½n unificada - 1 Find por hoja en lugar de 3+
+' OPTIMIZACIÓN #4: Sincronizaciï¿½n unificada - 1 Find por hoja en lugar de 3+
 ' Sustituye a SincronizarNumeroOrden + SincronizarCamposResidenciaResumen
 ' cuando se edita columna A (Nï¿½ ORDEN)
 '------------------------------------------------------------------------------
@@ -766,6 +766,10 @@ Public Sub SincronizarOrdenYCampos( _
         On Error GoTo 0
     End If
 
+    Dim estabaProtegida As Boolean
+    estabaProtegida = wsResumen.ProtectContents
+    If estabaProtegida Then wsResumen.Unprotect password:=""
+    
     Dim filaResumen As Long
     If celdaResumen Is Nothing Then
         ' No existe: crear nueva fila
@@ -775,12 +779,16 @@ Public Sub SincronizarOrdenYCampos( _
         filaResumen = celdaResumen.Row
         wsResumen.Cells(filaResumen, "A").Value = numOrdenStr
     End If
-
+    
     ' Actualizar los dos pares de columnas de una vez
     wsResumen.Cells(filaResumen, nombreColumnaResumen1).Value = _
         wsRes.Cells(celdaRes.Row, nombreColumnaRes1).Value
     wsResumen.Cells(filaResumen, nombreColumnaResumen2).Value = _
         wsRes.Cells(celdaRes.Row, nombreColumnaRes2).Value
+    
+    If estabaProtegida Then
+        wsResumen.Protect password:="", UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True
+    End If
 
     Application.enableEvents = True
 End Sub
@@ -827,6 +835,8 @@ Public Function EsEstadoPagado(ByVal valor As String) As Boolean
     EsEstadoPagado = (valUpper = "SI" Or valUpper = "EFECTIVO" Or valUpper = "TARJETA" _
                    Or valUpper = "TRANSFERENCIA" Or valUpper = "SMS" Or valUpper = "BIZUM")
 End Function
+
+
 
 
 
