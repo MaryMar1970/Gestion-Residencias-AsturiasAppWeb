@@ -69,6 +69,14 @@ Registro Completo de Incidencias Solucionadas durante las Pruebas:
 18. [SOLUCIONADO] Limpieza de columna AA (PAGADO / EstadoPago) para RESIDENCIA SOTO:
     - Vaciada la columna tanto en la base de datos Access (campo EstadoPago) como en la hoja Excel para SOTO a petición del usuario.
 
-Estado Actual (18/09/2026):
-- Base de datos Access y front-ends Excel sincronizados al 100% con todas sus columnas mapeadas.
-- Hojas de residencias completamente operativas y limpias.
+19. [SOLUCIONADO] Correcciones en Evaluación de Solicitudes, Case 3/Case 4 To 6 y Gestión de Valor Anterior:
+    - Corrección de sintaxis en eventos Worksheet_Change de GIJÓN (Hoja2) y OVIEDO (Hoja24): cierre explícito de los bloques If del Case 3 antes de evaluar Case 4 To 6, resolviendo errores de "Case sin Select Case".
+    - Módulo EvaluacionSolicitudes: eliminada función redundante NormalizarClave (columnas provienen de listas desplegables), claves construidas mediante Trim(CStr) con d.CompareMode = vbTextCompare. Eliminada caducidad por tiempo y habilitada recarga automática al editar la tabla de reglas. Reintento automático ante diccionario vacío.
+    - Hoja Evaluación (Hoja15): añadido evento Worksheet_Change para llamada automática a RecargarDiccionarioEvaluacion.
+    - Visualización en columna G (Evaluación): si la combinación de Finalidad + Empleo + Situación no existe en la tabla, se muestra explícitamente "No válido" en lugar de quedar vacía en GIJÓN, OVIEDO y SOTO.
+    - Corrección del bug del "valor anterior" en listas desplegables (salida temprana que ignoraba cambios consecutivos del tipo Otros -> Comisión -> Otros): actualización explícita de las variables ThisWorkbook.ValorAnterior... en los bloques de salida (Cleanup_Change / CleanExit) para las columnas con listas desplegables en GIJÓN, OVIEDO y SOTO.
+
+Estado Actual (21/09/2026):
+- Copia de seguridad incremental generada: BDAS_Multiusuario_BACKUP_2026-09-21_0424.xlsm (en H:\ResidenciaBD y en H:\ResidenciaApp\bdas-multiusuario).
+- Hojas de residencias, eventos de evaluación y control de valores anteriores completamente actualizados y verificados en código.
+
