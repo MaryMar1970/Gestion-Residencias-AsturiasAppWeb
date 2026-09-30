@@ -136,6 +136,13 @@ Funcionalidades Pendientes de Implementar / Verificar (Próxima Sesión):
 3. [PENDIENTE] Autocompletado inteligente en BusquedaDNIResidencias.bas:
    - Validar que al escribir un DNI en la columna I de cualquier hoja de residencia, se recuperen y autorrellenen al instante Nombre, Apellidos, Teléfono, Empleo y Situación desde Access.
 
+---
+
+REGLA ESTRICTA DE BORRADO DE BASE DE DATOS (RGPD):
+- El borrado físico y definitivo de datos personales de la base de datos Access (tablas Ordenes y Ordenes_Historico) se realizará DE MANERA EXCLUSIVA desde la pestaña 'RGPD - Panel de Control / Gestión de Borrado'.
+- Ninguna acción de usuario en las hojas de trabajo de Excel (pulsar Supr, limpiar celdas, borrar Nº de Orden) podrá eliminar definitivamente datos de personas en la base de datos; dichas acciones únicamente archivarán o retirarán la visualización en la vista activa.
+
+
 
 
 
