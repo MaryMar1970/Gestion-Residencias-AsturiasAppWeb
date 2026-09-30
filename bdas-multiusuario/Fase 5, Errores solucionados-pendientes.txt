@@ -108,14 +108,23 @@ Estado Actual (30/09/2026 - 21:15):
       * Ejecución segura de ShowAllData con protección ante errores.
       * Restauración de protección al salir con ModuloConfigSegura.ObtenerPasswordHojas() y UserInterfaceOnly:=True.
 
+24. [SOLUCIONADO] Blindaje integral de borrado de filas en BorradoNumOrden y preservación de fórmulas:
+    - Centralizada en BorradoNumOrden.bas la desprotección y reprotección automática tanto de la hoja de Residencia (ws) como de la hoja RESUMEN (wsResumen) con ModuloConfigSegura.ObtenerPasswordHojas().
+    - Protección explícita de fórmulas en columnas calculadas mediante "If Not c.HasFormula Then If Not IsEmpty(c.Value) Then c.ClearContents", asegurando que nunca se borren fórmulas al eliminar el Nº de Orden.
+    - Fórmulas en columnas U (Importe), AB (Grabación Solicitud) y AC (Identificador Resumen) extendidas por el usuario hasta la fila 4000 en RESIDENCIA GIJÓN y respaldadas como libro de referencia maestra inmutable.
+
+Estado Actual (30/09/2026 - 23:40):
+- Copias de seguridad y referencias generadas:
+  * H:\ResidenciaBD\Plantilla\Referencia\BDAS_Multiusuario_REFERENCIA_FORMULAS.xlsm
+  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-09-30_2337_FORMULAS_GIJON_OK.xlsm
+  * H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm
+- Módulo BorradoNumOrden.bas 100% blindado y sincronizado en el repositorio.
+
 ---
 
 Temas Pendientes:
-1. Decisión e implementación definitiva sobre el error 1004 en borrado de filas (BorradoNumOrden.GestionarBorradoOrden):
-   - Problema original: Al borrar Nº ORDEN en hojas protegidas (como estaba Oviedo), c.ClearContents falla en columnas bloqueadas (V = IMPORTE en adelante), saltando error 1004 y dejando la fila borrada a medias (solo A:U) sin limpiar la hoja RESUMEN ni Access.
-   - Opciones propuestas para decisión del usuario:
-     * Opción A (Recomendada): En BorradoNumOrden.bas, desproteger temporalmente con ModuloConfigSegura.ObtenerPasswordHojas() antes de limpiar celdas y reproteger al finalizar con UserInterfaceOnly:=True. Totalmente inmune a si las hojas están protegidas o no en Gijón, Soto u Oviedo.
-     * Opción B: Mantener las hojas de residencia permanentemente desprotegidas en modo trabajo diario (como están ahora Gijón, Soto y Oviedo).
-     * Decisión adicional: Determinar si al borrar el Nº de Orden en Excel se debe ejecutar también la eliminación/anulación de la orden en la base de datos Access (Residencia_BE.accdb).
+1. Estudio y decisión sobre persistencia en Access (Residencia_BE.accdb) al borrar Nº de Orden:
+   - Evaluar si al eliminar un Nº de Orden en Excel se debe ejecutar también la eliminación física o lógica (marcado de estado) del registro en la tabla Ordenes de Access para evitar reaparición al resincronizar.
+
 
 
