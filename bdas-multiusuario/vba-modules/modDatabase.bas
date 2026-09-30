@@ -138,6 +138,11 @@ Public Function LoginUsuario() As Boolean
         End If
     Loop Until m_LoginCompletado
     
+    ' Descargar completamente el formulario de login para que no reaparezca
+    On Error Resume Next
+    Unload frmLogin
+    On Error GoTo ErrorHandler
+    
     ' Login exitoso - ahora seleccionar residencia
     If m_ResidenciasAsignadas.Count = 1 Then
         ' Solo tiene una residencia -> activar directamente
@@ -145,6 +150,11 @@ Public Function LoginUsuario() As Boolean
     Else
         ' Tiene varias -> mostrar selector
         frmSelectorResidencia.Show vbModal
+        
+        ' Descargar completamente el selector de residencia
+        On Error Resume Next
+        Unload frmSelectorResidencia
+        On Error GoTo ErrorHandler
         
         ' Verificar que se seleccionó una
         If Len(m_ResidenciaActiva) = 0 Then
@@ -170,7 +180,10 @@ ErrorHandler:
     LoginUsuario = False
 
 CleanUp:
-    ' Nada que limpiar aquí, la conexión se gestiona en ValidarCredenciales
+    On Error Resume Next
+    Unload frmLogin
+    Unload frmSelectorResidencia
+    On Error GoTo 0
 End Function
 
 ''' Valida usuario y contraseña contra la tabla Usuarios de Access.
@@ -1366,3 +1379,54 @@ Private Function Nz(ByVal valor As Variant, Optional ByVal valorDefecto As Varia
         Nz = valor
     End If
 End Function
+
+' ==============================================================================
+' ELIMINACIÓN DE ÓRDENES Y AUDITORÍA
+' ==============================================================================
+
+''' Obtiene la clave de residencia normalizada ("GIJON", "SOTO", "OVIEDO")
+''' a partir del nombre de una hoja (ej. "RESIDENCIA GIJÓN" -> "GIJON").
+Public Function ObtenerClaveResidenciaDesdeHoja(ByVal nombreHoja As String) As String
+    Dim n As String
+    n = UCase(Trim(nombreHoja))
+    If InStr(n, "GIJ") > 0 Then
+        ObtenerClaveResidenciaDesdeHoja = "GIJON"
+    ElseIf InStr(n, "SOTO") > 0 Then
+        ObtenerClaveResidenciaDesdeHoja = "SOTO"
+    ElseIf InStr(n, "OVIEDO") > 0 Then
+        ObtenerClaveResidenciaDesdeHoja = "OVIEDO"
+    Else
+        ObtenerClaveResidenciaDesdeHoja = n
+    End If
+End Function
+
+''' Elimina una orden de la base de datos Access y registra la acción en LogActividad.
+''' Retorna True si la eliminación fue exitosa.
+Public Function EliminarOrdenBD( _
+    ByVal numOrden As Long, _
+    ByVal residencia As String _
+) As Boolean
+    Dim sql As String
+    Dim exito As Boolean
+    Dim claveRes As String
+    
+    claveRes = ObtenerClaveResidenciaDesdeHoja(residencia)
+    If claveRes = "" Then claveRes = UCase(Trim(residencia))
+    
+    sql = "DELETE FROM Ordenes WHERE NumOrden = " & numOrden & _
+          " AND Residencia = '" & EscaparSQL(claveRes) & "'"
+          
+    exito = ExecuteNonQuery(sql)
+    
+    If exito Then
+        Dim usr As String
+        usr = m_NombreUsuario
+        If Len(usr) = 0 Then usr = Environ("USERNAME")
+        
+        Call InsertarLog(usr, "BORRADO_ORDEN", _
+            "Eliminado Nº ORDEN " & numOrden & " de " & claveRes)
+    End If
+    
+    EliminarOrdenBD = exito
+End Function
+

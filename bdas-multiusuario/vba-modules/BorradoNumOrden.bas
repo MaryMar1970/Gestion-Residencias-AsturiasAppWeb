@@ -50,6 +50,13 @@ Public Sub GestionarBorradoOrden( _
 
     On Error GoTo ErrorBorrado
 
+    ' --- SINCRONIZACIÓN ACCESS: Eliminar de la base de datos y registrar en Log ---
+    If IsNumeric(numOrdenAnterior) Then
+        Dim claveRes As String
+        claveRes = modDatabase.ObtenerClaveResidenciaDesdeHoja(ws.Name)
+        Call modDatabase.EliminarOrdenBD(CLng(numOrdenAnterior), claveRes)
+    End If
+
     Dim pwdHojas As String
     pwdHojas = ModuloConfigSegura.ObtenerPasswordHojas()
 

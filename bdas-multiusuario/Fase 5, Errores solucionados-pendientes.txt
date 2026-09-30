@@ -113,18 +113,17 @@ Estado Actual (30/09/2026 - 21:15):
     - Protección explícita de fórmulas en columnas calculadas mediante "If Not c.HasFormula Then If Not IsEmpty(c.Value) Then c.ClearContents", asegurando que nunca se borren fórmulas al eliminar el Nº de Orden.
     - Fórmulas en columnas U (Importe), AB (Grabación Solicitud) y AC (Identificador Resumen) extendidas por el usuario hasta la fila 4000 en RESIDENCIA GIJÓN y respaldadas como libro de referencia maestra inmutable.
 
-Estado Actual (30/09/2026 - 23:40):
-- Copias de seguridad y referencias generadas:
-  * H:\ResidenciaBD\Plantilla\Referencia\BDAS_Multiusuario_REFERENCIA_FORMULAS.xlsm
-  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-09-30_2337_FORMULAS_GIJON_OK.xlsm
-  * H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm
-- Módulo BorradoNumOrden.bas 100% blindado y sincronizado en el repositorio.
+25. [SOLUCIONADO] Persistencia atómica en Access y auditoría completa en LogActividad al borrar orden:
+    - Creada en modDatabase.bas la función EliminarOrdenBD que ejecuta "DELETE FROM Ordenes WHERE NumOrden = ... AND Residencia = ..." de forma segura con conexión de vida corta.
+    - Integrado el registro automático de auditoría en la tabla LogActividad ("BORRADO_ORDEN", usuario, fecha/hora y detalle).
+    - Conectado en BorradoNumOrden.bas para ejecución instantánea tras la confirmación afirmativa del usuario.
+    - Probado con éxito en vivo: borrado del Nº ORDEN 640 en RESIDENCIA GIJÓN verificado en Access (0 registros en Ordenes) y registrado en LogActividad con ID 7557 por el usuario activo.
 
----
+Estado Actual (01/10/2026 - 00:05):
+- Copias de seguridad y referencias consolidadas.
+- Módulos modDatabase.bas y BorradoNumOrden.bas 100% integrados, sincronizados en el repositorio y probados en vivo.
+- Flujo completo de borrado: Excel Residencia (fórmulas protegidas) + Excel Resumen (fila eliminada) + Access (orden eliminada y auditada en LogActividad).
 
-Temas Pendientes:
-1. Estudio y decisión sobre persistencia en Access (Residencia_BE.accdb) al borrar Nº de Orden:
-   - Evaluar si al eliminar un Nº de Orden en Excel se debe ejecutar también la eliminación física o lógica (marcado de estado) del registro en la tabla Ordenes de Access para evitar reaparición al resincronizar.
 
 
 
