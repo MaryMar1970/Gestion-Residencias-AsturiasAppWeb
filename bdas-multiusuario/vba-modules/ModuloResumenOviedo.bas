@@ -1,10 +1,10 @@
-ï»¿Attribute VB_Name = "ModuloResumenOviedo"
+Attribute VB_Name = "ModuloResumenOviedo"
 '=================================================================================
-' Mï¿½dulo: ModuloResumenOviedo v14.11.3
-' Versiï¿½n: 3.0
+' Módulo: ModuloResumenOviedo v14.11.3
+' Versión: 3.0
 ' Fecha: 2025-03-17
-' Propï¿½sito: Actualizar automï¿½ticamente RESUMEN OVIEDO eliminando filas vacï¿½as
-'           (Nï¿½ ORDEN que ya no existen en RESIDENCIA OVIEDO)
+' Propósito: Actualizar automáticamente RESUMEN OVIEDO eliminando filas vacías
+'           (Nº ORDEN que ya no existen en RESIDENCIA OVIEDO)
 '=================================================================================
 Option Explicit
 
@@ -27,15 +27,27 @@ Public Sub ActualizarResumenOviedo(Optional esArranque As Boolean = False)
     
     If wsResidencia Is Nothing Or wsResumen Is Nothing Then Exit Sub
     
-    ' === LIMPIAR FILTROS ACTIVA PARA EVITAR Cï¿½LCULOS ERRï¿½NEOS Y ERRORES DE ESCRITURA ===
+    ' === DESPROTEGER HOJA TEMPORALMENTE (ANTES DE LIMPIAR FILTROS) ===
+    Dim pwdHojas As String
+    pwdHojas = ModuloConfigSegura.ObtenerPasswordHojas()
+    
+    estabaProtegida = wsResumen.ProtectContents
+    If estabaProtegida Then
+        On Error Resume Next
+        If Len(pwdHojas) > 0 Then wsResumen.Unprotect password:=pwdHojas
+        If wsResumen.ProtectContents Then wsResumen.Unprotect password:=""
+        If wsResumen.ProtectContents Then wsResumen.Unprotect
+        On Error GoTo ErrorHandler
+    End If
+    
+    ' === LIMPIAR FILTROS DE FORMA SEGURA CON LA HOJA YA DESPROTEGIDA ===
+    On Error Resume Next
     If wsResidencia.FilterMode Then wsResidencia.ShowAllData
     If wsResumen.FilterMode Then wsResumen.ShowAllData
-    
-    ' === DESPROTEGER HOJA TEMPORALMENTE ===
-    estabaProtegida = wsResumen.ProtectContents
-    If estabaProtegida Then wsResumen.Unprotect password:=""
+    On Error GoTo ErrorHandler
     
     Application.screenUpdating = False
+
     Application.enableEvents = False
     Application.calculation = xlCalculationManual
     
@@ -59,7 +71,7 @@ Public Sub ActualizarResumenOviedo(Optional esArranque As Boolean = False)
     arrPagadoRes = wsResidencia.Range("AB2:AB" & ultimaFilaResidencia).Value
     arrFacturaRes = wsResidencia.Range("C2:C" & ultimaFilaResidencia).Value
     
-    ' Protecciï¿½n: rango de una sola fila devuelve escalar
+    ' Protección: rango de una sola fila devuelve escalar
     If Not IsArray(arrOrdenesRes) Then
         Dim arrTempO3(1 To 1, 1 To 1) As Variant
         Dim arrTempP3(1 To 1, 1 To 1) As Variant
@@ -115,7 +127,7 @@ Public Sub ActualizarResumenOviedo(Optional esArranque As Boolean = False)
         End If
     Next i
     
-    ' === PASO 3: Limpiar huï¿½rfanos L-O en memoria ===
+    ' === PASO 3: Limpiar huérfanos L-O en memoria ===
     ultimaFilaResumen = wsResumen.Cells(wsResumen.Rows.Count, "A").End(xlUp).Row
     
     If ultimaFilaResumen >= 2 Then
@@ -179,7 +191,7 @@ Public Sub ActualizarResumenOviedo(Optional esArranque As Boolean = False)
         wsResumen.Range("M" & contadorValidas + 2 & ":N" & ultimaFilaResumen).ClearContents
     End If
     
-    ' === PROPAGAR Fï¿½RMULAS EN LAS COLUMNAS CALCULADAS (NUEVO) ===
+    ' === PROPAGAR FÓRMULAS EN LAS COLUMNAS CALCULADAS (NUEVO) ===
     Dim col As Long
     Dim uCol As Long
     If contadorValidas > 1 Then
@@ -194,9 +206,12 @@ Public Sub ActualizarResumenOviedo(Optional esArranque As Boolean = False)
     End If
     
 CleanExit:
-    ' Restaurar protecciï¿½n si estaba protegida
+    ' Restaurar protección si estaba protegida
     If estabaProtegida And Not wsResumen Is Nothing Then
-        wsResumen.Protect password:="", UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error Resume Next
+        wsResumen.Protect password:=ModuloConfigSegura.ObtenerPasswordHojas(), _
+            UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error GoTo 0
     End If
     Application.calculation = xlCalculationAutomatic
     Application.enableEvents = True
@@ -204,12 +219,16 @@ CleanExit:
     Exit Sub
 
 ErrorHandler:
-    ' Restaurar protecciï¿½n en caso de error
+    ' Restaurar protección en caso de error
     If estabaProtegida And Not wsResumen Is Nothing Then
-        wsResumen.Protect password:="", UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error Resume Next
+        wsResumen.Protect password:=ModuloConfigSegura.ObtenerPasswordHojas(), _
+            UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error GoTo 0
     End If
     Application.calculation = xlCalculationAutomatic
     Application.enableEvents = True
     Application.screenUpdating = True
     MsgBox "Error al actualizar RESUMEN OVIEDO: " & Err.Description, vbCritical, "Error"
 End Sub
+

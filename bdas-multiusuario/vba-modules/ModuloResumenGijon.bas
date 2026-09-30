@@ -1,17 +1,17 @@
-ï»¿Attribute VB_Name = "ModuloResumenGijon"
+Attribute VB_Name = "ModuloResumenGijon"
 '=================================================================================
-' Mï¿½dulo: ModuloResumenGijon
-' Versiï¿½n: 3.0
+' Módulo: ModuloResumenGijon
+' Versión: 3.0
 ' Fecha: 2026-03-17
-' Propï¿½sito: Actualizar automï¿½ticamente RESUMEN GIJï¿½N eliminando filas vacï¿½as
-'           (Nï¿½ ORDEN que ya no existen en RESIDENCIA GIJï¿½N)
+' Propósito: Actualizar automáticamente RESUMEN GIJÓN eliminando filas vacías
+'           (Nº ORDEN que ya no existen en RESIDENCIA GIJÓN)
 '=================================================================================
 Option Explicit
 
 '=================================================================================
 ' SUB: ActualizarResumenGijon
-' Actualiza la columna A de RESUMEN GIJï¿½N copiando solo los Nï¿½ ORDEN que
-' existen actualmente en RESIDENCIA GIJï¿½N (sin huecos)
+' Actualiza la columna A de RESUMEN GIJÓN copiando solo los Nº ORDEN que
+' existen actualmente en RESIDENCIA GIJÓN (sin huecos)
 '=================================================================================
 '=================================================================================
 ' SUB: ActualizarResumenGijon (OPTIMIZADA v3.0 - Arrays en memoria)
@@ -26,21 +26,33 @@ Public Sub ActualizarResumenGijon(Optional esArranque As Boolean = False)
     Dim ultimaFilaResumen As Long
     
     On Error Resume Next
-    Set wsResidencia = ThisWorkbook.Worksheets("RESIDENCIA GIJï¿½N")
-    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJï¿½N")
+    Set wsResidencia = ThisWorkbook.Worksheets("RESIDENCIA GIJÓN")
+    Set wsResumen = ThisWorkbook.Worksheets("RESUMEN GIJÓN")
     On Error GoTo ErrorHandler
     
     If wsResidencia Is Nothing Or wsResumen Is Nothing Then Exit Sub
     
-    ' === LIMPIAR FILTROS ACTIVA PARA EVITAR Cï¿½LCULOS ERRï¿½NEOS Y ERRORES DE ESCRITURA ===
+    ' === DESPROTEGER HOJA TEMPORALMENTE (ANTES DE LIMPIAR FILTROS) ===
+    Dim pwdHojas As String
+    pwdHojas = ModuloConfigSegura.ObtenerPasswordHojas()
+    
+    estabaProtegida = wsResumen.ProtectContents
+    If estabaProtegida Then
+        On Error Resume Next
+        If Len(pwdHojas) > 0 Then wsResumen.Unprotect password:=pwdHojas
+        If wsResumen.ProtectContents Then wsResumen.Unprotect password:=""
+        If wsResumen.ProtectContents Then wsResumen.Unprotect
+        On Error GoTo ErrorHandler
+    End If
+    
+    ' === LIMPIAR FILTROS DE FORMA SEGURA CON LA HOJA YA DESPROTEGIDA ===
+    On Error Resume Next
     If wsResidencia.FilterMode Then wsResidencia.ShowAllData
     If wsResumen.FilterMode Then wsResumen.ShowAllData
-    
-    ' === DESPROTEGER HOJA TEMPORALMENTE ===
-    estabaProtegida = wsResumen.ProtectContents
-    If estabaProtegida Then wsResumen.Unprotect password:=""
+    On Error GoTo ErrorHandler
     
     Application.screenUpdating = False
+
     Application.enableEvents = False
     Application.calculation = xlCalculationManual
     
@@ -57,15 +69,15 @@ Public Sub ActualizarResumenGijon(Optional esArranque As Boolean = False)
     End If
     
     ' === PASO 1: Leer RESIDENCIA completa en arrays ===
-    Dim arrOrdenesRes As Variant    ' Columna A (Nï¿½ ORDEN)
+    Dim arrOrdenesRes As Variant    ' Columna A (Nº ORDEN)
     Dim arrPagadoRes As Variant     ' Columna AA (PAGADO)
-    Dim arrFacturaRes As Variant    ' Columna C (Nï¿½ FACTURA)
+    Dim arrFacturaRes As Variant    ' Columna C (Nº FACTURA)
     
     arrOrdenesRes = wsResidencia.Range("A2:A" & ultimaFilaResidencia).Value
     arrPagadoRes = wsResidencia.Range("AA2:AA" & ultimaFilaResidencia).Value
     arrFacturaRes = wsResidencia.Range("C2:C" & ultimaFilaResidencia).Value
     
-    ' Protecciï¿½n: rango de una sola fila devuelve escalar
+    ' Protección: rango de una sola fila devuelve escalar
     If Not IsArray(arrOrdenesRes) Then
         Dim arrTempO1(1 To 1, 1 To 1) As Variant
         Dim arrTempP1(1 To 1, 1 To 1) As Variant
@@ -82,7 +94,7 @@ Public Sub ActualizarResumenGijon(Optional esArranque As Boolean = False)
     Dim totalFilas As Long
     totalFilas = UBound(arrOrdenesRes, 1)
     
-    ' Contar ï¿½rdenes vï¿½lidas
+    ' Contar órdenes válidas
     Dim contadorValidas As Long
     Dim i As Long
     contadorValidas = 0
@@ -93,7 +105,7 @@ Public Sub ActualizarResumenGijon(Optional esArranque As Boolean = False)
         End If
     Next i
     
-    ' Si no hay ï¿½rdenes vï¿½lidas, limpiar y salir
+    ' Si no hay órdenes válidas, limpiar y salir
     If contadorValidas = 0 Then
         ultimaFilaResumen = wsResumen.Cells(wsResumen.Rows.Count, "A").End(xlUp).Row
         If ultimaFilaResumen >= 2 Then
@@ -124,7 +136,7 @@ Public Sub ActualizarResumenGijon(Optional esArranque As Boolean = False)
         End If
     Next i
     
-    ' === PASO 3: Limpiar huï¿½rfanos en columnas L-O en memoria ===
+    ' === PASO 3: Limpiar huérfanos en columnas L-O en memoria ===
     ultimaFilaResumen = wsResumen.Cells(wsResumen.Rows.Count, "A").End(xlUp).Row
     
     If ultimaFilaResumen >= 2 Then
@@ -187,7 +199,7 @@ Public Sub ActualizarResumenGijon(Optional esArranque As Boolean = False)
         wsResumen.Range("M" & contadorValidas + 2 & ":N" & ultimaFilaResumen).ClearContents
     End If
     
-    ' === PROPAGAR Fï¿½RMULAS EN LAS COLUMNAS CALCULADAS (NUEVO) ===
+    ' === PROPAGAR FÓRMULAS EN LAS COLUMNAS CALCULADAS (NUEVO) ===
     Dim col As Long
     Dim uCol As Long
     If contadorValidas > 1 Then
@@ -202,9 +214,12 @@ Public Sub ActualizarResumenGijon(Optional esArranque As Boolean = False)
     End If
     
 CleanExit:
-    ' Restaurar protecciï¿½n si estaba protegida
+    ' Restaurar protección si estaba protegida
     If estabaProtegida And Not wsResumen Is Nothing Then
-        wsResumen.Protect password:="", UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error Resume Next
+        wsResumen.Protect password:=ModuloConfigSegura.ObtenerPasswordHojas(), _
+            UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error GoTo 0
     End If
     Application.calculation = xlCalculationAutomatic
     Application.enableEvents = True
@@ -212,13 +227,17 @@ CleanExit:
     Exit Sub
 
 ErrorHandler:
-    ' Restaurar protecciï¿½n en caso de error
+    ' Restaurar protección en caso de error
     If estabaProtegida And Not wsResumen Is Nothing Then
-        wsResumen.Protect password:="", UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error Resume Next
+        wsResumen.Protect password:=ModuloConfigSegura.ObtenerPasswordHojas(), _
+            UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True, AllowSorting:=True
+        On Error GoTo 0
     End If
     Application.calculation = xlCalculationAutomatic
     Application.enableEvents = True
     Application.screenUpdating = True
-    MsgBox "Error al actualizar RESUMEN GIJï¿½N: " & Err.Description, vbCritical, "Error"
+    MsgBox "Error al actualizar RESUMEN GIJÓN: " & Err.Description, vbCritical, "Error"
 End Sub
+
 

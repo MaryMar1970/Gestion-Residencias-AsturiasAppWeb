@@ -76,7 +76,46 @@ Registro Completo de Incidencias Solucionadas durante las Pruebas:
     - Visualización en columna G (Evaluación): si la combinación de Finalidad + Empleo + Situación no existe en la tabla, se muestra explícitamente "No válido" en lugar de quedar vacía en GIJÓN, OVIEDO y SOTO.
     - Corrección del bug del "valor anterior" en listas desplegables (salida temprana que ignoraba cambios consecutivos del tipo Otros -> Comisión -> Otros): actualización explícita de las variables ThisWorkbook.ValorAnterior... en los bloques de salida (Cleanup_Change / CleanExit) para las columnas con listas desplegables en GIJÓN, OVIEDO y SOTO.
 
-Estado Actual (21/09/2026):
-- Copia de seguridad incremental generada: BDAS_Multiusuario_BACKUP_2026-09-21_0424.xlsm (en H:\ResidenciaBD y en H:\ResidenciaApp\bdas-multiusuario).
-- Hojas de residencias, eventos de evaluación y control de valores anteriores completamente actualizados y verificados en código.
+20. [SOLUCIONADO] Corrección integral del proceso de Facturación Mensual (GIJÓN, SOTO, OVIEDO):
+    - Eliminación de la creación de hojas temporales (Worksheets.Add), reemplazada por ordenación por fecha de salida en memoria, evitando fallos por protección de libro (ProtectStructure = True).
+    - Limpieza segura de registros previos (A4:I...) comprobando tanto columna A como I, preservando intactas las columnas K y L (mini tabla resumen).
+    - Volcado estricto en fila 4 (A4:H) preservando intactas las filas 1 (título), 2 (mes) y 3 (encabezados).
+    - Columna I de acumulado implementada con fórmulas vivas de suma acumulativa progresiva (=G4 en I4, e =I4+G5 en adelante) y formateo de fechas y moneda.
+    - Eventos Worksheet_Activate añadidos en Hoja18, Hoja30 y Hoja25 para auto-refresco instantáneo al hacer clic en la pestaña de facturación.
+    - Sincronización instantánea del método de pago hacia la base de datos Access (modDatabase.ActualizarOrden) al editar la columna AA (o AB en Oviedo) en las hojas de residencia.
+
+21. [SOLUCIONADO] Cierre y descarga definitiva del formulario de Login (frmLogin) y Selector de Residencia:
+    - Añadidas instrucciones explícitas Unload frmLogin y Unload frmSelectorResidencia en modDatabase.LoginUsuario, eliminando la ventana flotante residual que permanecía visible tras iniciar sesión.
+
+22. [ACTUALIZACIÓN] Incorporación de fórmulas en hojas RESIDENCIA y desprotección de OVIEDO:
+    - Introducidas y extendidas fórmulas para generación de nombres de PDF e identificadores en las tres residencias:
+      * GIJÓN: Columna AB (nombre PDF solicitud) y AC (identificador resumen).
+      * SOTO: Columna AB (nombre PDF solicitud con formato "000") y AC (identificador resumen).
+      * OVIEDO: Columna AF (nombre PDF solicitud) y AG (identificador resumen).
+    - Desprotección de RESIDENCIA OVIEDO alineándola con el estado desprotegido de GIJÓN y SOTO, eliminando la colisión del error 1004 en borrado de filas.
+
+Estado Actual (30/09/2026 - 21:15):
+- Copias de seguridad incrementales generadas:
+  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-09-30_2112.xlsm
+  * H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-09-30_2112.accdb
+  * H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario_BACKUP_2026-09-30_2112.xlsm
+- Módulos de Resumen (Gijón, Soto, Oviedo) 100% actualizados, exportados y respaldados.
+
+23. [SOLUCIONADO] Error 1004 en ShowAllData al activar hojas RESUMEN (GIJÓN, SOTO, OVIEDO):
+    - Al pulsar la pestaña de cualquier hoja RESUMEN con filtros activos estando protegida, el método ws.ShowAllData fallaba con: "Error en el método ShowAllData de objeto _Worksheet" debido a que la llamada se realizaba antes de desproteger la hoja.
+    - Se corrigió el flujo en ModuloResumenGijon, ModuloResumenSoto y ModuloResumenOviedo:
+      * Desprotección previa mediante ModuloConfigSegura.ObtenerPasswordHojas().
+      * Ejecución segura de ShowAllData con protección ante errores.
+      * Restauración de protección al salir con ModuloConfigSegura.ObtenerPasswordHojas() y UserInterfaceOnly:=True.
+
+---
+
+Temas Pendientes:
+1. Decisión e implementación definitiva sobre el error 1004 en borrado de filas (BorradoNumOrden.GestionarBorradoOrden):
+   - Problema original: Al borrar Nº ORDEN en hojas protegidas (como estaba Oviedo), c.ClearContents falla en columnas bloqueadas (V = IMPORTE en adelante), saltando error 1004 y dejando la fila borrada a medias (solo A:U) sin limpiar la hoja RESUMEN ni Access.
+   - Opciones propuestas para decisión del usuario:
+     * Opción A (Recomendada): En BorradoNumOrden.bas, desproteger temporalmente con ModuloConfigSegura.ObtenerPasswordHojas() antes de limpiar celdas y reproteger al finalizar con UserInterfaceOnly:=True. Totalmente inmune a si las hojas están protegidas o no en Gijón, Soto u Oviedo.
+     * Opción B: Mantener las hojas de residencia permanentemente desprotegidas en modo trabajo diario (como están ahora Gijón, Soto y Oviedo).
+     * Decisión adicional: Determinar si al borrar el Nº de Orden en Excel se debe ejecutar también la eliminación/anulación de la orden en la base de datos Access (Residencia_BE.accdb).
+
 
