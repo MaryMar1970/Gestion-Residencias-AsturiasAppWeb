@@ -119,10 +119,23 @@ Estado Actual (30/09/2026 - 21:15):
     - Conectado en BorradoNumOrden.bas para ejecución instantánea tras la confirmación afirmativa del usuario.
     - Probado con éxito en vivo: borrado del Nº ORDEN 640 en RESIDENCIA GIJÓN verificado en Access (0 registros en Ordenes) y registrado en LogActividad con ID 7557 por el usuario activo.
 
-Estado Actual (01/10/2026 - 00:05):
+Estado Actual (01/10/2026 - 00:30):
 - Copias de seguridad y referencias consolidadas.
 - Módulos modDatabase.bas y BorradoNumOrden.bas 100% integrados, sincronizados en el repositorio y probados en vivo.
-- Flujo completo de borrado: Excel Residencia (fórmulas protegidas) + Excel Resumen (fila eliminada) + Access (orden eliminada y auditada en LogActividad).
+- Tabla Ordenes_Historico creada en Residencia_BE.accdb y verificada (41 columnas).
+- Orden 640 preservada y recuperable en Ordenes_Historico.
+
+---
+
+Funcionalidades Pendientes de Implementar / Verificar (Próxima Sesión):
+1. [PENDIENTE] Traspaso automático a Ordenes_Historico al borrar en Excel:
+   - Modificar modDatabase.EliminarOrdenBD para que copie el registro completo a la tabla Ordenes_Historico en Access antes de eliminarlo de la tabla activa Ordenes.
+   - Efecto: La orden se retira de la vista activa de todos los usuarios en Excel, pero ningún dato personal se destruye jamás en Access.
+2. [PENDIENTE] Consulta ampliada de búsqueda por DNI (Activas + Histórico):
+   - Actualizar modDatabase.BuscarEnOrdenes para que consulte tanto Ordenes como Ordenes_Historico priorizando la solicitud más reciente.
+3. [PENDIENTE] Autocompletado inteligente en BusquedaDNIResidencias.bas:
+   - Validar que al escribir un DNI en la columna I de cualquier hoja de residencia, se recuperen y autorrellenen al instante Nombre, Apellidos, Teléfono, Empleo y Situación desde Access.
+
 
 
 
