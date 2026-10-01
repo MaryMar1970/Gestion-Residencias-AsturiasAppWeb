@@ -140,15 +140,27 @@ Estado Actual (30/09/2026 - 21:15):
     - Al introducir un nuevo Nº de Orden en la columna A, la sincronización con la hoja RESUMEN fallaba con error 1004 porque se usaba wsResumen.Unprotect password:="".
     - Corregido para obtener la contraseña oficial mediante ModuloConfigSegura.ObtenerPasswordHojas() tanto al desproteger como al reproteger con UserInterfaceOnly:=True.
 
-Estado Actual (01/10/2026 - 21:50):
-- Copias de seguridad de sesión generadas (BACKUP_2026-10-01_2146).
-- Módulos modDatabase.bas, BusquedaDNIResidencias.bas y MarcarSiPagadosEnResidencia.bas 100% integrados y probados con éxito en producción.
-- Fórmulas de AC corregidas y alineadas en el libro maestro y en producción.
+30. [OPTIMIZACIÓN] Rotación y purga de hojas LOG (Acción 3 del Plan de Optimización):
+    - Limpieza de 6.637 registros antiguos de auditoría en LOG_OVIEDO preservando intactos los 6 encabezados de fila 1.
+    - Reducción del archivo Excel de 7,88 MB (7.878.482 bytes) a 7,61 MB (7.609.652 bytes), ahorrando ~270 KB comprimidos y ~1,24 MB de XML descomprimido.
+
+31. [PREVENCIÓN RGPD] Volcado preventivo de órdenes en tabla de respaldo histórico Access:
+    - Comprobación cruzada registro a registro de las 3 hojas BDAS contra la tabla Ordenes en Access: 285 en GIJÓN, 33 en SOTO y 1.800 en OVIEDO (100% coincidentes, 0 faltantes).
+    - Creación de la tabla de réplica preventiva BDAS_Historico_Snapshot en Residencia_BE.accdb con los 2.118 registros intactos.
+    - Preservación íntegra de las hojas BDAS en Excel para la futura fase de desacoplamiento de ModuloArchivadoDatosBDAS.
+
+Estado Actual (02/10/2026 - 01:15):
+- Copias de seguridad de sesión generadas:
+  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-02_0100.xlsm
+  * H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-02_0113.accdb
+- Base de datos Access blindada con tabla de respaldo BDAS_Historico_Snapshot.
+- Libro Excel aligerado y sincronizado en el repositorio.
 
 
 REGLA ESTRICTA DE BORRADO DE BASE DE DATOS (RGPD):
 - El borrado físico y definitivo de datos personales de la base de datos Access (tablas Ordenes y Ordenes_Historico) se realizará DE MANERA EXCLUSIVA desde la pestaña 'RGPD - Panel de Control / Gestión de Borrado'.
 - Ninguna acción de usuario en las hojas de trabajo de Excel (pulsar Supr, limpiar celdas, borrar Nº de Orden) podrá eliminar definitivamente datos de personas en la base de datos; dichas acciones únicamente archivarán o retirarán la visualización en la vista activa.
+
 
 
 
