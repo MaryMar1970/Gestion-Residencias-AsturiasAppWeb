@@ -1450,4 +1450,142 @@ Public Function EliminarOrdenBD( _
     EliminarOrdenBD = exito
 End Function
 
+' ==============================================================================
+' CONSULTAS DE CÓDIGOS POSTALES Y MUNICIPIOS (TABLA CodigosPostales EN ACCESS)
+' ==============================================================================
+
+''' Normaliza un texto removiendo acentos y convirtiendo a mayúsculas para búsquedas.
+Public Function NormalizarTextoBusqueda(ByVal texto As String) As String
+    Dim res As String
+    res = UCase(Trim(texto))
+    If Len(res) = 0 Then
+        NormalizarTextoBusqueda = ""
+        Exit Function
+    End If
+    
+    res = Replace(res, "Á", "A")
+    res = Replace(res, "À", "A")
+    res = Replace(res, "Ä", "A")
+    res = Replace(res, "Â", "A")
+    res = Replace(res, "É", "E")
+    res = Replace(res, "È", "E")
+    res = Replace(res, "Ë", "E")
+    res = Replace(res, "Ê", "E")
+    res = Replace(res, "Í", "I")
+    res = Replace(res, "Ì", "I")
+    res = Replace(res, "Ï", "I")
+    res = Replace(res, "Î", "I")
+    res = Replace(res, "Ó", "O")
+    res = Replace(res, "Ò", "O")
+    res = Replace(res, "Ö", "O")
+    res = Replace(res, "Ô", "O")
+    res = Replace(res, "Ú", "U")
+    res = Replace(res, "Ù", "U")
+    res = Replace(res, "Ü", "U")
+    res = Replace(res, "Û", "U")
+    res = Replace(res, "Ñ", "N")
+    res = Replace(res, "Ç", "C")
+    NormalizarTextoBusqueda = res
+End Function
+
+''' Consulta en Access la población y provincia asociadas a un código postal.
+''' Si existen múltiples municipios para el CP, colMunicipios contendrá todos ellos.
+''' Retorna True si encontró al menos un registro.
+Public Function ObtenerUbicacionPorCP( _
+    ByVal cp As String, _
+    ByRef colMunicipios As Collection, _
+    ByRef provincia As String) As Boolean
+    
+    Dim rs As Object
+    Dim sql As String
+    Dim cpLimpio As String
+    Dim muni As String
+    
+    On Error GoTo ErrorHandler
+    
+    Set colMunicipios = New Collection
+    provincia = ""
+    ObtenerUbicacionPorCP = False
+    
+    cpLimpio = Trim(cp)
+    If Len(cpLimpio) = 0 Then Exit Function
+    If Len(cpLimpio) < 5 And IsNumeric(cpLimpio) Then
+        cpLimpio = Right("00000" & cpLimpio, 5)
+    End If
+    
+    sql = "SELECT DISTINCT Municipio, Provincia FROM CodigosPostales " & _
+          "WHERE CodigoPostal = '" & EscaparSQL(cpLimpio) & "' ORDER BY Municipio"
+          
+    Set rs = GetRecordset(sql)
+    If rs Is Nothing Then Exit Function
+    
+    Do While Not rs.EOF
+        muni = Trim(CStr(rs("Municipio").Value))
+        muni = Replace(muni, ",", ";")
+        muni = Replace(muni, Chr(34), "'")
+        If Len(muni) > 0 Then
+            colMunicipios.Add muni
+        End If
+        If Len(provincia) = 0 Then
+            provincia = Trim(CStr(rs("Provincia").Value))
+        End If
+        rs.MoveNext
+    Loop
+    rs.Close
+    Set rs = Nothing
+    
+    ObtenerUbicacionPorCP = (colMunicipios.Count > 0)
+    Exit Function
+
+ErrorHandler:
+    ObtenerUbicacionPorCP = False
+End Function
+
+''' Consulta en Access los códigos postales y provincia asociados a un municipio.
+''' La búsqueda es insensible a mayúsculas y acentos gracias a la columna MunicipioNormalizado.
+''' Retorna True si encontró al menos un registro.
+Public Function ObtenerCPsPorPoblacion( _
+    ByVal poblacion As String, _
+    ByRef colCPs As Collection, _
+    ByRef provincia As String) As Boolean
+    
+    Dim rs As Object
+    Dim sql As String
+    Dim muniNorm As String
+    Dim cpVal As String
+    
+    On Error GoTo ErrorHandler
+    
+    Set colCPs = New Collection
+    provincia = ""
+    ObtenerCPsPorPoblacion = False
+    
+    muniNorm = NormalizarTextoBusqueda(poblacion)
+    If Len(muniNorm) = 0 Then Exit Function
+    
+    sql = "SELECT DISTINCT CodigoPostal, Provincia FROM CodigosPostales " & _
+          "WHERE MunicipioNormalizado = '" & EscaparSQL(muniNorm) & "' ORDER BY CodigoPostal"
+          
+    Set rs = GetRecordset(sql)
+    If rs Is Nothing Then Exit Function
+    
+    Do While Not rs.EOF
+        cpVal = Trim(CStr(rs("CodigoPostal").Value))
+        If Len(cpVal) > 0 Then
+            colCPs.Add cpVal
+        End If
+        If Len(provincia) = 0 Then
+            provincia = Trim(CStr(rs("Provincia").Value))
+        End If
+        rs.MoveNext
+    Loop
+    rs.Close
+    Set rs = Nothing
+    
+    ObtenerCPsPorPoblacion = (colCPs.Count > 0)
+    Exit Function
+
+ErrorHandler:
+    ObtenerCPsPorPoblacion = False
+End Function
 

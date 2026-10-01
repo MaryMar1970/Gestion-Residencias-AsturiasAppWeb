@@ -1,92 +1,59 @@
-ï»¿Attribute VB_Name = "ListasDinamicasCPyPoblaciones"
+Attribute VB_Name = "ListasDinamicasCPyPoblaciones"
 Option Explicit
 ' ============================================
-' Mï¿½DULO COMï¿½N PARA LISTAS DINï¿½MICAS CP/POBLACIONES (GESTIï¿½N DE VALIDACIONES)
-' VERSIï¿½N 2.0 - OPTIMIZADA Y ROBUSTA
+' MÓDULO COMÚN PARA LISTAS DINÁMICAS CP/POBLACIONES (GESTIÓN DE VALIDACIONES)
+' VERSIÓN 2.0 - OPTIMIZADA Y ROBUSTA
 ' ============================================
 '
-' CARACTERï¿½STICAS PRINCIPALES:
-' ? Cache inteligente con Dictionary (3-5x mï¿½s rï¿½pido)
-' ? Normalizaciï¿½n de texto con acentos espaï¿½oles
-' ? Validaciï¿½n robusta de arrays y datos
+' CARACTERÍSTICAS PRINCIPALES:
+' ? Cache inteligente con Dictionary (3-5x más rápido)
+' ? Normalización de texto con acentos españoles
+' ? Validación robusta de arrays y datos
 ' ? Manejo completo de errores sin crashes
-' ? Optimizaciï¿½n de memoria y rendimiento
-' ? Compatible con mï¿½ltiples usuarios
+' ? Optimización de memoria y rendimiento
+' ? Compatible con múltiples usuarios
 '
 ' AUTOR: Sistema optimizado para @Bustiello
 ' FECHA: 2025-01-21
-' PUNTUACIï¿½N ROBUSTEZ: 9.2/10
+' PUNTUACIÓN ROBUSTEZ: 9.2/10
 ' ============================================
 
 ' ============================================
 ' VARIABLES GLOBALES OPTIMIZADAS
 ' ============================================
-Private cacheNormalizacion As Object    ' Dictionary para cache de normalizaciï¿½n (mï¿½s rï¿½pido que Collection)
+Private cacheNormalizacion As Object    ' Dictionary para cache de normalización (más rápido que Collection)
 
 ' ============================================
-' FUNCIï¿½N PRINCIPAL - PROCESAMIENTO DE CAMBIOS
+' FUNCIÓN PRINCIPAL - PROCESAMIENTO DE CAMBIOS
+' ============================================
+' ============================================
+' FUNCIÓN PRINCIPAL - PROCESAMIENTO DE CAMBIOS (CONECTADA A ACCESS)
 ' ============================================
 Public Sub ProcesarCambioCP_Poblacion(Target As Range, hojaTrabajo As Worksheet, _
                                       columnaCP As Long, columnaPoblacion As Long, columnaProvincia As Long)
     '
-    ' PROPï¿½SITO: Procesar cambios en celdas de CP, Poblaciï¿½n o Provincia
-    ' PARï¿½METROS:
-    '   - Target: Celda que ha cambiado
-    '   - hojaTrabajo: Hoja donde ocurriï¿½ el cambio
-    '   - columnaCP: Nï¿½mero de columna de Cï¿½digo Postal
-    '   - columnaPoblacion: Nï¿½mero de columna de Poblaciï¿½n/Municipio
-    '   - columnaProvincia: Nï¿½mero de columna de Provincia
-    '
-    ' OPTIMIZACIONES IMPLEMENTADAS:
-    '   ? Verificaciï¿½n de rango para evitar procesamiento innecesario
-    '   ? Validaciï¿½n de existencia de hoja de datos
-    '   ? Procesamiento por casos especï¿½ficos
+    ' PROPÓSITO: Procesar cambios en celdas de CP, Población o Provincia
+    ' Los datos se consultan en tiempo real desde la tabla CodigosPostales en Access (Residencia_BE.accdb).
     '
     
-    ' Verificar si el cambio afecta a las columnas de interï¿½s (OPTIMIZACIï¿½N: Evita procesamiento innecesario)
+    ' Verificar si el cambio afecta a las columnas de interés
     Dim rangoInteres As Range
     Set rangoInteres = hojaTrabajo.Range(hojaTrabajo.Cells(2, columnaCP), hojaTrabajo.Cells(hojaTrabajo.Rows.Count, columnaProvincia))
     
     If Not Intersect(Target, rangoInteres) Is Nothing Then
-        Dim wsCodigosPostales As Worksheet
-        
-        ' VALIDACIï¿½N ROBUSTA: Verificar que existe la hoja de cï¿½digos postales
-        On Error Resume Next
-        Set wsCodigosPostales = hojaTrabajo.Parent.Worksheets("CODIGOS POSTALES")
-        On Error GoTo 0
-        
-        If wsCodigosPostales Is Nothing Then
-            ' Si no existe la hoja de datos, salir sin error
-            Exit Sub
-        End If
-        
-        ' OPTIMIZACIï¿½N: Procesar solo una celda a la vez (evita conflictos en selecciones mï¿½ltiples)
+        ' Procesar solo una celda a la vez (evita conflictos en selecciones múltiples)
         If Target.Cells.Count = 1 Then
-            ' MEJORA ROBUSTA: Obtener ï¿½ltima fila con validaciï¿½n de errores
-            Dim ultimaFilaCP As Long
-            ultimaFilaCP = ObtenerUltimaFilaSegura(wsCodigosPostales)
-            
-            ' PROCESAMIENTO POR CASOS ESPECï¿½FICOS
-            ' ============================================
-            ' CASO 1: Cambio en columna CP (Cï¿½digo Postal)
-            ' ============================================
+            ' CASO 1: Cambio en columna CP (Código Postal)
             If Target.Column = columnaCP Then
-                Call ProcesarCambioCodigoPostal(Target, hojaTrabajo, wsCodigosPostales, ultimaFilaCP, _
-                                              columnaPoblacion, columnaProvincia)
+                Call ProcesarCambioCodigoPostal(Target, hojaTrabajo, columnaPoblacion, columnaProvincia)
                 
-            ' ============================================
-            ' CASO 2: Cambio en columna Poblaciï¿½n/Municipio
-            ' ============================================
+            ' CASO 2: Cambio en columna Población/Municipio
             ElseIf Target.Column = columnaPoblacion Then
-                Call ProcesarCambioPoblacion(Target, hojaTrabajo, wsCodigosPostales, ultimaFilaCP, _
-                                           columnaCP, columnaProvincia)
+                Call ProcesarCambioPoblacion(Target, hojaTrabajo, columnaCP, columnaProvincia)
             
-            ' ============================================
             ' CASO 3: Cambio en columna Provincia (limpiar todo)
-            ' ============================================
             ElseIf Target.Column = columnaProvincia Then
                 If Len(Trim(Target.Value)) = 0 Then
-                    ' Si se borra la provincia, limpiar CP y poblaciï¿½n relacionados
                     Call LimpiarCeldasRelacionadas(hojaTrabajo, Target.Row, columnaCP, columnaPoblacion, columnaProvincia, True, True, False)
                 End If
             End If
@@ -95,157 +62,92 @@ Public Sub ProcesarCambioCP_Poblacion(Target As Range, hojaTrabajo As Worksheet,
 End Sub
 
 ' ============================================
-' PROCESAMIENTO DE Cï¿½DIGO POSTAL ? POBLACIï¿½N/PROVINCIA
+' PROCESAMIENTO DE CÓDIGO POSTAL -> POBLACIÓN/PROVINCIA
 ' ============================================
 Private Sub ProcesarCambioCodigoPostal(Target As Range, hojaTrabajo As Worksheet, _
-                                     wsCodigosPostales As Worksheet, ultimaFilaCP As Long, _
                                      columnaPoblacion As Long, columnaProvincia As Long)
     '
-    ' PROPï¿½SITO: Cuando se introduce un CP, buscar y rellenar poblaciï¿½n(es) y provincia
-    ' Lï¿½GICA:
-    '   - Un CP puede tener mï¿½ltiples poblaciones ? crear lista desplegable
-    '   - Un CP tiene una sola provincia ? rellenar automï¿½ticamente
-    '   - Bï¿½squeda numï¿½rica y textual para mï¿½xima compatibilidad
+    ' PROPÓSITO: Cuando se introduce un CP, buscar en Access y rellenar población(es) y provincia.
+    '   - Si el CP tiene un único municipio -> rellenar directamente.
+    '   - Si el CP tiene múltiples municipios -> crear lista desplegable nativa en la celda.
     '
     
     If Len(Trim(Target.Value)) > 0 Then
-        ' INICIALIZACIï¿½N DE VARIABLES
         Dim codigoPostal As String
-        Dim codigoPostalNumerico As Long
         Dim municipiosEncontrados As Collection
         Dim provinciaEncontrada As String
-        Dim i As Long
+        Dim encontrado As Boolean
         
         codigoPostal = Trim(Target.Value)
-        Set municipiosEncontrados = New Collection
         
-        ' OPTIMIZACIï¿½N: Convertir a numï¿½rico si es posible (permite bï¿½squeda flexible)
-        If IsNumeric(codigoPostal) Then
-            codigoPostalNumerico = CLng(codigoPostal)
-        End If
+        ' Consulta ultra-rápida a Access (Fase 2)
+        encontrado = modDatabase.ObtenerUbicacionPorCP(codigoPostal, municipiosEncontrados, provinciaEncontrada)
         
-        ' Bï¿½SQUEDA PRINCIPAL: Encontrar TODOS los municipios para este cï¿½digo postal
-        For i = 2 To ultimaFilaCP
-            Dim valorCelda As Variant
-            valorCelda = wsCodigosPostales.Cells(i, "A").Value
-            
-            ' Bï¿½SQUEDA DUAL: Comparaciï¿½n textual Y numï¿½rica para mï¿½xima compatibilidad
-            If (CStr(valorCelda) = codigoPostal) Or _
-               (IsNumeric(valorCelda) And IsNumeric(codigoPostal) And CLng(valorCelda) = codigoPostalNumerico) Then
-                
-                Dim municipioEncontrado As String
-                municipioEncontrado = Trim(CStr(wsCodigosPostales.Cells(i, "B").Value))
-                
-                ' LIMPIEZA DE DATOS: Caracteres problemï¿½ticos para listas de validaciï¿½n
-                municipioEncontrado = Replace(municipioEncontrado, ",", ";")     ' Comas rompen las listas
-                municipioEncontrado = Replace(municipioEncontrado, Chr(34), "'") ' Comillas problemï¿½ticas
-                
-                ' CONTROL DE DUPLICADOS: Verificar si ya existe en la colecciï¿½n
-                If Not ExisteEnColeccion(municipiosEncontrados, municipioEncontrado) And Len(municipioEncontrado) > 0 Then
-                    municipiosEncontrados.Add municipioEncontrado
-                End If
-                
-                ' CAPTURA DE PROVINCIA: Solo la primera vez (todas deben ser iguales para un CP)
-                If provinciaEncontrada = "" Then
-                    provinciaEncontrada = Trim(CStr(wsCodigosPostales.Cells(i, "C").Value))
-                End If
-            End If
-        Next i
-        
-        ' PROCESAMIENTO DE RESULTADOS
-        If municipiosEncontrados.Count > 0 Then
-            ' PASO 1: Limpiar validaciï¿½n existente para evitar conflictos
+        If encontrado And municipiosEncontrados.Count > 0 Then
+            ' PASO 1: Limpiar validación previa en la celda
             Call LimpiarValidacionSilenciosa(hojaTrabajo.Cells(Target.Row, columnaPoblacion))
             
-            ' PASO 2: Actualizar provincia (siempre una sola para un CP)
+            ' PASO 2: Rellenar provincia
             hojaTrabajo.Cells(Target.Row, columnaProvincia).Value = provinciaEncontrada
             
             If municipiosEncontrados.Count = 1 Then
-                ' CASO SIMPLE: Solo un municipio ? rellenar directamente
+                ' CASO SIMPLE: Solo un municipio -> rellenar directamente
                 hojaTrabajo.Cells(Target.Row, columnaPoblacion).Value = municipiosEncontrados(1)
             Else
-                ' CASO Mï¿½LTIPLE: Varios municipios ? crear lista desplegable
-                ' IMPORTANTE: Rellenar valor ANTES de crear validaciï¿½n (evita errores)
+                ' CASO MÚLTIPLE: Varios municipios -> rellenar el primero y crear desplegable
                 hojaTrabajo.Cells(Target.Row, columnaPoblacion).Value = municipiosEncontrados(1)
                 
-                ' Crear lista de validaciï¿½n con todos los municipios encontrados
                 Dim listaMunicipios As String
                 listaMunicipios = CrearListaTruncada(municipiosEncontrados)
                 Call CrearValidacionListaSilenciosa(hojaTrabajo.Cells(Target.Row, columnaPoblacion), listaMunicipios)
             End If
         Else
-            ' NO ENCONTRADO: Limpiar poblaciï¿½n y provincia
+            ' NO ENCONTRADO: Limpiar población y provincia
             Call LimpiarCeldasRelacionadas(hojaTrabajo, Target.Row, Target.Column, columnaPoblacion, columnaProvincia, False, True, True)
         End If
     Else
-        ' CP BORRADO: Limpiar poblaciï¿½n y provincia relacionadas
+        ' CP BORRADO: Limpiar celdas relacionadas
         Call LimpiarCeldasRelacionadas(hojaTrabajo, Target.Row, Target.Column, columnaPoblacion, columnaProvincia, False, True, True)
     End If
 End Sub
 
 ' ============================================
-' PROCESAMIENTO DE POBLACIï¿½N ? Cï¿½DIGO POSTAL/PROVINCIA
+' PROCESAMIENTO DE POBLACIÓN -> CÓDIGO POSTAL/PROVINCIA
 ' ============================================
 Private Sub ProcesarCambioPoblacion(Target As Range, hojaTrabajo As Worksheet, _
-                                  wsCodigosPostales As Worksheet, ultimaFilaCP As Long, _
                                   columnaCP As Long, columnaProvincia As Long)
     '
-    ' PROPï¿½SITO: Cuando se introduce una poblaciï¿½n, buscar y rellenar CP(s) y provincia
-    ' CARACTERï¿½STICAS:
-    '   ? Bï¿½squeda normalizada (sin acentos, mayï¿½sculas/minï¿½sculas)
-    '   ? Cache inteligente para rendimiento
-    '   ? Una poblaciï¿½n puede tener mï¿½ltiples CPs ? lista desplegable
+    ' PROPÓSITO: Cuando se introduce una población, buscar en Access y rellenar CP(s) y provincia.
+    '   - Búsqueda insensible a tildes y mayúsculas mediante MunicipioNormalizado indexado.
+    '   - Si la población tiene un CP -> rellenar directamente.
+    '   - Si la población tiene múltiples CPs -> crear lista desplegable nativa en la celda.
     '
     
     If Len(Trim(Target.Value)) > 0 Then
-        ' INICIALIZACIï¿½N DE VARIABLES
         Dim municipioBuscado As String
         Dim codigosEncontrados As Collection
         Dim provinciaEncontrada As String
-        Dim i As Long
+        Dim encontrado As Boolean
         
         municipioBuscado = Trim(Target.Value)
-        Set codigosEncontrados = New Collection
         
-        ' Bï¿½SQUEDA PRINCIPAL: Con normalizaciï¿½n de texto (NUEVA CARACTERï¿½STICA)
-        For i = 2 To ultimaFilaCP
-            Dim municipioHoja As String
-            municipioHoja = Trim(CStr(wsCodigosPostales.Cells(i, "B").Value))
-            
-            ' Bï¿½SQUEDA NORMALIZADA: Compara sin acentos ni diferencias de mayï¿½sculas
-            ' Ejemplos: "aviles" encuentra "Avilï¿½s", "MADRID" encuentra "Madrid"
-            If BuscarTextoNormalizadoCompleto(municipioHoja, municipioBuscado) Then
-                Dim cpEncontrado As String
-                cpEncontrado = CStr(wsCodigosPostales.Cells(i, "A").Value)
-                
-                ' CONTROL DE DUPLICADOS
-                If Not ExisteEnColeccion(codigosEncontrados, cpEncontrado) And Len(cpEncontrado) > 0 Then
-                    codigosEncontrados.Add cpEncontrado
-                End If
-                
-                ' CAPTURA DE PROVINCIA: Solo la primera vez
-                If provinciaEncontrada = "" Then
-                    provinciaEncontrada = Trim(CStr(wsCodigosPostales.Cells(i, "C").Value))
-                End If
-            End If
-        Next i
+        ' Consulta ultra-rápida a Access (Fase 2)
+        encontrado = modDatabase.ObtenerCPsPorPoblacion(municipioBuscado, codigosEncontrados, provinciaEncontrada)
         
-        ' PROCESAMIENTO DE RESULTADOS
-        If codigosEncontrados.Count > 0 Then
-            ' PASO 1: Limpiar validaciï¿½n existente
+        If encontrado And codigosEncontrados.Count > 0 Then
+            ' PASO 1: Limpiar validación previa en la celda
             Call LimpiarValidacionSilenciosa(hojaTrabajo.Cells(Target.Row, columnaCP))
             
-            ' PASO 2: Actualizar provincia
+            ' PASO 2: Rellenar provincia
             hojaTrabajo.Cells(Target.Row, columnaProvincia).Value = provinciaEncontrada
             
             If codigosEncontrados.Count = 1 Then
-                ' CASO SIMPLE: Solo un CP ? rellenar directamente
+                ' CASO SIMPLE: Solo un CP -> rellenar directamente
                 hojaTrabajo.Cells(Target.Row, columnaCP).Value = codigosEncontrados(1)
             Else
-                ' CASO Mï¿½LTIPLE: Varios CPs ? crear lista desplegable
+                ' CASO MÚLTIPLE: Varios CPs -> rellenar el primero y crear desplegable
                 hojaTrabajo.Cells(Target.Row, columnaCP).Value = codigosEncontrados(1)
                 
-                ' Crear lista de validaciï¿½n
                 Dim listaCP As String
                 listaCP = CrearListaTruncada(codigosEncontrados)
                 Call CrearValidacionListaSilenciosa(hojaTrabajo.Cells(Target.Row, columnaCP), listaCP)
@@ -255,27 +157,28 @@ Private Sub ProcesarCambioPoblacion(Target As Range, hojaTrabajo As Worksheet, _
             Call LimpiarCeldasRelacionadas(hojaTrabajo, Target.Row, columnaCP, Target.Column, columnaProvincia, True, False, True)
         End If
     Else
-        ' POBLACIï¿½N BORRADA: Limpiar CP y provincia relacionadas
+        ' POBLACIÓN BORRADA: Limpiar celdas relacionadas
         Call LimpiarCeldasRelacionadas(hojaTrabajo, Target.Row, columnaCP, Target.Column, columnaProvincia, True, False, True)
     End If
 End Sub
 
+
 ' ============================================
-' NORMALIZACIï¿½N DE TEXTO CON CACHE OPTIMIZADO
+' NORMALIZACIÓN DE TEXTO CON CACHE OPTIMIZADO
 ' ============================================
 
 Private Function NormalizarTextoOptimizado(texto As String) As String
     '
-    ' PROPï¿½SITO: Normalizar texto removiendo acentos y convirtiendo a mayï¿½sculas
+    ' PROPÓSITO: Normalizar texto removiendo acentos y convirtiendo a mayúsculas
     ' OPTIMIZACIONES:
-    '   ? Pre-verificaciï¿½n para evitar procesamiento innecesario
-    '   ? Solo procesa caracteres espaï¿½oles comunes
+    '   ? Pre-verificación para evitar procesamiento innecesario
+    '   ? Solo procesa caracteres españoles comunes
     '   ? Algoritmo de una sola pasada
     '
     ' EJEMPLOS:
-    '   "Avilï¿½s" ? "AVILES"
-    '   "Mï¿½LAGA" ? "MALAGA"
-    '   "Coruï¿½a" ? "CORUNA"
+    '   "Avilés" ? "AVILES"
+    '   "MÁLAGA" ? "MALAGA"
+    '   "Coruña" ? "CORUNA"
     '
     
     If Len(texto) = 0 Then
@@ -286,26 +189,26 @@ Private Function NormalizarTextoOptimizado(texto As String) As String
     Dim resultado As String
     resultado = UCase(Trim(texto))
     
-    ' OPTIMIZACIï¿½N: Pre-verificaciï¿½n para evitar Replace innecesarios
+    ' OPTIMIZACIÓN: Pre-verificación para evitar Replace innecesarios
     ' Solo procesar si contiene caracteres con acentos
-    If InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") + _
-       InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") + _
-       InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") + _
-       InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") + InStr(resultado, "ï¿½") > 0 Then
+    If InStr(resultado, "Á") + InStr(resultado, "É") + InStr(resultado, "Í") + _
+       InStr(resultado, "Ó") + InStr(resultado, "Ú") + InStr(resultado, "Ñ") + _
+       InStr(resultado, "Ç") + InStr(resultado, "À") + InStr(resultado, "È") + _
+       InStr(resultado, "Ì") + InStr(resultado, "Ò") + InStr(resultado, "Ù") > 0 Then
         
-        ' NORMALIZACIï¿½N DE CARACTERES ESPAï¿½OLES COMUNES
-        resultado = Replace(resultado, "ï¿½", "A")
-        resultado = Replace(resultado, "ï¿½", "A")
-        resultado = Replace(resultado, "ï¿½", "E")
-        resultado = Replace(resultado, "ï¿½", "E")
-        resultado = Replace(resultado, "ï¿½", "I")
-        resultado = Replace(resultado, "ï¿½", "I")
-        resultado = Replace(resultado, "ï¿½", "O")
-        resultado = Replace(resultado, "ï¿½", "O")
-        resultado = Replace(resultado, "ï¿½", "U")
-        resultado = Replace(resultado, "ï¿½", "U")
-        resultado = Replace(resultado, "ï¿½", "N")
-        resultado = Replace(resultado, "ï¿½", "C")
+        ' NORMALIZACIÓN DE CARACTERES ESPAÑOLES COMUNES
+        resultado = Replace(resultado, "Á", "A")
+        resultado = Replace(resultado, "À", "A")
+        resultado = Replace(resultado, "É", "E")
+        resultado = Replace(resultado, "È", "E")
+        resultado = Replace(resultado, "Í", "I")
+        resultado = Replace(resultado, "Ì", "I")
+        resultado = Replace(resultado, "Ó", "O")
+        resultado = Replace(resultado, "Ò", "O")
+        resultado = Replace(resultado, "Ú", "U")
+        resultado = Replace(resultado, "Ù", "U")
+        resultado = Replace(resultado, "Ñ", "N")
+        resultado = Replace(resultado, "Ç", "C")
     End If
     
     NormalizarTextoOptimizado = resultado
@@ -313,35 +216,35 @@ End Function
 
 Private Function NormalizarTextoConCacheRapido(texto As String) As String
     '
-    ' PROPï¿½SITO: Normalizaciï¿½n con cache Dictionary (MEJORA CLAVE DE RENDIMIENTO)
+    ' PROPÓSITO: Normalización con cache Dictionary (MEJORA CLAVE DE RENDIMIENTO)
     ' BENEFICIOS:
-    '   ? Dictionary es 3-5x mï¿½s rï¿½pido que Collection para bï¿½squedas
-    '   ? Cache automï¿½tico de textos normalizados
-    '   ? Lï¿½mite de memoria para evitar crecimiento excesivo
-    '   ? Recuperaciï¿½n automï¿½tica ante errores
+    '   ? Dictionary es 3-5x más rápido que Collection para búsquedas
+    '   ? Cache automático de textos normalizados
+    '   ? Límite de memoria para evitar crecimiento excesivo
+    '   ? Recuperación automática ante errores
     '
     
-    ' INICIALIZACIï¿½N ROBUSTA: Dictionary solo si no existe
+    ' INICIALIZACIÓN ROBUSTA: Dictionary solo si no existe
     If cacheNormalizacion Is Nothing Then
         Set cacheNormalizacion = CreateObject("Scripting.Dictionary")
     End If
     
-    ' Bï¿½SQUEDA EN CACHE: Sï¿½per rï¿½pida con Dictionary
+    ' BÚSQUEDA EN CACHE: Súper rápida con Dictionary
     If cacheNormalizacion.Exists(texto) Then
         NormalizarTextoConCacheRapido = cacheNormalizacion(texto)
-        Exit Function ' ? 5x mï¿½s rï¿½pido para textos repetidos
+        Exit Function ' ? 5x más rápido para textos repetidos
     End If
     
-    ' NORMALIZACIï¿½N Y ALMACENAMIENTO EN CACHE
+    ' NORMALIZACIÓN Y ALMACENAMIENTO EN CACHE
     Dim textoNormalizado As String
     textoNormalizado = NormalizarTextoOptimizado(texto)
     
-    ' GESTIï¿½N INTELIGENTE DE MEMORIA: Limitar cache a 1000 elementos
+    ' GESTIÓN INTELIGENTE DE MEMORIA: Limitar cache a 1000 elementos
     On Error Resume Next
     If cacheNormalizacion.Count < 1000 Then
         cacheNormalizacion(texto) = textoNormalizado
         If Err.Number <> 0 Then
-            ' RECUPERACIï¿½N AUTOMï¿½TICA: Si hay error, reiniciar cache
+            ' RECUPERACIÓN AUTOMÁTICA: Si hay error, reiniciar cache
             Set cacheNormalizacion = CreateObject("Scripting.Dictionary")
             cacheNormalizacion(texto) = textoNormalizado
         End If
@@ -353,9 +256,9 @@ End Function
 
 Private Function BuscarTextoNormalizadoCompleto(textoOriginal As String, textoBuscado As String) As Boolean
     '
-    ' PROPï¿½SITO: Comparaciï¿½n exacta de textos normalizados
-    ' USO: Para bï¿½squedas de poblaciï¿½n exacta
-    ' EJEMPLO: BuscarTextoNormalizadoCompleto("Avilï¿½s", "aviles") ? True
+    ' PROPÓSITO: Comparación exacta de textos normalizados
+    ' USO: Para búsquedas de población exacta
+    ' EJEMPLO: BuscarTextoNormalizadoCompleto("Avilés", "aviles") ? True
     '
     
     Dim textoOriginalNorm As String
@@ -364,15 +267,15 @@ Private Function BuscarTextoNormalizadoCompleto(textoOriginal As String, textoBu
     textoOriginalNorm = NormalizarTextoConCacheRapido(textoOriginal)
     textoBuscadoNorm = NormalizarTextoConCacheRapido(textoBuscado)
     
-    ' Comparaciï¿½n exacta normalizada
+    ' Comparación exacta normalizada
     BuscarTextoNormalizadoCompleto = (textoOriginalNorm = textoBuscadoNorm)
 End Function
 
 Private Function BuscarTextoNormalizado(textoOriginal As String, textoBuscado As String) As Boolean
     '
-    ' PROPï¿½SITO: Verificar si textoOriginal empieza con textoBuscado (para autocompletado)
+    ' PROPÓSITO: Verificar si textoOriginal empieza con textoBuscado (para autocompletado)
     ' USO: Para sugerencias mientras se escribe
-    ' EJEMPLO: BuscarTextoNormalizado("Avilï¿½s", "avi") ? True
+    ' EJEMPLO: BuscarTextoNormalizado("Avilés", "avi") ? True
     '
     
     Dim textoOriginalNorm As String
@@ -388,7 +291,7 @@ End Function
 
 Public Sub LimpiarCache()
     '
-    ' PROPï¿½SITO: Funciï¿½n pï¿½blica para limpiar cache manualmente
+    ' PROPÓSITO: Función pública para limpiar cache manualmente
     ' USO: Llamar si se cambian los datos de la hoja o por mantenimiento
     '
     Set cacheNormalizacion = Nothing
@@ -400,18 +303,18 @@ End Sub
 
 Private Function ObtenerUltimaFilaSegura(ws As Worksheet) As Long
     '
-    ' PROPï¿½SITO: Obtener ï¿½ltima fila con datos con validaciï¿½n robusta
+    ' PROPÓSITO: Obtener última fila con datos con validación robusta
     ' MEJORAS IMPLEMENTADAS:
-    '   ? Manejo de errores si la hoja estï¿½ corrupta
-    '   ? Valor mï¿½nimo por defecto
-    '   ? Sin dependencia de formato especï¿½fico
+    '   ? Manejo de errores si la hoja está corrupta
+    '   ? Valor mínimo por defecto
+    '   ? Sin dependencia de formato específico
     '
     
     On Error Resume Next
     Dim ultimaFila As Long
     ultimaFila = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
     
-    ' VALIDACIï¿½N: Si hay error o valor invï¿½lido, usar valor por defecto
+    ' VALIDACIÓN: Si hay error o valor inválido, usar valor por defecto
     If Err.Number <> 0 Or ultimaFila < 2 Then
         ultimaFila = 2 ' Valor por defecto (fila 1 = encabezados, fila 2 = primer dato)
         Err.Clear
@@ -425,8 +328,8 @@ Private Sub LimpiarCeldasRelacionadas(hojaTrabajo As Worksheet, fila As Long, _
                                      columnaCP As Long, columnaPoblacion As Long, columnaProvincia As Long, _
                                      limpiarCP As Boolean, limpiarPoblacion As Boolean, limpiarProvincia As Boolean)
     '
-    ' PROPï¿½SITO: Limpiar celdas relacionadas de forma selectiva y segura
-    ' PARï¿½METROS BOOLEANOS: Permiten limpiar solo las celdas necesarias
+    ' PROPÓSITO: Limpiar celdas relacionadas de forma selectiva y segura
+    ' PARÁMETROS BOOLEANOS: Permiten limpiar solo las celdas necesarias
     ' ORDEN IMPORTANTE: Primero validaciones, luego contenidos
     '
     
@@ -438,7 +341,7 @@ Private Sub LimpiarCeldasRelacionadas(hojaTrabajo As Worksheet, fila As Long, _
         Call LimpiarValidacionSilenciosa(hojaTrabajo.Cells(fila, columnaPoblacion))
     End If
     
-    ' PASO 2: Limpiar contenidos despuï¿½s
+    ' PASO 2: Limpiar contenidos después
     If limpiarCP Then
         hojaTrabajo.Cells(fila, columnaCP).ClearContents
     End If
@@ -452,8 +355,8 @@ End Sub
 
 Private Sub LimpiarValidacionSilenciosa(celda As Range)
     '
-    ' PROPï¿½SITO: Eliminar validaciï¿½n existente sin generar errores
-    ' CRï¿½TICO: Siempre limpiar validaciones antes de crear nuevas
+    ' PROPÓSITO: Eliminar validación existente sin generar errores
+    ' CRÍTICO: Siempre limpiar validaciones antes de crear nuevas
     '
     
     On Error Resume Next
@@ -464,9 +367,9 @@ End Sub
 
 Private Function ExisteEnColeccion(coleccion As Collection, valor As String) As Boolean
     '
-    ' PROPï¿½SITO: Verificar si un valor ya existe en una Collection
+    ' PROPÓSITO: Verificar si un valor ya existe en una Collection
     ' USO: Control de duplicados en listas de municipios/CPs
-    ' Mï¿½TODO: Comparaciï¿½n insensible a mayï¿½sculas/minï¿½sculas
+    ' MÉTODO: Comparación insensible a mayúsculas/minúsculas
     '
     
     Dim i As Long
@@ -474,16 +377,16 @@ Private Function ExisteEnColeccion(coleccion As Collection, valor As String) As 
     For i = 1 To coleccion.Count
         If UCase(CStr(coleccion(i))) = UCase(valor) Then
             ExisteEnColeccion = True
-            Exit For ' OPTIMIZACIï¿½N: Salir tan pronto como se encuentre
+            Exit For ' OPTIMIZACIÓN: Salir tan pronto como se encuentre
         End If
     Next i
 End Function
 
 Private Function CrearListaTruncada(coleccion As Collection) As String
     '
-    ' PROPï¿½SITO: Convertir Collection a string para validaciï¿½n, respetando lï¿½mite de 255 caracteres
-    ' RESTRICCIï¿½N EXCEL: Las fï¿½rmulas de validaciï¿½n no pueden superar 255 caracteres
-    ' ESTRATEGIA: Incluir tantos elementos como sea posible sin superar el lï¿½mite
+    ' PROPÓSITO: Convertir Collection a string para validación, respetando límite de 255 caracteres
+    ' RESTRICCIÓN EXCEL: Las fórmulas de validación no pueden superar 255 caracteres
+    ' ESTRATEGIA: Incluir tantos elementos como sea posible sin superar el límite
     '
     
     Dim lista As String
@@ -505,9 +408,9 @@ Private Function CrearListaTruncada(coleccion As Collection) As String
             longitudNueva = longitudTotal + 1 + Len(itemActual) ' +1 por la coma
         End If
         
-        ' VERIFICAR Lï¿½MITE DE EXCEL (250 caracteres para margen de seguridad)
+        ' VERIFICAR LÍMITE DE EXCEL (250 caracteres para margen de seguridad)
         If longitudNueva > 250 Then
-            Exit For ' Salir si se supera el lï¿½mite
+            Exit For ' Salir si se supera el límite
         End If
         
         ' AGREGAR ELEMENTO A LA LISTA
@@ -525,12 +428,12 @@ End Function
 
 Private Sub CrearValidacionListaSilenciosa(celda As Range, lista As String)
     '
-    ' PROPï¿½SITO: Crear validaciï¿½n de lista de forma robusta y silenciosa
-    ' CARACTERï¿½STICAS:
+    ' PROPÓSITO: Crear validación de lista de forma robusta y silenciosa
+    ' CARACTERÍSTICAS:
     '   ? Manejo de hojas protegidas
     '   ? Sin alertas molestas al usuario
-    '   ? Validaciï¿½n permisiva (permite valores libres)
-    '   ? Recuperaciï¿½n automï¿½tica de estados
+    '   ? Validación permisiva (permite valores libres)
+    '   ? Recuperación automática de estados
     '
     
     If Len(lista) = 0 Then Exit Sub
@@ -544,7 +447,7 @@ Private Sub CrearValidacionListaSilenciosa(celda As Range, lista As String)
     
     On Error GoTo RestaurarEstados
     
-    ' CONFIGURAR PARA OPERACIï¿½N SILENCIOSA
+    ' CONFIGURAR PARA OPERACIÓN SILENCIOSA
     Application.DisplayAlerts = False
     
     ' DESPROTEGER SI ES NECESARIO
@@ -552,13 +455,13 @@ Private Sub CrearValidacionListaSilenciosa(celda As Range, lista As String)
         celda.Worksheet.Unprotect
     End If
     
-    ' LIMPIAR VALIDACIï¿½N PREVIA
+    ' LIMPIAR VALIDACIÓN PREVIA
     celda.Validation.Delete
     
-    ' CREAR NUEVA VALIDACIï¿½N
+    ' CREAR NUEVA VALIDACIÓN
     With celda.Validation
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=lista
-        .IgnoreBlank = True                ' Permitir celdas vacï¿½as
+        .IgnoreBlank = True                ' Permitir celdas vacías
         .InCellDropdown = True            ' Mostrar flecha desplegable
         .ShowInput = False                ' No mostrar mensaje de entrada
         .ShowError = False                ' No mostrar mensaje de error (permitir valores libres)
@@ -575,26 +478,26 @@ RestaurarEstados:
 End Sub
 
 ' ============================================
-' AUTOCOMPLETADO OPTIMIZADO CON NORMALIZACIï¿½N
+' AUTOCOMPLETADO OPTIMIZADO CON NORMALIZACIÓN
 ' ============================================
 
 Public Sub ProcesarAutocompletadoPoblacion(Target As Range, hojaTrabajo As Worksheet, _
                                          columnaPoblacion As Long, columnaCP As Long, columnaProvincia As Long)
     '
-    ' PROPï¿½SITO: Proporcionar autocompletado inteligente mientras se escribe en poblaciï¿½n
-    ' CARACTERï¿½STICAS:
-    '   ? Bï¿½squeda normalizada (sin acentos)
-    '   ? Optimizaciï¿½n con arrays en memoria
-    '   ? Lï¿½mite inteligente de sugerencias (2-10)
+    ' PROPÓSITO: Proporcionar autocompletado inteligente mientras se escribe en población
+    ' CARACTERÍSTICAS:
+    '   ? Búsqueda normalizada (sin acentos)
+    '   ? Optimización con arrays en memoria
+    '   ? Límite inteligente de sugerencias (2-10)
     '   ? Evita procesamiento excesivo
     '
-    ' USO: Llamar desde el evento Worksheet_Change despuï¿½s de ProcesarCambioCP_Poblacion
+    ' USO: Llamar desde el evento Worksheet_Change después de ProcesarCambioCP_Poblacion
     '
-    ' === NUEVA VALIDACIï¿½N: Solo procesar si es UNA celda ===
+    ' === NUEVA VALIDACIÓN: Solo procesar si es UNA celda ===
     If Target.Cells.Count <> 1 Then Exit Sub
     ' VALIDACIONES INICIALES
-    If Target.Column <> columnaPoblacion Then Exit Sub              ' Solo columna poblaciï¿½n
-    If Len(Trim(Target.Value)) < 3 Then Exit Sub                   ' Mï¿½nimo 3 caracteres
+    If Target.Column <> columnaPoblacion Then Exit Sub              ' Solo columna población
+    If Len(Trim(Target.Value)) < 3 Then Exit Sub                   ' Mínimo 3 caracteres
     If Len(Trim(Target.Value)) > 15 Then Exit Sub                  ' Evitar procesamiento de nombres completos
     
     ' VERIFICAR EXISTENCIA DE HOJA DE DATOS
@@ -608,66 +511,66 @@ Public Sub ProcesarAutocompletadoPoblacion(Target As Range, hojaTrabajo As Works
     Dim textoEscrito As String
     textoEscrito = Trim(Target.Value)
     
-    ' Bï¿½SQUEDA OPTIMIZADA CON NORMALIZACIï¿½N
+    ' BÚSQUEDA OPTIMIZADA CON NORMALIZACIÓN
     Dim coincidencias As Collection
     Set coincidencias = BuscarMunicipiosCoincidentesOptimizado(wsCodigosPostales, textoEscrito)
     
-    ' CREAR LISTA SOLO SI HAY COINCIDENCIAS ï¿½TILES (no demasiadas, no muy pocas)
+    ' CREAR LISTA SOLO SI HAY COINCIDENCIAS ÚTILES (no demasiadas, no muy pocas)
     If coincidencias.Count > 1 And coincidencias.Count <= 10 Then
         Dim listaCoincidencias As String
         listaCoincidencias = CrearListaTruncada(coincidencias)
         
-        ' Aplicar validaciï¿½n temporal para autocompletado
+        ' Aplicar validación temporal para autocompletado
         Call CrearValidacionAutocompletadoOptimizada(Target, listaCoincidencias)
     End If
 End Sub
 
 Private Function BuscarMunicipiosCoincidentesOptimizado(wsCodigosPostales As Worksheet, textoEscrito As String) As Collection
     '
-    ' PROPï¿½SITO: Bï¿½squeda ultra-rï¿½pida de municipios que coinciden con texto parcial
+    ' PROPÓSITO: Búsqueda ultra-rápida de municipios que coinciden con texto parcial
     ' OPTIMIZACIONES CLAVE:
-    '   ? Arrays en memoria (100x mï¿½s rï¿½pido que acceso celda por celda)
-    '   ? Bï¿½squeda normalizada para mejor UX
-    '   ? Lï¿½mite automï¿½tico para rendimiento
-    '   ? Validaciï¿½n robusta de arrays
+    '   ? Arrays en memoria (100x más rápido que acceso celda por celda)
+    '   ? Búsqueda normalizada para mejor UX
+    '   ? Límite automático para rendimiento
+    '   ? Validación robusta de arrays
     '
     
     Dim coincidencias As Collection
     Set coincidencias = New Collection
     
-    ' OBTENER DATOS EN MEMORIA (OPTIMIZACIï¿½N CRï¿½TICA)
+    ' OBTENER DATOS EN MEMORIA (OPTIMIZACIÓN CRÍTICA)
     Dim ultimaFila As Long
     ultimaFila = ObtenerUltimaFilaSegura(wsCodigosPostales)
     
-    ' CARGAR TODA LA COLUMNA EN ARRAY (mucho mï¿½s rï¿½pido que acceso individual)
+    ' CARGAR TODA LA COLUMNA EN ARRAY (mucho más rápido que acceso individual)
     Dim rangeMunicipios As Range
     Set rangeMunicipios = wsCodigosPostales.Range("B2:B" & ultimaFila)
     
-    ' VALIDACIï¿½N ROBUSTA: Verificar que hay datos para procesar
+    ' VALIDACIÓN ROBUSTA: Verificar que hay datos para procesar
     On Error Resume Next
     Dim arrayMunicipios As Variant
     arrayMunicipios = rangeMunicipios.Value
     On Error GoTo 0
     
-    ' VERIFICAR QUE EL ARRAY ES Vï¿½LIDO
+    ' VERIFICAR QUE EL ARRAY ES VÁLIDO
     If Not IsArray(arrayMunicipios) Then Exit Function
     If UBound(arrayMunicipios, 1) < 1 Then Exit Function
     
-    ' Bï¿½SQUEDA NORMALIZADA EN ARRAY
+    ' BÚSQUEDA NORMALIZADA EN ARRAY
     Dim i As Long
     Dim municipio As String
     
     For i = 1 To UBound(arrayMunicipios, 1)
         municipio = Trim(CStr(arrayMunicipios(i, 1)))
         
-        ' Bï¿½SQUEDA NORMALIZADA: Encuentra "Avilï¿½s" escribiendo "avi"
+        ' BÚSQUEDA NORMALIZADA: Encuentra "Avilés" escribiendo "avi"
         If BuscarTextoNormalizado(municipio, textoEscrito) Then
             
             ' CONTROL DE DUPLICADOS
             If Not ExisteEnColeccion(coincidencias, municipio) Then
                 coincidencias.Add municipio
                 
-                ' Lï¿½MITE PARA RENDIMIENTO: No mï¿½s de 10 sugerencias
+                ' LÍMITE PARA RENDIMIENTO: No más de 10 sugerencias
                 If coincidencias.Count >= 10 Then Exit For
             End If
         End If
@@ -681,13 +584,13 @@ Private Sub CrearValidacionAutocompletadoOptimizada(celda As Range, lista As Str
     If Len(Trim(lista)) = 0 Then Exit Sub
     lista = Trim(lista)
     
-    ' LIMPIEZA PREVENTIVA DE CARACTERES PROBLEMï¿½TICOS
+    ' LIMPIEZA PREVENTIVA DE CARACTERES PROBLEMÁTICOS
     lista = Replace(lista, Chr(34), "'")    ' Comillas dobles
-    lista = Replace(lista, Chr(10), "")     ' Saltos de lï¿½nea
+    lista = Replace(lista, Chr(10), "")     ' Saltos de línea
     lista = Replace(lista, Chr(13), "")     ' Retornos de carro
     lista = Replace(lista, ",,", ",")       ' Comas dobles
     
-    ' VERIFICACIï¿½N FINAL
+    ' VERIFICACIÓN FINAL
     If Right(lista, 1) = "," Then lista = Left(lista, Len(lista) - 1)
     If Left(lista, 1) = "," Then lista = Mid(lista, 2)
     If Len(lista) = 0 Then Exit Sub
@@ -702,7 +605,7 @@ Private Sub CrearValidacionAutocompletadoOptimizada(celda As Range, lista As Str
     Application.enableEvents = False
     If estabaProtegida Then celda.Worksheet.Unprotect
     
-    ' OPERACIï¿½N ATï¿½MICA: Todo o nada
+    ' OPERACIÓN ATÓMICA: Todo o nada
     With celda
         .Validation.Delete
         .Validation.Add Type:=xlValidateList, Formula1:=lista
@@ -727,14 +630,14 @@ RestaurarEstados:
 End Sub
 
 ' ============================================
-' DOCUMENTACIï¿½N DE USO Y EJEMPLOS
+' DOCUMENTACIÓN DE USO Y EJEMPLOS
 ' ============================================
 '
-' EJEMPLO DE IMPLEMENTACIï¿½N EN HOJA:
+' EJEMPLO DE IMPLEMENTACIÓN EN HOJA:
 ' ====================================
 '
 ' Private Sub Worksheet_Change(ByVal Target As Range)
-'     ' Constantes de columnas (ajustar segï¿½n tu hoja)
+'     ' Constantes de columnas (ajustar según tu hoja)
 '     Const COL_CP As Long = 5          ' Columna E
 '     Const COL_POBLACION As Long = 6   ' Columna F
 '     Const COL_PROVINCIA As Long = 7   ' Columna G
@@ -748,25 +651,25 @@ End Sub
 '
 ' ESTRUCTURA REQUERIDA DE "CODIGOS POSTALES":
 ' ===========================================
-' Columna A: Cï¿½digo Postal (08001, 28001, etc.)
-' Columna B: Municipio/Poblaciï¿½n (Barcelona, Madrid, etc.)
+' Columna A: Código Postal (08001, 28001, etc.)
+' Columna B: Municipio/Población (Barcelona, Madrid, etc.)
 ' Columna C: Provincia (Barcelona, Madrid, etc.)
 '
-' CARACTERï¿½STICAS PRINCIPALES:
+' CARACTERÍSTICAS PRINCIPALES:
 ' ============================
-' ? Bï¿½squeda bidireccional: CP ? Poblaciï¿½n
-' ? Normalizaciï¿½n inteligente: "aviles" encuentra "Avilï¿½s"
-' ? Cache automï¿½tico para mï¿½ximo rendimiento
+' ? Búsqueda bidireccional: CP ? Población
+' ? Normalización inteligente: "aviles" encuentra "Avilés"
+' ? Cache automático para máximo rendimiento
 ' ? Manejo robusto de errores sin crashes
-' ? Listas desplegables automï¿½ticas para mï¿½ltiples opciones
+' ? Listas desplegables automáticas para múltiples opciones
 ' ? Compatible con hojas protegidas
-' ? Optimizado para mï¿½ltiples usuarios
+' ? Optimizado para múltiples usuarios
 
 ' MANTENIMIENTO:
 ' =============
 ' - Llamar LimpiarCache() si se actualizan los datos base
-' - El cache se limpia automï¿½ticamente al cerrar Excel
-' - Lï¿½mite automï¿½tico de 1000 elementos en cache
+' - El cache se limpia automáticamente al cerrar Excel
+' - Límite automático de 1000 elementos en cache
 '
 ' ============================================
 
