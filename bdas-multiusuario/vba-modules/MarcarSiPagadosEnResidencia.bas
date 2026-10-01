@@ -768,7 +768,17 @@ Public Sub SincronizarOrdenYCampos( _
 
     Dim estabaProtegida As Boolean
     estabaProtegida = wsResumen.ProtectContents
-    If estabaProtegida Then wsResumen.Unprotect password:=""
+    
+    Dim pwdHojas As String
+    pwdHojas = ModuloConfigSegura.ObtenerPasswordHojas()
+    
+    If estabaProtegida Then
+        On Error Resume Next
+        If Len(pwdHojas) > 0 Then wsResumen.Unprotect password:=pwdHojas
+        If wsResumen.ProtectContents Then wsResumen.Unprotect password:=""
+        If wsResumen.ProtectContents Then wsResumen.Unprotect
+        On Error GoTo 0
+    End If
     
     Dim filaResumen As Long
     If celdaResumen Is Nothing Then
@@ -787,8 +797,11 @@ Public Sub SincronizarOrdenYCampos( _
         wsRes.Cells(celdaRes.Row, nombreColumnaRes2).Value
     
     If estabaProtegida Then
-        wsResumen.Protect password:="", UserInterfaceOnly:=True, AllowFormattingCells:=True, AllowFiltering:=True
+        On Error Resume Next
+        wsResumen.Protect password:=pwdHojas, UserInterfaceOnly:=True, _
+            AllowFormattingCells:=True, AllowFiltering:=True
     End If
+
 
     Application.enableEvents = True
 End Sub
@@ -835,6 +848,7 @@ Public Function EsEstadoPagado(ByVal valor As String) As Boolean
     EsEstadoPagado = (valUpper = "SI" Or valUpper = "EFECTIVO" Or valUpper = "TARJETA" _
                    Or valUpper = "TRANSFERENCIA" Or valUpper = "SMS" Or valUpper = "BIZUM")
 End Function
+
 
 
 

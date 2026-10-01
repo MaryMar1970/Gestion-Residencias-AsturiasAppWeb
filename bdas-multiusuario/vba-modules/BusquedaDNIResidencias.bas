@@ -7,7 +7,7 @@ Attribute VB_Name = "BusquedaDNIResidencias"
 '
 ' CONFIGURACIï¿½N EN HOJA CONFIG:
 ' -----------------------------------------------------------------------------
-' | Celda | Propï¿½sito                          | Valores    | Este mï¿½dulo |
+' | Celda | Propï¿½sito                          | Valores    | Este módulo |
 ' |-------|------------------------------------|-----------:|:-----------:|
 ' | B5    | Archivado automï¿½tico RGPD          | SI/NO      | NO usa      |
 ' | B6    | Activar bï¿½squeda en hojas BDAS     | SI/NO      | Sï¿½ usa      |
@@ -17,7 +17,7 @@ Attribute VB_Name = "BusquedaDNIResidencias"
 '       B6 controla si al introducir un DNI se busca tambiï¿½n en hojas BDAS
 '
 ' HOJAS BDAS CONSULTADAS (cuando B6 = SI):
-'   - BDAS GIJï¿½N
+'   - BDAS GIJÓN
 '   - BDAS SOTO
 '   - BDAS OVIEDO
 '
@@ -31,7 +31,7 @@ Attribute VB_Name = "BusquedaDNIResidencias"
 '   - ws: hoja donde ocurriï¿½ el cambio
 ' PRIORIDADES DE Bï¿½SQUEDA:
 '   1. Misma hoja donde se introduce el DNI
-'   2. Hojas BDAS (si estï¿½ activado en CONFIG B6)
+'   2. Hojas BDAS (si está activado en CONFIG B6)
 ' =============================================================================
 Public Sub ManejarCopiaDNI(ByVal Target As Range, ByVal ws As Worksheet)
     On Error GoTo ErrorHandler
@@ -54,7 +54,7 @@ Public Sub ManejarCopiaDNI(ByVal Target As Range, ByVal ws As Worksheet)
     Application.calculation = xlCalculationManual
     
     ' -------------------------------------------------------------------------
-    ' 2. Verificar si la bï¿½squeda en BDAS estï¿½ activada
+    ' 2. Verificar si la bï¿½squeda en BDAS está activada
     ' -------------------------------------------------------------------------
     buscarEnBDAS = EstaBusquedaBDASActivada()
     
@@ -73,7 +73,7 @@ Public Sub ManejarCopiaDNI(ByVal Target As Range, ByVal ws As Worksheet)
                 End If
                 
                 ' -----------------------------------------------------------------
-                ' PRIORIDAD 2: HOJAS BDAS (si estï¿½ activado)
+                ' PRIORIDAD 2: HOJAS BDAS (si está activado)
                 ' -----------------------------------------------------------------
                 If buscarEnBDAS Then
                     If BuscarYCopiarEnBDAS(celda.Value, ws, celda.Row) Then
@@ -104,8 +104,8 @@ ErrorHandler:
 End Sub
 
 ' =============================================================================
-' FUNCIï¿½N: EstaBusquedaBDASActivada
-' PROPï¿½SITO: Consultar si la bï¿½squeda en BDAS estï¿½ activada (CONFIG B6)
+' FUNCIÓN: EstaBusquedaBDASActivada
+' PROPï¿½SITO: Consultar si la bï¿½squeda en BDAS está activada (CONFIG B6)
 ' DEVUELVE: True si B6 contiene "Sï¿½" o "SI", False en caso contrario
 ' =============================================================================
 Private Function EstaBusquedaBDASActivada() As Boolean
@@ -126,7 +126,7 @@ Private Function EstaBusquedaBDASActivada() As Boolean
 End Function
 
 ' =============================================================================
-' FUNCIï¿½N: BuscarYCopiarEnMismaHoja
+' FUNCIÓN: BuscarYCopiarEnMismaHoja
 ' PROPï¿½SITO: Buscar DNI en la misma hoja y copiar datos si encuentra
 ' DEVUELVE: True si encontrï¿½ y copiï¿½, False en caso contrario
 ' =============================================================================
@@ -166,9 +166,10 @@ ErrorHandler:
 End Function
 
 ' =============================================================================
-' FUNCIÃ“N: BuscarYCopiarEnBDAS
-' PROPÃ“SITO: Buscar DNI en Access DB y autofiltrar/copiar datos si se encuentra
-' DEVUELVE: True si encontrÃ³ y copiÃ³, False en caso contrario
+' FUNCIÓN: BuscarYCopiarEnBDAS
+' PROPÓSITO: Buscar DNI en Access DB (Activas + Histórico) y autocompletar
+'            Nombre, Empleo, Situación, Rango, Teléfono, Dirección, CP, Población y Provincia
+' DEVUELVE: True si encontró y copió, False en caso contrario
 ' =============================================================================
 Private Function BuscarYCopiarEnBDAS(ByVal valorBuscado As Variant, _
                                      ByVal wsDestino As Worksheet, _
@@ -180,25 +181,71 @@ Private Function BuscarYCopiarEnBDAS(ByVal valorBuscado As Variant, _
     
     If Not rs Is Nothing Then
         If Not rs.EOF Then
-            ' Encontrado en Access DB - autocompletar datos de contacto
-            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "K").Value))) = 0 Then
-                wsDestino.Cells(filaDestino, "K").Value = rs("Nombre").Value
+            Dim esOviedo As Boolean
+            esOviedo = EsResidenciaOviedo(wsDestino)
+            
+            Dim nomCompleto As String
+            nomCompleto = Trim(CStr(rs("Nombre").Value))
+            If Not IsNull(rs("Apellidos").Value) Then
+                If Len(Trim(CStr(rs("Apellidos").Value))) > 0 Then
+                    If InStr(nomCompleto, Trim(CStr(rs("Apellidos").Value))) = 0 Then
+                        nomCompleto = nomCompleto & " " & Trim(CStr(rs("Apellidos").Value))
+                    End If
+                End If
             End If
-            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "W").Value))) = 0 Then
-                wsDestino.Cells(filaDestino, "W").Value = rs("Telefono").Value
-            End If
-            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "X").Value))) = 0 Then
-                wsDestino.Cells(filaDestino, "X").Value = rs("Direccion").Value
-            End If
-            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "Y").Value))) = 0 Then
-                wsDestino.Cells(filaDestino, "Y").Value = rs("CodigoPostal").Value
-            End If
-            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "Z").Value))) = 0 Then
-                wsDestino.Cells(filaDestino, "Z").Value = rs("Poblacion").Value
-            End If
-            If Len(Trim(CStr(wsDestino.Cells(filaDestino, "AA").Value))) = 0 Then
-                wsDestino.Cells(filaDestino, "AA").Value = rs("Provincia").Value
-            End If
+            
+            With wsDestino
+                ' 1. Datos comunes profesionales y personales (Cols E, F, J, K)
+                If Len(Trim(CStr(.Cells(filaDestino, "E").Value))) = 0 And Not IsNull(rs("Empleo").Value) Then
+                    .Cells(filaDestino, "E").Value = rs("Empleo").Value
+                End If
+                If Len(Trim(CStr(.Cells(filaDestino, "F").Value))) = 0 And Not IsNull(rs("Situacion").Value) Then
+                    .Cells(filaDestino, "F").Value = rs("Situacion").Value
+                End If
+                If Len(Trim(CStr(.Cells(filaDestino, "J").Value))) = 0 And Not IsNull(rs("Rango").Value) Then
+                    .Cells(filaDestino, "J").Value = rs("Rango").Value
+                End If
+                If Len(Trim(CStr(.Cells(filaDestino, "K").Value))) = 0 And Len(nomCompleto) > 0 Then
+                    .Cells(filaDestino, "K").Value = nomCompleto
+                End If
+                
+                ' 2. Datos de contacto y domicilio según residencia
+                If esOviedo Then
+                    ' RESIDENCIA OVIEDO: W=Teléfono, X=Dirección, Y=CP, Z=Población, AA=Provincia
+                    If Len(Trim(CStr(.Cells(filaDestino, "W").Value))) = 0 And Not IsNull(rs("Telefono").Value) Then
+                        .Cells(filaDestino, "W").Value = rs("Telefono").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "X").Value))) = 0 And Not IsNull(rs("Direccion").Value) Then
+                        .Cells(filaDestino, "X").Value = rs("Direccion").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "Y").Value))) = 0 And Not IsNull(rs("CodigoPostal").Value) Then
+                        .Cells(filaDestino, "Y").Value = rs("CodigoPostal").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "Z").Value))) = 0 And Not IsNull(rs("Poblacion").Value) Then
+                        .Cells(filaDestino, "Z").Value = rs("Poblacion").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "AA").Value))) = 0 And Not IsNull(rs("Provincia").Value) Then
+                        .Cells(filaDestino, "AA").Value = rs("Provincia").Value
+                    End If
+                Else
+                    ' RESIDENCIA GIJÓN / SOTO: V=Teléfono, W=Dirección, X=CP, Y=Población, Z=Provincia
+                    If Len(Trim(CStr(.Cells(filaDestino, "V").Value))) = 0 And Not IsNull(rs("Telefono").Value) Then
+                        .Cells(filaDestino, "V").Value = rs("Telefono").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "W").Value))) = 0 And Not IsNull(rs("Direccion").Value) Then
+                        .Cells(filaDestino, "W").Value = rs("Direccion").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "X").Value))) = 0 And Not IsNull(rs("CodigoPostal").Value) Then
+                        .Cells(filaDestino, "X").Value = rs("CodigoPostal").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "Y").Value))) = 0 And Not IsNull(rs("Poblacion").Value) Then
+                        .Cells(filaDestino, "Y").Value = rs("Poblacion").Value
+                    End If
+                    If Len(Trim(CStr(.Cells(filaDestino, "Z").Value))) = 0 And Not IsNull(rs("Provincia").Value) Then
+                        .Cells(filaDestino, "Z").Value = rs("Provincia").Value
+                    End If
+                End If
+            End With
             
             rs.Close
             BuscarYCopiarEnBDAS = True
@@ -217,11 +264,7 @@ End Function
 
 ' =============================================================================
 ' PROCEDIMIENTO: CopiarDatosDesdeMismaHoja
-' PROPSITO: Copia datos de una fila a otra en la misma hoja
-' PARMETROS:
-'   - ws: hoja donde copiar
-'   - filaOrigen: fila de donde copiar
-'   - filaDestino: fila a donde copiar
+' PROPÓSITO: Copia datos de una fila a otra en la misma hoja
 ' =============================================================================
 Private Sub CopiarDatosDesdeMismaHoja(ByVal ws As Worksheet, _
                                       ByVal filaOrigen As Long, _
@@ -232,19 +275,21 @@ Private Sub CopiarDatosDesdeMismaHoja(ByVal ws As Worksheet, _
     esOviedo = EsResidenciaOviedo(ws)
     
     With ws
-        ' Copiar columnas comunes
+        ' Copiar columnas comunes (Empleo, Situación, Rango, Nombre)
+        .Cells(filaDestino, "E").Value = .Cells(filaOrigen, "E").Value
+        .Cells(filaDestino, "F").Value = .Cells(filaOrigen, "F").Value
         .Cells(filaDestino, "J").Value = .Cells(filaOrigen, "J").Value
         .Cells(filaDestino, "K").Value = .Cells(filaOrigen, "K").Value
         
         If esOviedo Then
-            ' RESIDENCIA OVIEDO: J, K, W, X, Y, Z, AA
+            ' RESIDENCIA OVIEDO: W, X, Y, Z, AA
             .Cells(filaDestino, "W").Value = .Cells(filaOrigen, "W").Value
             .Cells(filaDestino, "X").Value = .Cells(filaOrigen, "X").Value
             .Cells(filaDestino, "Y").Value = .Cells(filaOrigen, "Y").Value
             .Cells(filaDestino, "Z").Value = .Cells(filaOrigen, "Z").Value
             .Cells(filaDestino, "AA").Value = .Cells(filaOrigen, "AA").Value
         Else
-            ' RESIDENCIA GIJï¿½N/SOTO: J, K, V, W, X, Y, Z
+            ' RESIDENCIA GIJÓN/SOTO: V, W, X, Y, Z
             .Cells(filaDestino, "V").Value = .Cells(filaOrigen, "V").Value
             .Cells(filaDestino, "W").Value = .Cells(filaOrigen, "W").Value
             .Cells(filaDestino, "X").Value = .Cells(filaOrigen, "X").Value
@@ -260,61 +305,8 @@ ErrorHandler:
 End Sub
 
 ' =============================================================================
-' PROCEDIMIENTO: CopiarDatosDesdeBDAS
-' PROPï¿½SITO: Copia datos desde una hoja BDAS a una hoja RESIDENCIA
-' PARï¿½METROS:
-'   - wsBDA: hoja BDAS origen
-'   - filaOrigen: fila en BDAS
-'   - wsDestino: hoja RESIDENCIA destino
-'   - filaDestino: fila en RESIDENCIA
-' MAPEO BDAS -> RESIDENCIA GIJï¿½N/SOTO:
-'   E->K, F->V, G->W, H->X, I->Y, J->Z
-' MAPEO BDAS -> RESIDENCIA OVIEDO:
-'   E->K, F->W, G->X, H->Y, I->Z, J->AA
-' =============================================================================
-Private Sub CopiarDatosDesdeBDAS(ByVal wsBDA As Worksheet, _
-                                 ByVal filaOrigen As Long, _
-                                 ByVal wsDestino As Worksheet, _
-                                 ByVal filaDestino As Long)
-    On Error GoTo ErrorHandler
-    
-    Dim esOviedo As Boolean
-    esOviedo = EsResidenciaOviedo(wsDestino)
-    
-    With wsDestino
-        If esOviedo Then
-            ' MAPEO PARA RESIDENCIA OVIEDO
-            .Cells(filaDestino, "K").Value = wsBDA.Cells(filaOrigen, "E").Value   ' E->K
-            .Cells(filaDestino, "W").Value = wsBDA.Cells(filaOrigen, "F").Value     ' F->W
-            .Cells(filaDestino, "X").Value = wsBDA.Cells(filaOrigen, "G").Value   ' G->X
-            .Cells(filaDestino, "Y").Value = wsBDA.Cells(filaOrigen, "H").Value    ' H->Y
-            .Cells(filaDestino, "Z").Value = wsBDA.Cells(filaOrigen, "I").Value    ' I->Z
-            .Cells(filaDestino, "AA").Value = wsBDA.Cells(filaOrigen, "J").Value  ' J->AA
-        Else
-            ' MAPEO PARA RESIDENCIA GIJï¿½N/SOTO
-            .Cells(filaDestino, "K").Value = wsBDA.Cells(filaOrigen, "E").Value    ' E->K
-            .Cells(filaDestino, "V").Value = wsBDA.Cells(filaOrigen, "F").Value   ' F->V
-            .Cells(filaDestino, "W").Value = wsBDA.Cells(filaOrigen, "G").Value    ' G->W
-            .Cells(filaDestino, "X").Value = wsBDA.Cells(filaOrigen, "H").Value    ' H->X
-            .Cells(filaDestino, "Y").Value = wsBDA.Cells(filaOrigen, "I").Value   ' I->Y
-            .Cells(filaDestino, "Z").Value = wsBDA.Cells(filaOrigen, "J").Value     ' J->Z
-        End If
-    End With
-    
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "Error en CopiarDatosDesdeBDAS: " & Err.Description & _
-                " (BDAS: " & wsBDA.Name & ", Destino: " & wsDestino.Name & ")"
-End Sub
-
-' =============================================================================
 ' PROCEDIMIENTO: LimpiarCeldasPorDNIEliminado
-' PROPï¿½SITO: Limpiar las celdas que fueron llenadas automï¿½ticamente cuando
-'            se elimina el DNI
-' PARï¿½METROS:
-'   - ws: hoja donde limpiar
-'   - fila: fila a limpiar
+' PROPÓSITO: Limpiar las celdas autocompletadas cuando se borra el DNI
 ' =============================================================================
 Private Sub LimpiarCeldasPorDNIEliminado(ByVal ws As Worksheet, ByVal fila As Long)
     On Error GoTo ErrorHandler
@@ -323,19 +315,21 @@ Private Sub LimpiarCeldasPorDNIEliminado(ByVal ws As Worksheet, ByVal fila As Lo
     esOviedo = EsResidenciaOviedo(ws)
     
     With ws
-        ' Limpiar columnas comunes
+        ' Limpiar columnas comunes (Empleo, Situación, Rango, Nombre)
+        .Cells(fila, "E").ClearContents
+        .Cells(fila, "F").ClearContents
         .Cells(fila, "J").ClearContents
         .Cells(fila, "K").ClearContents
         
         If esOviedo Then
-            ' RESIDENCIA OVIEDO: J, K, W, X, Y, Z, AA
+            ' RESIDENCIA OVIEDO: W, X, Y, Z, AA
             .Cells(fila, "W").ClearContents
             .Cells(fila, "X").ClearContents
             .Cells(fila, "Y").ClearContents
             .Cells(fila, "Z").ClearContents
             .Cells(fila, "AA").ClearContents
         Else
-            ' RESIDENCIA GIJï¿½N/SOTO: J, K, V, W, X, Y, Z
+            ' RESIDENCIA GIJÓN/SOTO: V, W, X, Y, Z
             .Cells(fila, "V").ClearContents
             .Cells(fila, "W").ClearContents
             .Cells(fila, "X").ClearContents
@@ -351,8 +345,9 @@ ErrorHandler:
                 " (Hoja: " & ws.Name & ", Fila: " & fila & ")"
 End Sub
 
+
 ' =============================================================================
-' FUNCIï¿½N:  EsResidenciaOviedo
+' FUNCIÓN:  EsResidenciaOviedo
 ' PROPï¿½SITO: Determinar si una hoja pertenece a la residencia de Oviedo
 ' PARï¿½METROS:
 '   - ws: hoja a evaluar
@@ -361,3 +356,5 @@ End Sub
 Private Function EsResidenciaOviedo(ByVal ws As Worksheet) As Boolean
     EsResidenciaOviedo = (InStr(UCase(ws.Name), "OVIEDO") > 0)
 End Function
+
+
