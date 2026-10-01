@@ -134,7 +134,15 @@ Funcionalidades Pendientes de Implementar / Verificar (Próxima Sesión):
 2. [PENDIENTE] Consulta ampliada de búsqueda por DNI (Activas + Histórico):
    - Actualizar modDatabase.BuscarEnOrdenes para que consulte tanto Ordenes como Ordenes_Historico priorizando la solicitud más reciente.
 3. [PENDIENTE] Autocompletado inteligente en BusquedaDNIResidencias.bas:
-   - Validar que al escribir un DNI en la columna I de cualquier hoja de residencia, se recuperen y autorrellenen al instante Nombre, Apellidos, Teléfono, Empleo y Situación desde Access.
+   - Validar que al escribir un DNI en la columna I de cualquier hoja de residencia, se recuperen y autorrellenen al instante desde Access / histórico:
+     * Nombre y Apellidos (Col K)
+     * Empleo (Col E)
+     * Situación (Col F)
+     * Teléfono (Col V en Gijón/Soto, Col W en Oviedo)
+     * Dirección (Col W en Gijón/Soto, Col X en Oviedo)
+     * Código Postal (Col X en Gijón/Soto, Col Y en Oviedo)
+     * Población (Col Y en Gijón/Soto, Col Z en Oviedo)
+     * Provincia (Col Z en Gijón/Soto, Col AA en Oviedo)
 
 ---
 
