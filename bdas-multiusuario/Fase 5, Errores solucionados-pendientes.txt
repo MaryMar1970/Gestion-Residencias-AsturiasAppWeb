@@ -149,17 +149,29 @@ Estado Actual (30/09/2026 - 21:15):
     - Creación de la tabla de réplica preventiva BDAS_Historico_Snapshot en Residencia_BE.accdb con los 2.118 registros intactos.
     - Preservación íntegra de las hojas BDAS en Excel para la futura fase de desacoplamiento de ModuloArchivadoDatosBDAS.
 
-Estado Actual (02/10/2026 - 01:15):
-- Copias de seguridad de sesión generadas:
-  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-02_0100.xlsm
-  * H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-02_0113.accdb
-- Base de datos Access blindada con tabla de respaldo BDAS_Historico_Snapshot.
-- Libro Excel aligerado y sincronizado en el repositorio.
+32. [OPTIMIZACIÓN] Optimización masiva de fórmulas VLOOKUP y purga de hojas RESUMEN (Acción 6):
+    - Acotación de rangos VLOOKUP de columna completa ($A:$AE) a $A$1:$AE$4000 en RESUMEN GIJÓN, SOTO y OVIEDO.
+    - Eliminación de más de 90.000 fórmulas zombis arrastradas hasta la fila ~3.980 en las 3 hojas de resumen.
+    - Corrección en RESUMEN OVIEDO donde la habitación estaba erróneamente acotada a la fila 1.303.
+    - Actualización de ModuloResumenGijon.bas, ModuloResumenSoto.bas y ModuloResumenOviedo.bas para detectar la última fila real y purgar huérfanos automáticamente.
+    - Reducción de 21,80 MB a 4,43 MB de XML en memoria (-17,37 MB / -80%) y reducción del libro Excel de 7,61 MB a 6,17 MB (~1,44 MB de ahorro directo en disco).
 
+Estado Actual (02/10/2026 - 22:45):
+- Copias de seguridad de sesión generadas:
+  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-02_2234.xlsm
+  * H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-02_0113.accdb
+- Acciones 1 y 4 descartadas definitivamente por criterio técnico/riesgo.
+- Acciones 2, 3 y 6 completadas al 100%.
+- Libro Excel aligerado a 6,17 MB y sincronizado en el repositorio.
+
+HOJA DE RUTA Y ORDEN DE PRIORIDADES:
+- FASE 1 (Inmediata): Resolver fallos funcionales y operativos concretos (adjudicación de números de factura, registro de logs, etc.) para asegurar la operativa diaria sobre base 100% limpia.
+- FASE 2 (Estructural): Acometer la Acción 5 (desacoplar ModuloArchivadoDatosBDAS hacia Access y eliminar las 3 hojas BDAS de Excel).
 
 REGLA ESTRICTA DE BORRADO DE BASE DE DATOS (RGPD):
 - El borrado físico y definitivo de datos personales de la base de datos Access (tablas Ordenes y Ordenes_Historico) se realizará DE MANERA EXCLUSIVA desde la pestaña 'RGPD - Panel de Control / Gestión de Borrado'.
 - Ninguna acción de usuario en las hojas de trabajo de Excel (pulsar Supr, limpiar celdas, borrar Nº de Orden) podrá eliminar definitivamente datos de personas en la base de datos; dichas acciones únicamente archivarán o retirarán la visualización en la vista activa.
+
 
 
 

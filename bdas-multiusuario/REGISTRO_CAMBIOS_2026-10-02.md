@@ -55,7 +55,7 @@
 
 ---
 
-## 2. Única Tarea Pendiente: Acción 5 (Desacoplamiento de Hojas BDAS hacia Access)
+## 2. Acción Estructural Pendiente: Acción 5 (Desacoplamiento de Hojas BDAS hacia Access)
 
 ### Pasos para Completar la Acción 5 (Fases 2 y 3):
 1. **Refactorizar `ModuloArchivadoDatosBDAS.bas`**:
@@ -65,4 +65,28 @@
 3. **Retirar las hojas `BDAS` de Excel**:
    - Una vez desacoplado y validado el código, eliminar `BDAS GIJÓN`, `BDAS SOTO` y `BDAS OVIEDO` del libro Excel.
    - **Ahorro esperado**: **~2,05 MB de XML descomprimido** (~400-500 KB comprimidos adicionales en disco, llevando el archivo a ~5,7 MB).
+
+---
+
+## 3. Hoja de Ruta y Orden de Prioridades Recomendado
+
+Para garantizar la estabilidad operativa del sistema y evitar contaminación de diagnósticos, se establece la siguiente secuencia de trabajo:
+
+```
+[FASE 1: Inmediata - Hotfixes y Correcciones Funcionales]
+  ├── Corregir adjudicación de números de factura (AsignarNumFactura, Facturación mensual)
+  ├── Corregir registro y persistencia de auditoría LOG (ModuloLOG / LogActividad)
+  └── Validar que todos los flujos de la operativa diaria funcionan al 100% sin bugs
+
+[FASE 2: Estructural - Desacoplamiento de BDAS a Access (Acción 5)]
+  ├── Refactorizar ModuloArchivadoDatosBDAS a sentencias SQL sobre Access
+  ├── Conectar purga RGPD > 3 años con Access
+  └── Eliminar las 3 hojas ocultas BDAS de Excel (peso final ~5,7 MB)
+```
+
+### Justificación Técnica y Operativa:
+1. **Evitar la "Contaminación de Diagnóstico"**: Si se realiza primero el desacoplamiento estructural de BDAS y posteriormente se detecta un error de facturación o logs, resultará difícil discernir si el bug era previo o fue introducido por el refactor.
+2. **Prioridad de Negocio / Integridad Contable**: Un fallo en número de factura o logs afecta directamente a la actividad del día a día (clientes, cobros, auditoría). El archivado de reservas > 90 días no tiene urgencia inmediata sobre las reservas activas.
+3. **Suelo Firme para la Acción 5**: Al estar la facturación y los logs perfectamente corregidos y estables, la refactorización de `ModuloArchivadoDatosBDAS` se ejecutará sobre una base limpia y 100% testeable.
+
 
