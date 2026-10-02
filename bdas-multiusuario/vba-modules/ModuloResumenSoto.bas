@@ -54,7 +54,9 @@ Public Sub ActualizarResumenSoto(Optional esArranque As Boolean = False)
     ultimaFilaResidencia = wsResidencia.Cells(wsResidencia.Rows.Count, "A").End(xlUp).Row
     
     If ultimaFilaResidencia < 2 Then
-        ultimaFilaResumen = wsResumen.Cells(wsResumen.Rows.Count, "A").End(xlUp).Row
+        ultimaFilaResumen = Application.WorksheetFunction.Max( _
+            wsResumen.Cells(wsResumen.Rows.Count, "A").End(xlUp).Row, _
+            wsResumen.Cells(wsResumen.Rows.Count, "B").End(xlUp).Row)
         If ultimaFilaResumen >= 2 Then
             wsResumen.Range("A2:A" & ultimaFilaResumen).ClearContents
             wsResumen.Range("L2:N" & ultimaFilaResumen).ClearContents
@@ -186,15 +188,12 @@ Public Sub ActualizarResumenSoto(Optional esArranque As Boolean = False)
     wsResumen.Range("L2").Resize(contadorValidas, 1).Value = arrPagadoSalida
     wsResumen.Range("M2").Resize(contadorValidas, 1).Value = arrFacturaSalida
     
-        If ultimaFilaResumen > contadorValidas + 1 Then
-        wsResumen.Range("L" & contadorValidas + 2 & ":M" & ultimaFilaResumen).ClearContents
-    End If
-    
-    ' === PROPAGAR FÓRMULAS EN LAS COLUMNAS CALCULADAS (NUEVO) ===
+    ' === PROPAGAR FÓRMULAS EN LAS COLUMNAS CALCULADAS ===
     Dim col As Long
     Dim uCol As Long
+    uCol = wsResumen.Cells(2, wsResumen.Columns.Count).End(xlToLeft).Column
+    
     If contadorValidas > 1 Then
-        uCol = wsResumen.Cells(2, wsResumen.Columns.Count).End(xlToLeft).Column
         For col = 1 To uCol
             If wsResumen.Cells(2, col).HasFormula Then
                 wsResumen.Cells(2, col).AutoFill _
@@ -202,6 +201,11 @@ Public Sub ActualizarResumenSoto(Optional esArranque As Boolean = False)
                     Type:=xlFillDefault
             End If
         Next col
+    End If
+    
+    ' Limpiar fórmulas y valores huérfanos más allá del último registro válido
+    If ultimaFilaResumen > contadorValidas + 1 Then
+        wsResumen.Range(wsResumen.Cells(contadorValidas + 2, 2), wsResumen.Cells(ultimaFilaResumen, uCol)).ClearContents
     End If
     
 CleanExit:

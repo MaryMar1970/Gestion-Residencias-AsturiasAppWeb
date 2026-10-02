@@ -6,6 +6,7 @@
 - `H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-02_0100.xlsm`
 - `H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-02_0112.accdb`
 - `H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-02_0113.accdb`
+- `H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-02_2234.xlsm`
 
 ---
 
@@ -30,6 +31,22 @@
   - Para blindar la información histórica sin interferir con las búsquedas unificadas de `Ordenes_Historico`, se creó en Access la tabla **`BDAS_Historico_Snapshot`** que almacena las 2.118 órdenes completas con sus 41 columnas.
   - Las hojas `BDAS` en Excel se mantienen 100% intactas para no romper dependencias con `ModuloArchivadoDatosBDAS.bas`.
 
+### C. Optimización de Fórmulas y Purga Masiva en Hojas RESUMEN (Acción 6 Completada)
+- **Acotación de rangos VLOOKUP a `$A$1:$AE$4000`**:
+  - Se sustituyeron las fórmulas que evaluaban la columna completa `$A:$AE` (1.048.576 filas) por el rango acotado `$A$1:$AE$4000` en `RESUMEN GIJÓN`, `RESUMEN SOTO` y `RESUMEN OVIEDO`.
+  - Se subsanó un error latente en `RESUMEN OVIEDO` donde la fórmula de habitación buscaba erróneamente solo hasta la fila 1.303 (`$A$2:$AE$1303`), impidiendo ver habitaciones de órdenes posteriores.
+- **Purga física de más de 90.000 fórmulas zombis**:
+  - Se eliminaron las filas vacías que arrastraban fórmulas de búsqueda innecesarias hasta la fila ~3.980 en las tres hojas:
+    - `RESUMEN GIJÓN`: reducida de 3.977 filas a **287 filas reales**.
+    - `RESUMEN SOTO`: reducida de 3.981 filas a **34 filas reales**.
+    - `RESUMEN OVIEDO`: reducida de 3.966 filas a **1.802 filas reales**.
+- **Refactorización de módulos de actualización automática**:
+  - Se actualizaron `ModuloResumenGijon.bas`, `ModuloResumenSoto.bas` y `ModuloResumenOviedo.bas` para medir la última fila real considerando tanto columna A como columna B, y limpiar automáticamente celdas huérfanas más allá de `contadorValidas + 1`.
+- **Impacto y Ahorro**:
+  - **XML Descomprimido (Carga de Memoria)**: reducido de **21,80 MB a 4,43 MB** (**-17,37 MB / -80% de memoria**).
+  - **Tamaño del libro `.xlsm` en disco**: reducido de **7,61 MB a 6,17 MB** (**~1,44 MB de ahorro directo**).
+  - Comportamiento de `Ctrl + Fin`: ahora se posiciona exactamente en la última orden real activa en todas las hojas RESUMEN.
+
 ---
 
 ## 2. Tareas Pendientes para la Próxima Sesión
@@ -46,6 +63,3 @@
 ### Tarea 2: Limpieza de Estilos Redundantes (Acción 4)
 - Limpiar los 1.375 estilos de celda redundantes de `styles.xml` mediante herramienta o script para consolidarlos en 50-100 estilos.
 - **Ahorro esperado**: **~0,5 a 1 MB**.
-
-### Tarea 3: Optimización de VLOOKUPs en Hojas RESUMEN (Acción 6)
-- Evaluar la acotación de rangos `$A:$AE` a `$A$1:$AE$4000` en las fórmulas VLOOKUP de `RESUMEN GIJÓN`, `RESUMEN SOTO` y `RESUMEN OVIEDO` para reducir los 21,8 MB de XML que consumen actualmente estas 3 hojas.
