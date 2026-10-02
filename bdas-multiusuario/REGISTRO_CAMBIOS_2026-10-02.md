@@ -49,17 +49,20 @@
 
 ---
 
-## 2. Tareas Pendientes para la Próxima Sesión
+### D. Descarte Definitivo de Acciones Menores (Acción 1 y Acción 4)
+- **Acción 1 (16.383 columnas)**: Descartada definitivamente por análisis XML (no hay celdas vivas, son solo columnas ocultas para delimitar la estética de la hoja).
+- **Acción 4 (Estilos en `styles.xml`)**: Descartada definitivamente tras análisis coste-beneficio. Con 1.375 estilos de celda (límite técnico en 64.000) y un ahorro marginal de ~300 KB, el riesgo de desfase en índices de formato XML y alertas de reparación en Excel no compensa la intervención.
 
-### Tarea 1: Desacoplamiento de `ModuloArchivadoDatosBDAS.bas` y Retirada de Hojas BDAS (Pasos 2 y 3 de Acción 5)
+---
+
+## 2. Única Tarea Pendiente: Acción 5 (Desacoplamiento de Hojas BDAS hacia Access)
+
+### Pasos para Completar la Acción 5 (Fases 2 y 3):
 1. **Refactorizar `ModuloArchivadoDatosBDAS.bas`**:
    - Sustituir la lógica de copia celda a celda hacia las hojas `BDAS GIJÓN`, `BDAS SOTO`, `BDAS OVIEDO` por sentencias SQL de archivado directo sobre Access (`Ordenes_Historico` o tabla histórica RGPD).
 2. **Refactorizar `BorradoFilasHojasBDAS.bas` y `frmPanelRGPD.frm`**:
    - Conectar la purga de registros > 3 años para que ejecute `DELETE` sobre Access en lugar de operar sobre las hojas de Excel.
 3. **Retirar las hojas `BDAS` de Excel**:
-   - Una vez desacoplado el código, eliminar `BDAS GIJÓN`, `BDAS SOTO` y `BDAS OVIEDO` del libro Excel.
-   - **Ahorro esperado**: **~2,05 MB de XML descomprimido** (~400-500 KB comprimidos).
+   - Una vez desacoplado y validado el código, eliminar `BDAS GIJÓN`, `BDAS SOTO` y `BDAS OVIEDO` del libro Excel.
+   - **Ahorro esperado**: **~2,05 MB de XML descomprimido** (~400-500 KB comprimidos adicionales en disco, llevando el archivo a ~5,7 MB).
 
-### Tarea 2: Limpieza de Estilos Redundantes (Acción 4)
-- Limpiar los 1.375 estilos de celda redundantes de `styles.xml` mediante herramienta o script para consolidarlos en 50-100 estilos.
-- **Ahorro esperado**: **~0,5 a 1 MB**.
