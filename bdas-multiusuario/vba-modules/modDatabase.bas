@@ -1036,18 +1036,25 @@ Public Sub SincronizarHojaDesdeAccess( _
         GoTo CleanUp
     End If
     
-    ' Limpiar datos antiguos de la hoja (preservar cabeceras en fila 1)
-    ultimaFila = hoja.Cells(hoja.Rows.Count, 1).End(xlUp).Row
-    If ultimaFila >= filaInicio Then
-        hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(ultimaFila, 32)).ClearContents
-    End If
-    
     Dim isOviedo As Boolean
-    Dim vVal As Variant
     isOviedo = (UCase(Trim(residencia)) = "OVIEDO")
     
-    Dim maxCols As Long
-    If isOviedo Then maxCols = 32 Else maxCols = 28
+    ' Limpiar datos antiguos de la hoja preservando fórmulas y cabeceras en fila 1
+    ultimaFila = hoja.Cells(hoja.Rows.Count, 1).End(xlUp).Row
+    If ultimaFila >= filaInicio Then
+        If isOviedo Then
+            ' Limpiar únicamente columnas de datos, BLINDANDO la columna de fórmulas V (22) y fórmulas auxiliares (AG / 33+)
+            hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(ultimaFila, 21)).ClearContents    ' Cols A a U
+            hoja.Range(hoja.Cells(filaInicio, 23), hoja.Cells(ultimaFila, 28)).ClearContents   ' Cols W a AB
+            hoja.Range(hoja.Cells(filaInicio, 32), hoja.Cells(ultimaFila, 32)).ClearContents   ' Col AF (Grabación Solicitud)
+        Else
+            ' Limpiar únicamente columnas de datos, BLINDANDO la columna de fórmulas U (21) y fórmulas auxiliares (AC / 29+)
+            hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(ultimaFila, 20)).ClearContents    ' Cols A a T
+            hoja.Range(hoja.Cells(filaInicio, 22), hoja.Cells(ultimaFila, 28)).ClearContents   ' Cols V a AB
+        End If
+    End If
+    
+    Dim vVal As Variant
     
     ' Obtener total de registros
     Dim totalRows As Long
@@ -1056,78 +1063,147 @@ Public Sub SincronizarHojaDesdeAccess( _
     rs.MoveFirst
     
     If totalRows > 0 Then
-        Dim arrData() As Variant
-        ReDim arrData(1 To totalRows, 1 To maxCols)
-        
         Dim r As Long
-        For r = 1 To totalRows
-            arrData(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
-            arrData(r, 2) = ObtenerValorCampo(rs, "FechaPeticion")               ' Col B (FECHA PETICION)
-            arrData(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (NÚM FACT)
-            arrData(r, 4) = ObtenerValorCampo(rs, "Finalidad")                   ' Col D (FINALIDAD)
-            arrData(r, 5) = ObtenerValorCampo(rs, "Empleo")                      ' Col E (EMPLEO)
-            arrData(r, 6) = ObtenerValorCampo(rs, "Situacion")                   ' Col F (SITUACION)
-            arrData(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIÓN)
-            
-            vVal = ObtenerValorCampo(rs, "Comision")
-            If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "Turno")
-            arrData(r, 8) = vVal                                                 ' Col H (COMISIÓN / TURNO)
-            
-            arrData(r, 9) = ObtenerValorCampo(rs, "DNI")                         ' Col I (DNI)
-            arrData(r, 10) = ObtenerValorCampo(rs, "Rango")                      ' Col J (RANGO)
-            arrData(r, 11) = ObtenerValorCampo(rs, "Nombre")                     ' Col K (Nombre)
-            arrData(r, 12) = ObtenerValorCampo(rs, "FechaEntrada")               ' Col L (ENTRADA)
-            arrData(r, 13) = ObtenerValorCampo(rs, "FechaSalida")                ' Col M (SALIDA)
-            arrData(r, 14) = ObtenerValorCampo(rs, "DiasUso")                    ' Col N (DIAS USO)
-            arrData(r, 15) = ObtenerValorCampo(rs, "PAX")                        ' Col O (PAX)
-            arrData(r, 16) = ObtenerValorCampo(rs, "Resolucion")                 ' Col P (RESOLUCION)
-            arrData(r, 17) = ObtenerValorCampo(rs, "NumHabIndividuales")         ' Col Q (HAB. IND. / PRECIO APTO)
-            arrData(r, 18) = ObtenerValorCampo(rs, "NumHabDobles")               ' Col R (HAB. DOBLE / SUPLE OCUPAN)
-            
-            If isOviedo Then
-                arrData(r, 19) = ObtenerValorCampo(rs, "CamaSuple")              ' Col S (CAMA SUPLE.)
-                arrData(r, 20) = ObtenerValorCampo(rs, "HabitacionesAsignadas")  ' Col T (NÚM HAB.)
-                arrData(r, 21) = ObtenerValorCampo(rs, "DtoFamNum")              ' Col U (DTO. FAM. NUM.)
-                arrData(r, 22) = ObtenerValorCampo(rs, "Importe")                ' Col V (IMPORTE)
-                arrData(r, 23) = ObtenerValorCampo(rs, "Telefono")               ' Col W (TELEFONO)
-                arrData(r, 24) = ObtenerValorCampo(rs, "Direccion")              ' Col X (DIRECCIÓN)
-                
-                vVal = ObtenerValorCampo(rs, "CP")
-                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
-                arrData(r, 25) = vVal                                             ' Col Y (CP)
-                
-                arrData(r, 26) = ObtenerValorCampo(rs, "Poblacion")              ' Col Z (POBLACIÓN)
-                arrData(r, 27) = ObtenerValorCampo(rs, "Provincia")              ' Col AA (PROVINCIA)
-                arrData(r, 28) = ObtenerValorCampo(rs, "EstadoPago")             ' Col AB (PAGADO)
-                
-                vVal = ObtenerValorCampo(rs, "FechaGrabacion")
-                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
-                arrData(r, 32) = vVal                                             ' Col AF (GRABACIÓN SOLICITUD)
-            Else
-                arrData(r, 19) = ObtenerValorCampo(rs, "HabitacionesAsignadas")  ' Col S (NÚM HAB. / APTO)
-                arrData(r, 20) = ObtenerValorCampo(rs, "DtoFamNum")              ' Col T (DTO. FAM. NUM.)
-                arrData(r, 21) = ObtenerValorCampo(rs, "Importe")                ' Col U (IMPORTE)
-                arrData(r, 22) = ObtenerValorCampo(rs, "Telefono")               ' Col V (TELEFONO)
-                arrData(r, 23) = ObtenerValorCampo(rs, "Direccion")              ' Col W (DIRECCIÓN)
-                
-                vVal = ObtenerValorCampo(rs, "CP")
-                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
-                arrData(r, 24) = vVal                                             ' Col X (CP)
-                
-                arrData(r, 25) = ObtenerValorCampo(rs, "Poblacion")              ' Col Y (POBLACIÓN)
-                arrData(r, 26) = ObtenerValorCampo(rs, "Provincia")              ' Col Z (PROVINCIA)
-                arrData(r, 27) = ObtenerValorCampo(rs, "EstadoPago")             ' Col AA (PAGADO)
-                
-                vVal = ObtenerValorCampo(rs, "FechaGrabacion")
-                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
-                arrData(r, 28) = vVal                                             ' Col AB (GRABACIÓN SOLICITUD)
-            End If
-            
-            rs.MoveNext
-        Next r
         
-        ' Volcado ultra-rápido en una sola llamada de bloque COM
-        hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(filaInicio + totalRows - 1, maxCols)).Value = arrData
+        If isOviedo Then
+            ' OVIEDO: Bloque 1 (Cols A a U = 1 a 21), Bloque 2 (Cols W a AB = 23 a 28), Bloque 3 (Col AF = 32)
+            ' Col V (22, IMPORTE) y Col AG (33, FÓRMULA EMAIL) se mantienen 100% INTACTAS con sus fórmulas
+            Dim arrOviedo1() As Variant
+            Dim arrOviedo2() As Variant
+            Dim arrOviedo3() As Variant
+            ReDim arrOviedo1(1 To totalRows, 1 To 21)
+            ReDim arrOviedo2(1 To totalRows, 1 To 6)
+            ReDim arrOviedo3(1 To totalRows, 1 To 1)
+            
+            For r = 1 To totalRows
+                arrOviedo1(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
+                arrOviedo1(r, 2) = ObtenerValorCampo(rs, "FechaPeticion")               ' Col B (FECHA PETICION)
+                arrOviedo1(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (NÚM FACT)
+                arrOviedo1(r, 4) = ObtenerValorCampo(rs, "Finalidad")                   ' Col D (FINALIDAD)
+                arrOviedo1(r, 5) = ObtenerValorCampo(rs, "Empleo")                      ' Col E (EMPLEO)
+                arrOviedo1(r, 6) = ObtenerValorCampo(rs, "Situacion")                   ' Col F (SITUACION)
+                arrOviedo1(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIÓN)
+                
+                vVal = ObtenerValorCampo(rs, "Comision")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "Turno")
+                arrOviedo1(r, 8) = vVal                                                 ' Col H (COMISIÓN / TURNO)
+                
+                arrOviedo1(r, 9) = ObtenerValorCampo(rs, "DNI")                         ' Col I (DNI)
+                arrOviedo1(r, 10) = ObtenerValorCampo(rs, "Rango")                      ' Col J (RANGO)
+                arrOviedo1(r, 11) = ObtenerValorCampo(rs, "Nombre")                     ' Col K (Nombre)
+                arrOviedo1(r, 12) = ObtenerValorCampo(rs, "FechaEntrada")               ' Col L (ENTRADA)
+                arrOviedo1(r, 13) = ObtenerValorCampo(rs, "FechaSalida")                ' Col M (SALIDA)
+                arrOviedo1(r, 14) = ObtenerValorCampo(rs, "DiasUso")                    ' Col N (DIAS USO)
+                arrOviedo1(r, 15) = ObtenerValorCampo(rs, "PAX")                        ' Col O (PAX)
+                arrOviedo1(r, 16) = ObtenerValorCampo(rs, "Resolucion")                 ' Col P (RESOLUCION)
+                arrOviedo1(r, 17) = ObtenerValorCampo(rs, "NumHabIndividuales")         ' Col Q (HAB. IND. / PRECIO APTO)
+                arrOviedo1(r, 18) = ObtenerValorCampo(rs, "NumHabDobles")               ' Col R (HAB. DOBLE / SUPLE OCUPAN)
+                arrOviedo1(r, 19) = ObtenerValorCampo(rs, "CamaSuple")                  ' Col S (CAMA SUPLE.)
+                arrOviedo1(r, 20) = ObtenerValorCampo(rs, "HabitacionesAsignadas")      ' Col T (NÚM HAB.)
+                arrOviedo1(r, 21) = ObtenerValorCampo(rs, "DtoFamNum")                  ' Col U (DTO. FAM. NUM.)
+                
+                ' Col V (22): IMPORTE (FÓRMULA PRESERVADA INTACTA)
+                
+                arrOviedo2(r, 1) = ObtenerValorCampo(rs, "Telefono")                    ' Col W (TELEFONO)
+                arrOviedo2(r, 2) = ObtenerValorCampo(rs, "Direccion")                   ' Col X (DIRECCIÓN)
+                
+                vVal = ObtenerValorCampo(rs, "CP")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
+                arrOviedo2(r, 3) = vVal                                                 ' Col Y (CP)
+                
+                arrOviedo2(r, 4) = ObtenerValorCampo(rs, "Poblacion")                   ' Col Z (POBLACIÓN)
+                arrOviedo2(r, 5) = ObtenerValorCampo(rs, "Provincia")                   ' Col AA (PROVINCIA)
+                arrOviedo2(r, 6) = ObtenerValorCampo(rs, "EstadoPago")                  ' Col AB (PAGADO)
+                
+                vVal = ObtenerValorCampo(rs, "FechaGrabacion")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
+                arrOviedo3(r, 1) = vVal                                                 ' Col AF (GRABACIÓN SOLICITUD)
+                
+                rs.MoveNext
+            Next r
+            
+            ' Volcado ultra-rápido en bloques COM preservando columnas de fórmulas
+            hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(filaInicio + totalRows - 1, 21)).Value = arrOviedo1
+            hoja.Range(hoja.Cells(filaInicio, 23), hoja.Cells(filaInicio + totalRows - 1, 28)).Value = arrOviedo2
+            hoja.Range(hoja.Cells(filaInicio, 32), hoja.Cells(filaInicio + totalRows - 1, 32)).Value = arrOviedo3
+            
+        Else
+            ' GIJÓN / SOTO: Bloque 1 (Cols A a T = 1 a 20), Bloque 2 (Cols V a AB = 22 a 28)
+            ' Col U (21, IMPORTE) y Cols AC+ (29+) se mantienen 100% INTACTAS con sus fórmulas
+            Dim arrGS1() As Variant
+            Dim arrGS2() As Variant
+            ReDim arrGS1(1 To totalRows, 1 To 20)
+            ReDim arrGS2(1 To totalRows, 1 To 7)
+            
+            For r = 1 To totalRows
+                arrGS1(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
+                arrGS1(r, 2) = ObtenerValorCampo(rs, "FechaPeticion")               ' Col B (FECHA PETICION)
+                arrGS1(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (NÚM FACT)
+                arrGS1(r, 4) = ObtenerValorCampo(rs, "Finalidad")                   ' Col D (FINALIDAD)
+                arrGS1(r, 5) = ObtenerValorCampo(rs, "Empleo")                      ' Col E (EMPLEO)
+                arrGS1(r, 6) = ObtenerValorCampo(rs, "Situacion")                   ' Col F (SITUACION)
+                arrGS1(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIÓN)
+                
+                vVal = ObtenerValorCampo(rs, "Comision")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "Turno")
+                arrGS1(r, 8) = vVal                                                 ' Col H (COMISIÓN / TURNO)
+                
+                arrGS1(r, 9) = ObtenerValorCampo(rs, "DNI")                         ' Col I (DNI)
+                arrGS1(r, 10) = ObtenerValorCampo(rs, "Rango")                      ' Col J (RANGO)
+                arrGS1(r, 11) = ObtenerValorCampo(rs, "Nombre")                     ' Col K (Nombre)
+                arrGS1(r, 12) = ObtenerValorCampo(rs, "FechaEntrada")               ' Col L (ENTRADA)
+                arrGS1(r, 13) = ObtenerValorCampo(rs, "FechaSalida")                ' Col M (SALIDA)
+                arrGS1(r, 14) = ObtenerValorCampo(rs, "DiasUso")                    ' Col N (DIAS USO)
+                arrGS1(r, 15) = ObtenerValorCampo(rs, "PAX")                        ' Col O (PAX)
+                arrGS1(r, 16) = ObtenerValorCampo(rs, "Resolucion")                 ' Col P (RESOLUCION)
+                arrGS1(r, 17) = ObtenerValorCampo(rs, "NumHabIndividuales")         ' Col Q (HAB. IND. / PRECIO APTO)
+                arrGS1(r, 18) = ObtenerValorCampo(rs, "NumHabDobles")               ' Col R (HAB. DOBLE / SUPLE OCUPAN)
+                arrGS1(r, 19) = ObtenerValorCampo(rs, "HabitacionesAsignadas")      ' Col S (NÚM HAB. / APTO)
+                arrGS1(r, 20) = ObtenerValorCampo(rs, "DtoFamNum")                  ' Col T (DTO. FAM. NUM.)
+                
+                ' Col U (21): IMPORTE (FÓRMULA PRESERVADA INTACTA)
+                
+                arrGS2(r, 1) = ObtenerValorCampo(rs, "Telefono")                    ' Col V (TELEFONO)
+                arrGS2(r, 2) = ObtenerValorCampo(rs, "Direccion")                   ' Col W (DIRECCIÓN)
+                
+                vVal = ObtenerValorCampo(rs, "CP")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
+                arrGS2(r, 3) = vVal                                                 ' Col X (CP)
+                
+                arrGS2(r, 4) = ObtenerValorCampo(rs, "Poblacion")                   ' Col Y (POBLACIÓN)
+                arrGS2(r, 5) = ObtenerValorCampo(rs, "Provincia")                   ' Col Z (PROVINCIA)
+                arrGS2(r, 6) = ObtenerValorCampo(rs, "EstadoPago")                  ' Col AA (PAGADO)
+                
+                vVal = ObtenerValorCampo(rs, "FechaGrabacion")
+                If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
+                arrGS2(r, 7) = vVal                                                 ' Col AB (GRABACIÓN SOLICITUD)
+                
+                rs.MoveNext
+            Next r
+            
+            ' Volcado ultra-rápido en bloques COM preservando columnas de fórmulas
+            hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(filaInicio + totalRows - 1, 20)).Value = arrGS1
+            hoja.Range(hoja.Cells(filaInicio, 22), hoja.Cells(filaInicio + totalRows - 1, 28)).Value = arrGS2
+            
+        End If
+        
+        ' Blindaje adicional: asegurar que cada fila volcada conserve su fórmula en la columna IMPORTE
+        Dim colImp As Long
+        Dim filaRefFmla As Long
+        If isOviedo Then colImp = 22 Else colImp = 21
+        filaRefFmla = filaInicio
+        If Not hoja.Cells(filaRefFmla, colImp).HasFormula Then filaRefFmla = filaInicio + 1
+        
+        If hoja.Cells(filaRefFmla, colImp).HasFormula Then
+            Dim fmlaR1C1 As String
+            fmlaR1C1 = hoja.Cells(filaRefFmla, colImp).FormulaR1C1
+            Dim fRow As Long
+            For fRow = filaInicio To filaInicio + totalRows - 1
+                If Not hoja.Cells(fRow, colImp).HasFormula Then
+                    hoja.Cells(fRow, colImp).FormulaR1C1 = fmlaR1C1
+                End If
+            Next fRow
+        End If
     End If
     
     rs.Close
