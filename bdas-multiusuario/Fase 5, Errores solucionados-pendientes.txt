@@ -170,6 +170,20 @@ Estado Actual (30/09/2026 - 21:15):
     - Preservados intactos los valores históricos cerrados de Oviedo (filas 2 a 1802).
     - Probado y verificado en vivo: importes independientes y exactos en ambas residencias sin colisiones ni errores.
 
+35. [SOLUCIONADO] Blindaje y Preservacion de Formulas en Sincronizacion con Access:
+    - Identificado riesgo critico en SincronizarHojaDesdeAccess (modDatabase.bas): la macro ejecutaba ClearContents sobre cols 1 a 32 y un volcado rectangular arrData sobreescribiendo las celdas de formulas de IMPORTE (Col U en Gijon/Soto, Col V en Oviedo) con valores estaticos.
+    - Aplicada particion en bloques de volcado: Bloque 1 (Cols A a T/U) y Bloque 2 (Cols V/W a AB y AF), saltando deliberadamente la columna IMPORTE y las formulas de email/identificador (Cols 29+ / Col AG).
+    - Blindada la limpieza preliminar: ClearContents solo actua sobre las columnas de datos no calculadas, preservando al 100% las formulas vivas existentes (filas 2 a 4000).
+    - Incorporada salvaguarda de autoreparacion: si alguna fila sincronizada carece de formula, se restaura automaticamente mediante FormulaR1C1 desde la fila patron.
+    - Corregida celda V2 de RESIDENCIA OVIEDO para contener la formula completa apuntando a 'TARIFAS UNIDAD'!$I$3:$I$8.
+    - Sincronizado libro en H:\ResidenciaBD\ y backups generados.
+
+36. [SOLUCIONADO] Auto-ocultacion de Hojas Secundarias (ThisWorkbook - Workbook_SheetDeactivate):
+    - Implementado evento centralizado Workbook_SheetDeactivate en ThisWorkbook para mantener limpia la barra inferior de pestanas.
+    - Se mantienen permanentemente visibles las 3 hojas principales operativas de cada residencia (RESIDENCIA, Calendario y RESUMEN).
+    - Cualquier hoja secundaria o de consulta (FACTURACION, TARIFAS UNIDAD, Festivos, Listados, etc.) que se abra desde el Ribbon, se oculta automaticamente (xlSheetHidden) al abandonar su pestana.
+    - Exportado y sincronizado ThisWorkbook_Events.bas con el repositorio.
+
 Estado Actual (05/10/2026 - 22:15):
 - Copias de seguridad de sesión generadas:
   * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-05_2045.xlsm
