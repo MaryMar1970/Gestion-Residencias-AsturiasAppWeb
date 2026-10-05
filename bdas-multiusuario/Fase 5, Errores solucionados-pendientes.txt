@@ -156,16 +156,20 @@ Estado Actual (30/09/2026 - 21:15):
     - Actualización de ModuloResumenGijon.bas, ModuloResumenSoto.bas y ModuloResumenOviedo.bas para detectar la última fila real y purgar huérfanos automáticamente.
     - Reducción de 21,80 MB a 4,43 MB de XML en memoria (-17,37 MB / -80%) y reducción del libro Excel de 7,61 MB a 6,17 MB (~1,44 MB de ahorro directo en disco).
 
-Estado Actual (02/10/2026 - 22:45):
+33. [SOLUCIONADO] Independización de Festivos por Residencia y Corrección de Despintado:
+    - Identificado fallo en ResaltarFestivos donde fechas retiradas de la hoja Festivos no se despintaban por falta de rama Else.
+    - Reestructurada la hoja Festivos a 3 columnas: Columna A (GIJÓN), Columna B (SOTO) y Columna C (OVIEDO).
+    - Actualizado ModuloGestionFestivos.bas para leer la columna correspondiente a cada calendario, aplicar borrado a xlNone (blanco limpio) ante fechas retiradas y cumplir la regla estricta de nombres con el literal "GIJÓN".
+    - Actualizado y blindado el evento Worksheet_Deactivate en Hoja41 (Festivos) protegiendo contra variables no inicializadas tras compilación/reseteo y vigilando el rango A2:C50.
+    - Probado y verificado en vivo: selección y visualización independiente de festivos en cada calendario funcional al 100%.
+
+Estado Actual (05/10/2026 - 21:10):
 - Copias de seguridad de sesión generadas:
-  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-02_2234.xlsm
-  * H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-02_0113.accdb
-- Acciones 1 y 4 descartadas definitivamente por criterio técnico/riesgo.
-- Acciones 2, 3 y 6 completadas al 100%.
-- Libro Excel aligerado a 6,17 MB y sincronizado en el repositorio.
+  * H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-05_2045.xlsm
+- ModuloGestionFestivos y Hoja41 sincronizados en repositorio.
 
 HOJA DE RUTA Y ORDEN DE PRIORIDADES:
-- FASE 1 (Inmediata): Resolver fallos funcionales y operativos concretos (adjudicación de números de factura, registro de logs, etc.) para asegurar la operativa diaria sobre base 100% limpia.
+- FASE 1 (Inmediata): Resolver fallos funcionales y operativos concretos (adjudicación de números de factura, registro de logs, tarifas, etc.) para asegurar la operativa diaria sobre base 100% limpia.
 - FASE 2 (Estructural): Acometer la Acción 5 (desacoplar ModuloArchivadoDatosBDAS hacia Access y eliminar las 3 hojas BDAS de Excel).
 
 REGLA ESTRICTA DE BORRADO DE BASE DE DATOS (RGPD):

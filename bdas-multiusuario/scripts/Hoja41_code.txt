@@ -1,0 +1,83 @@
+' ============================================================================
+' Módulo de eventos de la hoja FESTIVOS (Hoja41)
+' Controla la actualización automática de calendarios tras cambios en festivos
+' ============================================================================
+Option Explicit
+
+Private valoresInicialesFestivos As Variant
+Private actualizandoCalendarios As Boolean
+
+Private Sub Worksheet_Activate()
+    ' Guardamos una copia de las 3 columnas (A=Gijón, B=Soto, C=Oviedo)
+    valoresInicialesFestivos = Me.Range("A2:C50").Value
+End Sub
+
+Private Sub Worksheet_Deactivate()
+    Dim valoresFinales As Variant
+    Dim fila As Long, col As Long
+    Dim modificado As Boolean
+
+    If actualizandoCalendarios Then Exit Sub
+
+    ' BLINDAJE: Si la variable se reseteó tras compilar, la reinicializamos y salimos sin error
+    If Not IsArray(valoresInicialesFestivos) Then
+        valoresInicialesFestivos = Me.Range("A2:C50").Value
+        Exit Sub
+    End If
+
+    valoresFinales = Me.Range("A2:C50").Value
+    modificado = False
+
+    ' Comparamos celda a celda en las 3 columnas (A, B y C)
+    For fila = 1 To UBound(valoresFinales, 1)
+        For col = 1 To UBound(valoresFinales, 2)
+            If CStr(valoresInicialesFestivos(fila, col)) <> CStr(valoresFinales(fila, col)) Then
+                modificado = True
+                Exit For
+            End If
+        Next col
+        If modificado Then Exit For
+    Next fila
+
+    ' Actualizamos los valores iniciales para la siguiente comprobación
+    valoresInicialesFestivos = valoresFinales
+
+    If modificado Then
+        On Error GoTo SafeExit
+        actualizandoCalendarios = True
+        Application.screenUpdating = False
+        Application.enableEvents = False
+
+        ' Actualizamos solo los calendarios visibles en modo futuro
+        If SheetIsVisible("Calendario GIJÓN") Then Call ActualizarCalendarioFuturoGijon
+        If SheetIsVisible("Calendario SOTO") Then Call ActualizarCalendarioFuturoSoto
+        If SheetIsVisible("Calendario OVIEDO") Then Call ActualizarCalendarioFuturoOviedo
+
+        ' Repintar festivos según la columna de cada residencia
+        Call ResaltarFestivos
+
+        Application.enableEvents = True
+        Application.screenUpdating = True
+        actualizandoCalendarios = False
+
+        MsgBox "Los festivos se han actualizado correctamente en los calendarios.", vbInformation, "Festivos actualizados"
+    End If
+    Exit Sub
+
+SafeExit:
+    Application.enableEvents = True
+    Application.screenUpdating = True
+    actualizandoCalendarios = False
+End Sub
+
+Private Function SheetIsVisible(ByVal nombreHoja As String) As Boolean
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(nombreHoja)
+    If Not ws Is Nothing Then
+        SheetIsVisible = (ws.visible = xlSheetVisible)
+    Else
+        SheetIsVisible = False
+    End If
+    On Error GoTo 0
+End Function
