@@ -8,23 +8,23 @@ Option Explicit
 #End If
 
 ' ==============================================================================
-' Módulo: modDatabase.bas
-' Propósito: Capa de acceso a datos ADO entre Excel Front-End y MS Access
+' Mï¿½dulo: modDatabase.bas
+' Propï¿½sito: Capa de acceso a datos ADO entre Excel Front-End y MS Access
 '            Back-End (H:\ResidenciaBD\Residencia_BE.accdb)
 ' ==============================================================================
 
 Private Const DB_PATH As String = "H:\ResidenciaBD\Residencia_BE.accdb"
 Private Const PROVIDER_STRING As String = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source="
 
-' Constantes de estado de conexión ADO
+' Constantes de estado de conexiï¿½n ADO
 Private Const adStateClosed As Long = 0
 Private Const adStateOpen As Long = 1
 
 ' ===========================
-' ESTADO DEL USUARIO (SESIÓN)
+' ESTADO DEL USUARIO (SESIï¿½N)
 ' ===========================
-' Variables de sesión establecidas en LoginUsuario().
-' Persisten mientras el libro esté abierto en memoria.
+' Variables de sesiï¿½n establecidas en LoginUsuario().
+' Persisten mientras el libro estï¿½ abierto en memoria.
 Private m_NombreUsuario As String             ' Usuario introducido en el login manual
 Private m_NombreCompleto As String            ' Nombre legible de la tabla Usuarios
 Private m_Rol As String                       ' "OPERADOR" o "ADMIN"
@@ -32,7 +32,7 @@ Private m_ResidenciasAsignadas As Collection  ' Ej: {"GIJON", "SOTO"}
 Private m_ResidenciaActiva As String          ' La residencia seleccionada actualmente
 Private m_LoginCompletado As Boolean          ' Flag para evitar doble login
 
-Private Const MAX_INTENTOS_LOGIN As Integer = 3  ' Intentos máximos antes de cerrar
+Private Const MAX_INTENTOS_LOGIN As Integer = 3  ' Intentos mï¿½ximos antes de cerrar
 
 ''' Realiza una pausa de N milisegundos cediendo control con DoEvents.
 Public Sub PausaMS(ByVal milisegundos As Long)
@@ -44,12 +44,12 @@ Public Sub PausaMS(ByVal milisegundos As Long)
 End Sub
 
 ' ===========================
-' HASH SHA-256 (para contraseñas)
+' HASH SHA-256 (para contraseï¿½as)
 ' ===========================
 
-''' Calcula el hash SHA-256 de un texto usando .NET a través de COM.
-''' Retorna el hash en hexadecimal (64 caracteres, minúsculas).
-''' Compatible con la misma función Get-SHA256Hash del script PowerShell.
+''' Calcula el hash SHA-256 de un texto usando .NET a travï¿½s de COM.
+''' Retorna el hash en hexadecimal (64 caracteres, minï¿½sculas).
+''' Compatible con la misma funciï¿½n Get-SHA256Hash del script PowerShell.
 Public Function HashSHA256(ByVal texto As String) As String
     Dim objSHA256 As Object
     Dim bytesTexto() As Byte
@@ -78,12 +78,12 @@ Public Function HashSHA256(ByVal texto As String) As String
     Exit Function
 
 ErrorHandler:
-    ' Fallback: si .NET no está disponible, usar hash simple
+    ' Fallback: si .NET no estï¿½ disponible, usar hash simple
     ' (menos seguro, pero funcional)
     HashSHA256 = HashSimple(texto)
 End Function
 
-''' Hash simple como fallback si SHA-256 no está disponible.
+''' Hash simple como fallback si SHA-256 no estï¿½ disponible.
 ''' NOTA: Menos seguro, usar solo como respaldo.
 Private Function HashSimple(ByVal texto As String) As String
     Dim i As Long
@@ -101,7 +101,7 @@ End Function
 
 ''' Inicia el proceso de login manual mostrando el formulario frmLogin.
 ''' El formulario llama a ValidarCredenciales() para autenticar.
-''' Después del login, si el usuario tiene varias residencias, muestra frmSelectorResidencia.
+''' Despuï¿½s del login, si el usuario tiene varias residencias, muestra frmSelectorResidencia.
 '''
 ''' Retorna True si el login fue exitoso, False en caso contrario.
 Public Function LoginUsuario() As Boolean
@@ -109,7 +109,7 @@ Public Function LoginUsuario() As Boolean
     
     On Error GoTo ErrorHandler
     
-    ' Evitar doble login si ya se ejecutó
+    ' Evitar doble login si ya se ejecutï¿½
     If m_LoginCompletado Then
         LoginUsuario = True
         Exit Function
@@ -121,18 +121,18 @@ Public Function LoginUsuario() As Boolean
     Do
         frmLogin.Show vbModal
         
-        ' Si el usuario cerró el formulario sin autenticarse
+        ' Si el usuario cerrï¿½ el formulario sin autenticarse
         If Not m_LoginCompletado Then
             intentos = intentos + 1
             If Len(m_NombreUsuario) = 0 Then
-                ' El usuario pulsó Salir/cerró el formulario
+                ' El usuario pulsï¿½ Salir/cerrï¿½ el formulario
                 LoginUsuario = False
                 Exit Function
             End If
             
             If intentos >= MAX_INTENTOS_LOGIN Then
                 MsgBox "Se han agotado los intentos de login (" & MAX_INTENTOS_LOGIN & ")." & vbCrLf & _
-                       "El libro se cerrará.", vbCritical, "Acceso Denegado"
+                       "El libro se cerrarï¿½.", vbCritical, "Acceso Denegado"
                 LoginUsuario = False
                 Exit Function
             End If
@@ -157,10 +157,10 @@ Public Function LoginUsuario() As Boolean
         Unload frmSelectorResidencia
         On Error GoTo ErrorHandler
         
-        ' Verificar que se seleccionó una
+        ' Verificar que se seleccionï¿½ una
         If Len(m_ResidenciaActiva) = 0 Then
-            MsgBox "No se seleccionó ninguna residencia. El libro se cerrará.", _
-                   vbExclamation, "Sin Selección"
+            MsgBox "No se seleccionï¿½ ninguna residencia. El libro se cerrarï¿½.", _
+                   vbExclamation, "Sin Selecciï¿½n"
             m_LoginCompletado = False
             LoginUsuario = False
             Exit Function
@@ -188,10 +188,10 @@ CleanUp:
 End Function
 
 
-''' Valida usuario y contraseña contra la tabla Usuarios de Access.
+''' Valida usuario y contraseï¿½a contra la tabla Usuarios de Access.
 ''' Se llama desde el formulario frmLogin cuando el usuario pulsa "Entrar".
 '''
-''' Retorna True si las credenciales son válidas y el usuario está activo.
+''' Retorna True si las credenciales son vï¿½lidas y el usuario estï¿½ activo.
 Public Function ValidarCredenciales(ByVal usuario As String, ByVal clave As String) As Boolean
     Dim cn As Object
     Dim rs As Object
@@ -202,7 +202,7 @@ Public Function ValidarCredenciales(ByVal usuario As String, ByVal clave As Stri
     
     On Error GoTo ErrorHandler
     
-    ' Calcular hash de la contraseña introducida
+    ' Calcular hash de la contraseï¿½a introducida
     claveHash = HashSHA256(clave)
     
     ' Consultar la tabla Usuarios en Access
@@ -223,18 +223,18 @@ Public Function ValidarCredenciales(ByVal usuario As String, ByVal clave As Stri
         GoTo CleanUp
     End If
     
-    ' Verificar que está activo
+    ' Verificar que estï¿½ activo
     If Not CBool(rs("Activo").Value) Then
         rs.Close
         cn.Close
-        MsgBox "El usuario '" & usuario & "' está desactivado." & vbCrLf & _
+        MsgBox "El usuario '" & usuario & "' estï¿½ desactivado." & vbCrLf & _
                "Contacta con el administrador.", _
                vbCritical, "Usuario Desactivado"
         ValidarCredenciales = False
         GoTo CleanUp
     End If
     
-    ' Credenciales válidas - cargar datos del usuario
+    ' Credenciales vï¿½lidas - cargar datos del usuario
     m_NombreUsuario = usuario
     m_NombreCompleto = Nz(rs("NombreCompleto").Value, usuario)
     m_Rol = Nz(rs("Rol").Value, "OPERADOR")
@@ -285,10 +285,10 @@ CleanUp:
     End If
 End Function
 
-''' Permite a un administrador cambiar la contraseña de un usuario.
+''' Permite a un administrador cambiar la contraseï¿½a de un usuario.
 Public Function CambiarClave(ByVal nombreUsuario As String, ByVal nuevaClave As String) As Boolean
     If m_Rol <> "ADMIN" And m_NombreUsuario <> nombreUsuario Then
-        MsgBox "Solo puedes cambiar tu propia contraseña o ser administrador.", vbExclamation
+        MsgBox "Solo puedes cambiar tu propia contraseï¿½a o ser administrador.", vbExclamation
         CambiarClave = False
         Exit Function
     End If
@@ -318,10 +318,10 @@ Public Function ObtenerRolUsuario() As String
 End Function
 
 ' ===========================
-' GESTIÓN DE RESIDENCIAS
+' GESTIï¿½N DE RESIDENCIAS
 ' ===========================
 
-''' Retorna la colección de residencias asignadas al usuario.
+''' Retorna la colecciï¿½n de residencias asignadas al usuario.
 Public Function ObtenerResidenciasAsignadas() As Collection
     Set ObtenerResidenciasAsignadas = m_ResidenciasAsignadas
 End Function
@@ -376,7 +376,7 @@ End Function
 ''' Retorna el nombre de la hoja Excel correspondiente a una residencia.
 Public Function ObtenerNombreHoja(ByVal residencia As String) As String
     Select Case UCase(Trim(residencia))
-        Case "GIJON": ObtenerNombreHoja = "BDAS GIJÓN"
+        Case "GIJON": ObtenerNombreHoja = "BDAS GIJï¿½N"
         Case "SOTO": ObtenerNombreHoja = "BDAS SOTO"
         Case "OVIEDO": ObtenerNombreHoja = "BDAS OVIEDO"
         Case Else: ObtenerNombreHoja = ""
@@ -392,7 +392,7 @@ Public Function ObtenerHojaSegura(ByVal nombreHoja As String) As Worksheet
     Set ObtenerHojaSegura = Nothing
     If Len(Trim(nombreHoja)) = 0 Then Exit Function
     
-    ' 1. Búsqueda por coincidencia de texto directa
+    ' 1. Bï¿½squeda por coincidencia de texto directa
     For Each ws In ThisWorkbook.Worksheets
         If StrComp(ws.Name, nombreHoja, vbTextCompare) = 0 Then
             Set ObtenerHojaSegura = ws
@@ -400,9 +400,9 @@ Public Function ObtenerHojaSegura(ByVal nombreHoja As String) As Worksheet
         End If
     Next ws
     
-    ' 2. Búsqueda normalizada (tolerante a tildes o codificación)
+    ' 2. Bï¿½squeda normalizada (tolerante a tildes o codificaciï¿½n)
     buscado = UCase(Trim(nombreHoja))
-    buscado = Replace(buscado, "Ó", "O")
+    buscado = Replace(buscado, "ï¿½", "O")
     buscado = Replace(buscado, "Ã", "I")
     buscado = Replace(buscado, "Ã", "A")
     buscado = Replace(buscado, "Ã‰", "E")
@@ -412,7 +412,7 @@ Public Function ObtenerHojaSegura(ByVal nombreHoja As String) As Worksheet
     
     For Each ws In ThisWorkbook.Worksheets
         actual = UCase(Trim(ws.Name))
-        actual = Replace(actual, "Ó", "O")
+        actual = Replace(actual, "ï¿½", "O")
         actual = Replace(actual, "Ã", "I")
         actual = Replace(actual, "Ã", "A")
         actual = Replace(actual, "Ã‰", "E")
@@ -437,13 +437,13 @@ End Function
 ' FUNCIONES BASE
 ' ===========================
 
-''' Retorna la cadena de conexión ADO OLEDB.
+''' Retorna la cadena de conexiï¿½n ADO OLEDB.
 Public Function GetConnectionString() As String
     GetConnectionString = PROVIDER_STRING & DB_PATH & ";"
 End Function
 
 ''' Sanitiza un texto para uso seguro en sentencias SQL.
-''' Escapa comillas simples para prevenir inyección SQL.
+''' Escapa comillas simples para prevenir inyecciï¿½n SQL.
 Public Function EscaparSQL(ByVal texto As String) As String
     If Len(texto) = 0 Then
         EscaparSQL = ""
@@ -463,7 +463,7 @@ Public Function FormatearFechaHoraSQL(ByVal fecha As Date) As String
 End Function
 
 ''' Comprueba si la base de datos Access es accesible.
-''' Retorna True si la conexión se abre correctamente, False en caso contrario.
+''' Retorna True si la conexiï¿½n se abre correctamente, False en caso contrario.
 Public Function ComprobarConexion() As Boolean
     Dim cn As Object
     On Error GoTo ErrorHandler
@@ -490,8 +490,8 @@ End Function
 ' ===========================
 
 ''' Ejecuta una consulta SQL de tipo INSERT, UPDATE o DELETE.
-''' Patrón de conexión de vida corta: abre, ejecuta y cierra de inmediato.
-''' Retorna True si la operación fue exitosa.
+''' Patrï¿½n de conexiï¿½n de vida corta: abre, ejecuta y cierra de inmediato.
+''' Retorna True si la operaciï¿½n fue exitosa.
 Public Function ExecuteNonQuery(ByVal sql As String) As Boolean
     Dim cn As Object
     On Error GoTo ErrorHandler
@@ -505,7 +505,7 @@ Public Function ExecuteNonQuery(ByVal sql As String) As Boolean
     GoTo CleanUp
     
 ErrorHandler:
-    MsgBox "Error al ejecutar operación en la base de datos:" & vbCrLf & _
+    MsgBox "Error al ejecutar operaciï¿½n en la base de datos:" & vbCrLf & _
            Err.Description & vbCrLf & vbCrLf & "Consulta: " & Left(sql, 200), _
            vbCritical, "Error de Base de Datos"
     ExecuteNonQuery = False
@@ -551,7 +551,7 @@ CleanUp:
 End Function
 
 ''' Ejecuta una consulta SELECT y retorna un Recordset desconectado en memoria.
-''' El Recordset se desconecta de la BD para liberar la conexión inmediatamente.
+''' El Recordset se desconecta de la BD para liberar la conexiï¿½n inmediatamente.
 Public Function GetRecordset(ByVal sql As String) As Object
     Dim cn As Object
     Dim rs As Object
@@ -565,7 +565,7 @@ Public Function GetRecordset(ByVal sql As String) As Object
     rs.CursorLocation = 3 ' adUseClient
     rs.Open sql, cn, 3, 1 ' adOpenStatic, adLockReadOnly
     
-    ' Desconectar el Recordset para liberar la conexión con Access
+    ' Desconectar el Recordset para liberar la conexiï¿½n con Access
     Set rs.ActiveConnection = Nothing
     cn.Close
     
@@ -585,11 +585,11 @@ CleanUp:
 End Function
 
 ' ===========================
-' GESTIÓN DE ÓRDENES/SOLICITUDES
+' GESTIï¿½N DE ï¿½RDENES/SOLICITUDES
 ' ===========================
 
-''' Inserta un registro de Orden/Reserva de forma atómica y retorna el N ORDEN asignado.
-''' El autonumérico de Access garantiza unicidad incluso con 15 usuarios simultáneos.
+''' Inserta un registro de Orden/Reserva de forma atï¿½mica y retorna el N ORDEN asignado.
+''' El autonumï¿½rico de Access garantiza unicidad incluso con 15 usuarios simultï¿½neos.
 ''' Retorna 0 si hay error.
 Public Function InsertarOrdenAtomica( _
     ByVal residencia As String, _
@@ -692,7 +692,7 @@ Public Function InsertarOrdenAtomica( _
     If exito Then
         InsertarOrdenAtomica = nuevoNumOrden
     Else
-        MsgBox "No se pudo asignar un Nº ORDEN atómico tras varios intentos concurrentes.", vbCritical, "Error Concurrencia"
+        MsgBox "No se pudo asignar un Nï¿½ ORDEN atï¿½mico tras varios intentos concurrentes.", vbCritical, "Error Concurrencia"
         InsertarOrdenAtomica = 0
     End If
     
@@ -726,7 +726,7 @@ Public Function ActualizarOrden( _
             ActualizarOrden = False
             Exit Function
         End If
-    ' Campos numéricos
+    ' Campos numï¿½ricos
     ElseIf LCase(campo) = "numfactura" Or LCase(campo) = "numhabindividuales" Or _
            LCase(campo) = "numhabdobles" Then
         sql = "UPDATE Ordenes SET " & campo & " = " & CLng(valor) & _
@@ -744,7 +744,7 @@ Public Function ActualizarOrden( _
     ActualizarOrden = ExecuteNonQuery(sql)
 End Function
 
-''' Actualiza múltiples campos de una orden en una sola operación.
+''' Actualiza mï¿½ltiples campos de una orden en una sola operaciï¿½n.
 ''' camposYValores debe ser un diccionario (Scripting.Dictionary) con pares campo->valor.
 Public Function ActualizarOrdenMultiple( _
     ByVal numOrden As Long, _
@@ -765,12 +765,13 @@ Public Function ActualizarOrdenMultiple( _
 End Function
 
 ' ===========================
-' FACTURACIÓN
+' FACTURACIï¿½N
 ' ===========================
-
-''' Obtiene el siguiente número de factura de forma atómica para una residencia y ejercicio.
-''' Incrementa el contador en Access dentro de una transacción, garantizando unicidad.
-''' Retorna 0 si hay error.
+''' Obtiene el siguiente n?mero de factura de forma at?mica para una residencia y ejercicio.
+''' Incrementa el contador en Access dentro de una transacci?n, garantizando unicidad.
+''' Incluye auto-inicializaci?n si la fila no existe y re-sincronizaci?n si el contador
+''' est? por debajo del MAX real de facturas ya asignadas en Ordenes.
+''' Retorna 0 si hay error cr?tico.
 Public Function ObtenerSiguienteNumFactura( _
     ByVal residencia As String, _
     ByVal ejercicio As Integer _
@@ -778,6 +779,8 @@ Public Function ObtenerSiguienteNumFactura( _
     Dim cn As Object
     Dim rs As Object
     Dim nuevoNum As Long
+    Dim maxReal As Long
+    Dim filaExiste As Boolean
     
     On Error GoTo ErrorHandler
     
@@ -785,18 +788,61 @@ Public Function ObtenerSiguienteNumFactura( _
     cn.Open GetConnectionString()
     cn.BeginTrans
     
-    ' Incrementar el contador atómicamente
+    ' --- PASO 1: Comprobar si existe la fila en ContadorFacturas ---
+    Set rs = cn.Execute("SELECT UltimoNumero FROM ContadorFacturas " & _
+                        "WHERE Residencia = '" & EscaparSQL(residencia) & "' AND Ejercicio = " & ejercicio)
+    filaExiste = Not rs.EOF
+    If filaExiste Then nuevoNum = CLng(rs(0).Value)
+    rs.Close
+    
+    ' --- PASO 2: Obtener MAX real de NumFactura en Ordenes para esta residencia ---
+    Set rs = cn.Execute("SELECT MAX(NumFactura) AS MaxFact FROM Ordenes " & _
+                        "WHERE Residencia = '" & EscaparSQL(residencia) & "' AND NumFactura > 0")
+    maxReal = 0
+    If Not rs.EOF Then
+        If Not IsNull(rs(0).Value) Then maxReal = CLng(rs(0).Value)
+    End If
+    rs.Close
+    
+    ' --- PASO 3: Sincronizar o crear si el contador esta atrasado o no existe ---
+    If Not filaExiste Then
+        ' La fila no existe: crearla con el MAX real como base
+        cn.Execute "INSERT INTO ContadorFacturas (Residencia, Ejercicio, UltimoNumero) " & _
+                   "VALUES ('" & EscaparSQL(residencia) & "', " & ejercicio & ", " & maxReal & ")"
+        nuevoNum = maxReal
+    ElseIf nuevoNum < maxReal Then
+        ' El contador esta por debajo del MAX real: corregir antes de incrementar
+        cn.Execute "UPDATE ContadorFacturas SET UltimoNumero = " & maxReal & _
+                   " WHERE Residencia = '" & EscaparSQL(residencia) & "' AND Ejercicio = " & ejercicio
+        nuevoNum = maxReal
+    End If
+    
+    ' --- PASO 4: Incrementar atomicamente el contador ---
     cn.Execute "UPDATE ContadorFacturas SET UltimoNumero = UltimoNumero + 1 " & _
                "WHERE Residencia = '" & EscaparSQL(residencia) & "' AND Ejercicio = " & ejercicio
     
-    ' Leer el nuevo valor
+    ' --- PASO 5: Leer el nuevo valor confirmado ---
     Set rs = cn.Execute("SELECT UltimoNumero FROM ContadorFacturas " & _
                         "WHERE Residencia = '" & EscaparSQL(residencia) & "' AND Ejercicio = " & ejercicio)
-    
+    nuevoNum = 0
     If Not rs.EOF Then
         nuevoNum = CLng(rs(0).Value)
     End If
     rs.Close
+    
+    ' --- PASO 6: Validacion de seguridad: nunca retornar un numero ya existente ---
+    If nuevoNum <= maxReal Then
+        ' Caso extremo: numero obtenido sigue siendo <= al MAX real (concurrencia u otro error)
+        On Error Resume Next
+        cn.RollbackTrans
+        On Error GoTo 0
+        MsgBox "Error de consistencia en contador de facturas para " & residencia & "." & vbCrLf & _
+               "Contador obtenido: " & nuevoNum & " | MAX real en Ordenes: " & maxReal & vbCrLf & vbCrLf & _
+               "Contacte con el administrador para resincronizar ContadorFacturas.", _
+               vbCritical, "Error de Numeracion de Facturas"
+        ObtenerSiguienteNumFactura = 0
+        GoTo CleanUp
+    End If
     
     cn.CommitTrans
     cn.Close
@@ -812,8 +858,8 @@ ErrorHandler:
             On Error GoTo 0
         End If
     End If
-    MsgBox "Error al obtener número de factura:" & vbCrLf & Err.Description, _
-           vbCritical, "Error de Facturación"
+    MsgBox "Error al obtener n?mero de factura:" & vbCrLf & Err.Description, _
+           vbCritical, "Error de Facturaci?n"
     ObtenerSiguienteNumFactura = 0
 
 CleanUp:
@@ -825,15 +871,15 @@ CleanUp:
 End Function
 
 ' ===========================
-' BÚSQUEDAS
+' Bï¿½SQUEDAS
 ' ===========================
 
 ''' Busca en la tabla Ordenes y en Ordenes_Historico unificando resultados.
 ''' criterio: "DNI", "NOMBRE", "NUMORDEN", "NUMFACTURA"
 ''' valor: texto a buscar
 ''' residencia: opcional, filtrar por residencia ("GIJON", "SOTO", "OVIEDO", "" = todas)
-''' incluirHistorico: opcional (True por defecto), busca tanto en activas como en histórico
-''' Retorna un Recordset desconectado con los resultados priorizando la solicitud más reciente.
+''' incluirHistorico: opcional (True por defecto), busca tanto en activas como en histï¿½rico
+''' Retorna un Recordset desconectado con los resultados priorizando la solicitud mï¿½s reciente.
 Public Function BuscarEnOrdenes( _
     ByVal criterio As String, _
     ByVal valor As String, _
@@ -860,7 +906,7 @@ Public Function BuscarEnOrdenes( _
         whereClause = whereClause & " AND Residencia = '" & EscaparSQL(residencia) & "'"
     End If
     
-    ' Consulta combinada (Activas + Histórico) ordenando por fecha y orden más reciente
+    ' Consulta combinada (Activas + Histï¿½rico) ordenando por fecha y orden mï¿½s reciente
     If incluirHistorico Then
         sql = "SELECT * FROM Ordenes WHERE " & whereClause & " " & _
               "UNION ALL " & _
@@ -900,8 +946,8 @@ End Function
 ' LISTA NEGRA
 ' ===========================
 
-''' Comprueba si un DNI está en la lista negra.
-''' Retorna True si el DNI está vetado (activo).
+''' Comprueba si un DNI estï¿½ en la lista negra.
+''' Retorna True si el DNI estï¿½ vetado (activo).
 ''' Opcionalmente rellena outMotivo con el motivo registrado en Access.
 Public Function ComprobarListaNegra(ByVal dni As String, Optional ByRef outMotivo As String = "") As Boolean
     Dim rs As Object
@@ -925,7 +971,7 @@ Public Function ComprobarListaNegra(ByVal dni As String, Optional ByRef outMotiv
     End If
 End Function
 
-''' Añade un DNI a la lista negra.
+''' Aï¿½ade un DNI a la lista negra.
 Public Function AnadirAListaNegra( _
     ByVal dni As String, _
     ByVal nombre As String, _
@@ -944,7 +990,7 @@ End Function
 ' LOG DE ACTIVIDAD
 ' ===========================
 
-''' Registra una acción en la tabla LogActividad de Access.
+''' Registra una acciï¿½n en la tabla LogActividad de Access.
 ''' Se llama desde cualquier punto donde antes se escribÃ­a en la hoja LOG.
 Public Function InsertarLog( _
     ByVal usuario As String, _
@@ -961,7 +1007,7 @@ Public Function InsertarLog( _
 End Function
 
 ' ===========================
-' SINCRONIZACIÓN ACCESS -> EXCEL (CACHÉ VISUAL)
+' SINCRONIZACIï¿½N ACCESS -> EXCEL (CACHï¿½ VISUAL)
 ' ===========================
 
 Private Function ObtenerValorCampo(ByRef rs As Object, ByVal nombreCampo As String, Optional ByVal defaultVal As Variant = Null) As Variant
@@ -986,12 +1032,12 @@ End Function
 ''' Descarga todos los registros de una residencia desde Access y los vuelca
 ''' en la hoja Excel correspondiente, sobreescribiendo los datos existentes.
 '''
-''' Las celdas funcionan como CACHÉ VISUAL EN MEMORIA para que las macros
-''' de calendario, solapamientos e impresión encuentren datos en las celdas.
+''' Las celdas funcionan como CACHï¿½ VISUAL EN MEMORIA para que las macros
+''' de calendario, solapamientos e impresiï¿½n encuentren datos en las celdas.
 ''' Estos datos NO se guardan al .xlsm: Access es la fuente de verdad.
 '''
 ''' residencia: "GIJON", "SOTO" o "OVIEDO"
-''' hoja: referencia a la hoja destino (ej. Sheets("RESIDENCIA GIJÓN"))
+''' hoja: referencia a la hoja destino (ej. Sheets("RESIDENCIA GIJï¿½N"))
 ''' filaInicio: fila donde empiezan los datos (normalmente 2, siendo la 1 cabeceras)
 Public Sub SincronizarHojaDesdeAccess( _
     ByVal residencia As String, _
@@ -1039,16 +1085,16 @@ Public Sub SincronizarHojaDesdeAccess( _
     Dim isOviedo As Boolean
     isOviedo = (UCase(Trim(residencia)) = "OVIEDO")
     
-    ' Limpiar datos antiguos de la hoja preservando fórmulas y cabeceras en fila 1
+    ' Limpiar datos antiguos de la hoja preservando fï¿½rmulas y cabeceras en fila 1
     ultimaFila = hoja.Cells(hoja.Rows.Count, 1).End(xlUp).Row
     If ultimaFila >= filaInicio Then
         If isOviedo Then
-            ' Limpiar únicamente columnas de datos, BLINDANDO la columna de fórmulas V (22) y fórmulas auxiliares (AG / 33+)
+            ' Limpiar ï¿½nicamente columnas de datos, BLINDANDO la columna de fï¿½rmulas V (22) y fï¿½rmulas auxiliares (AG / 33+)
             hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(ultimaFila, 21)).ClearContents    ' Cols A a U
             hoja.Range(hoja.Cells(filaInicio, 23), hoja.Cells(ultimaFila, 28)).ClearContents   ' Cols W a AB
-            hoja.Range(hoja.Cells(filaInicio, 32), hoja.Cells(ultimaFila, 32)).ClearContents   ' Col AF (Grabación Solicitud)
+            hoja.Range(hoja.Cells(filaInicio, 32), hoja.Cells(ultimaFila, 32)).ClearContents   ' Col AF (Grabaciï¿½n Solicitud)
         Else
-            ' Limpiar únicamente columnas de datos, BLINDANDO la columna de fórmulas U (21) y fórmulas auxiliares (AC / 29+)
+            ' Limpiar ï¿½nicamente columnas de datos, BLINDANDO la columna de fï¿½rmulas U (21) y fï¿½rmulas auxiliares (AC / 29+)
             hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(ultimaFila, 20)).ClearContents    ' Cols A a T
             hoja.Range(hoja.Cells(filaInicio, 22), hoja.Cells(ultimaFila, 28)).ClearContents   ' Cols V a AB
         End If
@@ -1067,7 +1113,7 @@ Public Sub SincronizarHojaDesdeAccess( _
         
         If isOviedo Then
             ' OVIEDO: Bloque 1 (Cols A a U = 1 a 21), Bloque 2 (Cols W a AB = 23 a 28), Bloque 3 (Col AF = 32)
-            ' Col V (22, IMPORTE) y Col AG (33, FÓRMULA EMAIL) se mantienen 100% INTACTAS con sus fórmulas
+            ' Col V (22, IMPORTE) y Col AG (33, Fï¿½RMULA EMAIL) se mantienen 100% INTACTAS con sus fï¿½rmulas
             Dim arrOviedo1() As Variant
             Dim arrOviedo2() As Variant
             Dim arrOviedo3() As Variant
@@ -1076,17 +1122,17 @@ Public Sub SincronizarHojaDesdeAccess( _
             ReDim arrOviedo3(1 To totalRows, 1 To 1)
             
             For r = 1 To totalRows
-                arrOviedo1(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
+                arrOviedo1(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nï¿½ ORDEN)
                 arrOviedo1(r, 2) = ObtenerValorCampo(rs, "FechaPeticion")               ' Col B (FECHA PETICION)
-                arrOviedo1(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (NÚM FACT)
+                arrOviedo1(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (Nï¿½M FACT)
                 arrOviedo1(r, 4) = ObtenerValorCampo(rs, "Finalidad")                   ' Col D (FINALIDAD)
                 arrOviedo1(r, 5) = ObtenerValorCampo(rs, "Empleo")                      ' Col E (EMPLEO)
                 arrOviedo1(r, 6) = ObtenerValorCampo(rs, "Situacion")                   ' Col F (SITUACION)
-                arrOviedo1(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIÓN)
+                arrOviedo1(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIï¿½N)
                 
                 vVal = ObtenerValorCampo(rs, "Comision")
                 If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "Turno")
-                arrOviedo1(r, 8) = vVal                                                 ' Col H (COMISIÓN / TURNO)
+                arrOviedo1(r, 8) = vVal                                                 ' Col H (COMISIï¿½N / TURNO)
                 
                 arrOviedo1(r, 9) = ObtenerValorCampo(rs, "DNI")                         ' Col I (DNI)
                 arrOviedo1(r, 10) = ObtenerValorCampo(rs, "Rango")                      ' Col J (RANGO)
@@ -1099,54 +1145,54 @@ Public Sub SincronizarHojaDesdeAccess( _
                 arrOviedo1(r, 17) = ObtenerValorCampo(rs, "NumHabIndividuales")         ' Col Q (HAB. IND. / PRECIO APTO)
                 arrOviedo1(r, 18) = ObtenerValorCampo(rs, "NumHabDobles")               ' Col R (HAB. DOBLE / SUPLE OCUPAN)
                 arrOviedo1(r, 19) = ObtenerValorCampo(rs, "CamaSuple")                  ' Col S (CAMA SUPLE.)
-                arrOviedo1(r, 20) = ObtenerValorCampo(rs, "HabitacionesAsignadas")      ' Col T (NÚM HAB.)
+                arrOviedo1(r, 20) = ObtenerValorCampo(rs, "HabitacionesAsignadas")      ' Col T (Nï¿½M HAB.)
                 arrOviedo1(r, 21) = ObtenerValorCampo(rs, "DtoFamNum")                  ' Col U (DTO. FAM. NUM.)
                 
-                ' Col V (22): IMPORTE (FÓRMULA PRESERVADA INTACTA)
+                ' Col V (22): IMPORTE (Fï¿½RMULA PRESERVADA INTACTA)
                 
                 arrOviedo2(r, 1) = ObtenerValorCampo(rs, "Telefono")                    ' Col W (TELEFONO)
-                arrOviedo2(r, 2) = ObtenerValorCampo(rs, "Direccion")                   ' Col X (DIRECCIÓN)
+                arrOviedo2(r, 2) = ObtenerValorCampo(rs, "Direccion")                   ' Col X (DIRECCIï¿½N)
                 
                 vVal = ObtenerValorCampo(rs, "CP")
                 If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
                 arrOviedo2(r, 3) = vVal                                                 ' Col Y (CP)
                 
-                arrOviedo2(r, 4) = ObtenerValorCampo(rs, "Poblacion")                   ' Col Z (POBLACIÓN)
+                arrOviedo2(r, 4) = ObtenerValorCampo(rs, "Poblacion")                   ' Col Z (POBLACIï¿½N)
                 arrOviedo2(r, 5) = ObtenerValorCampo(rs, "Provincia")                   ' Col AA (PROVINCIA)
                 arrOviedo2(r, 6) = ObtenerValorCampo(rs, "EstadoPago")                  ' Col AB (PAGADO)
                 
                 vVal = ObtenerValorCampo(rs, "FechaGrabacion")
                 If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
-                arrOviedo3(r, 1) = vVal                                                 ' Col AF (GRABACIÓN SOLICITUD)
+                arrOviedo3(r, 1) = vVal                                                 ' Col AF (GRABACIï¿½N SOLICITUD)
                 
                 rs.MoveNext
             Next r
             
-            ' Volcado ultra-rápido en bloques COM preservando columnas de fórmulas
+            ' Volcado ultra-rï¿½pido en bloques COM preservando columnas de fï¿½rmulas
             hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(filaInicio + totalRows - 1, 21)).Value = arrOviedo1
             hoja.Range(hoja.Cells(filaInicio, 23), hoja.Cells(filaInicio + totalRows - 1, 28)).Value = arrOviedo2
             hoja.Range(hoja.Cells(filaInicio, 32), hoja.Cells(filaInicio + totalRows - 1, 32)).Value = arrOviedo3
             
         Else
-            ' GIJÓN / SOTO: Bloque 1 (Cols A a T = 1 a 20), Bloque 2 (Cols V a AB = 22 a 28)
-            ' Col U (21, IMPORTE) y Cols AC+ (29+) se mantienen 100% INTACTAS con sus fórmulas
+            ' GIJï¿½N / SOTO: Bloque 1 (Cols A a T = 1 a 20), Bloque 2 (Cols V a AB = 22 a 28)
+            ' Col U (21, IMPORTE) y Cols AC+ (29+) se mantienen 100% INTACTAS con sus fï¿½rmulas
             Dim arrGS1() As Variant
             Dim arrGS2() As Variant
             ReDim arrGS1(1 To totalRows, 1 To 20)
             ReDim arrGS2(1 To totalRows, 1 To 7)
             
             For r = 1 To totalRows
-                arrGS1(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nº ORDEN)
+                arrGS1(r, 1) = ObtenerValorCampo(rs, "NumOrden")                   ' Col A (Nï¿½ ORDEN)
                 arrGS1(r, 2) = ObtenerValorCampo(rs, "FechaPeticion")               ' Col B (FECHA PETICION)
-                arrGS1(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (NÚM FACT)
+                arrGS1(r, 3) = ObtenerValorCampo(rs, "NumFactura")                  ' Col C (Nï¿½M FACT)
                 arrGS1(r, 4) = ObtenerValorCampo(rs, "Finalidad")                   ' Col D (FINALIDAD)
                 arrGS1(r, 5) = ObtenerValorCampo(rs, "Empleo")                      ' Col E (EMPLEO)
                 arrGS1(r, 6) = ObtenerValorCampo(rs, "Situacion")                   ' Col F (SITUACION)
-                arrGS1(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIÓN)
+                arrGS1(r, 7) = ObtenerValorCampo(rs, "Evaluacion")                  ' Col G (EVALUACIï¿½N)
                 
                 vVal = ObtenerValorCampo(rs, "Comision")
                 If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "Turno")
-                arrGS1(r, 8) = vVal                                                 ' Col H (COMISIÓN / TURNO)
+                arrGS1(r, 8) = vVal                                                 ' Col H (COMISIï¿½N / TURNO)
                 
                 arrGS1(r, 9) = ObtenerValorCampo(rs, "DNI")                         ' Col I (DNI)
                 arrGS1(r, 10) = ObtenerValorCampo(rs, "Rango")                      ' Col J (RANGO)
@@ -1158,36 +1204,36 @@ Public Sub SincronizarHojaDesdeAccess( _
                 arrGS1(r, 16) = ObtenerValorCampo(rs, "Resolucion")                 ' Col P (RESOLUCION)
                 arrGS1(r, 17) = ObtenerValorCampo(rs, "NumHabIndividuales")         ' Col Q (HAB. IND. / PRECIO APTO)
                 arrGS1(r, 18) = ObtenerValorCampo(rs, "NumHabDobles")               ' Col R (HAB. DOBLE / SUPLE OCUPAN)
-                arrGS1(r, 19) = ObtenerValorCampo(rs, "HabitacionesAsignadas")      ' Col S (NÚM HAB. / APTO)
+                arrGS1(r, 19) = ObtenerValorCampo(rs, "HabitacionesAsignadas")      ' Col S (Nï¿½M HAB. / APTO)
                 arrGS1(r, 20) = ObtenerValorCampo(rs, "DtoFamNum")                  ' Col T (DTO. FAM. NUM.)
                 
-                ' Col U (21): IMPORTE (FÓRMULA PRESERVADA INTACTA)
+                ' Col U (21): IMPORTE (Fï¿½RMULA PRESERVADA INTACTA)
                 
                 arrGS2(r, 1) = ObtenerValorCampo(rs, "Telefono")                    ' Col V (TELEFONO)
-                arrGS2(r, 2) = ObtenerValorCampo(rs, "Direccion")                   ' Col W (DIRECCIÓN)
+                arrGS2(r, 2) = ObtenerValorCampo(rs, "Direccion")                   ' Col W (DIRECCIï¿½N)
                 
                 vVal = ObtenerValorCampo(rs, "CP")
                 If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "CodigoPostal")
                 arrGS2(r, 3) = vVal                                                 ' Col X (CP)
                 
-                arrGS2(r, 4) = ObtenerValorCampo(rs, "Poblacion")                   ' Col Y (POBLACIÓN)
+                arrGS2(r, 4) = ObtenerValorCampo(rs, "Poblacion")                   ' Col Y (POBLACIï¿½N)
                 arrGS2(r, 5) = ObtenerValorCampo(rs, "Provincia")                   ' Col Z (PROVINCIA)
                 arrGS2(r, 6) = ObtenerValorCampo(rs, "EstadoPago")                  ' Col AA (PAGADO)
                 
                 vVal = ObtenerValorCampo(rs, "FechaGrabacion")
                 If IsNull(vVal) Then vVal = ObtenerValorCampo(rs, "FechaCreacion")
-                arrGS2(r, 7) = vVal                                                 ' Col AB (GRABACIÓN SOLICITUD)
+                arrGS2(r, 7) = vVal                                                 ' Col AB (GRABACIï¿½N SOLICITUD)
                 
                 rs.MoveNext
             Next r
             
-            ' Volcado ultra-rápido en bloques COM preservando columnas de fórmulas
+            ' Volcado ultra-rï¿½pido en bloques COM preservando columnas de fï¿½rmulas
             hoja.Range(hoja.Cells(filaInicio, 1), hoja.Cells(filaInicio + totalRows - 1, 20)).Value = arrGS1
             hoja.Range(hoja.Cells(filaInicio, 22), hoja.Cells(filaInicio + totalRows - 1, 28)).Value = arrGS2
             
         End If
         
-        ' Blindaje adicional: asegurar que cada fila volcada conserve su fórmula en la columna IMPORTE
+        ' Blindaje adicional: asegurar que cada fila volcada conserve su fï¿½rmula en la columna IMPORTE
         Dim colImp As Long
         Dim filaRefFmla As Long
         If isOviedo Then colImp = 22 Else colImp = 21
@@ -1211,7 +1257,7 @@ Public Sub SincronizarHojaDesdeAccess( _
 
 ErrorHandler:
     MsgBox "Error al sincronizar datos desde Access:" & vbCrLf & _
-           Err.Description, vbCritical, "Error de Sincronización"
+           Err.Description, vbCritical, "Error de Sincronizaciï¿½n"
 
 CleanUp:
     If estabaProtegida Then
@@ -1275,7 +1321,7 @@ Public Sub SincronizarTodasMisResidencias()
 End Sub
 
 ''' Alias para SincronizarResidenciaActiva().
-''' Nombre más intuitivo para usar tras operaciones de escritura.
+''' Nombre mï¿½s intuitivo para usar tras operaciones de escritura.
 Public Sub RefrescarCacheVisual()
     SincronizarResidenciaActiva
 End Sub
@@ -1335,7 +1381,7 @@ Public Sub MostrarHojasResidencia(Optional ByVal residenciaEspecifica As String 
     On Error Resume Next
     Application.screenUpdating = False
     
-    ' Desproteger la estructura del libro si está protegida (necesario para cambiar Visible de hojas)
+    ' Desproteger la estructura del libro si estï¿½ protegida (necesario para cambiar Visible de hojas)
     DesprotegerEstructuraLibro libroProtegida
     
     Dim colResidencias As Object
@@ -1356,9 +1402,9 @@ Public Sub MostrarHojasResidencia(Optional ByVal residenciaEspecifica As String 
         
         Select Case res
             Case "GIJON"
-                Set wsResidencia = ObtenerHojaSegura("RESIDENCIA GIJÓN")
-                Set wsResumen = ObtenerHojaSegura("RESUMEN GIJÓN")
-                Set wsCalendario = ObtenerHojaSegura("Calendario GIJÓN")
+                Set wsResidencia = ObtenerHojaSegura("RESIDENCIA GIJï¿½N")
+                Set wsResumen = ObtenerHojaSegura("RESUMEN GIJï¿½N")
+                Set wsCalendario = ObtenerHojaSegura("Calendario GIJï¿½N")
             Case "SOTO"
                 Set wsResidencia = ObtenerHojaSegura("RESIDENCIA SOTO")
                 Set wsResumen = ObtenerHojaSegura("RESUMEN SOTO")
@@ -1382,7 +1428,7 @@ Public Sub MostrarHojasResidencia(Optional ByVal residenciaEspecifica As String 
         wsActivar.Activate
     Else
         Select Case resSeleccionada
-            Case "GIJON":  Set wsActivar = ObtenerHojaSegura("RESIDENCIA GIJÓN")
+            Case "GIJON":  Set wsActivar = ObtenerHojaSegura("RESIDENCIA GIJï¿½N")
             Case "SOTO":   Set wsActivar = ObtenerHojaSegura("RESIDENCIA SOTO")
             Case "OVIEDO": Set wsActivar = ObtenerHojaSegura("RESIDENCIA OVIEDO")
         End Select
@@ -1411,10 +1457,10 @@ Public Sub ActivarHojaResidenciaActiva()
 End Sub
 
 ' ===========================
-' GESTIÓN DE USUARIOS (ADMIN)
+' GESTIï¿½N DE USUARIOS (ADMIN)
 ' ===========================
 
-''' Añade un nuevo usuario al sistema. Solo para administradores.
+''' Aï¿½ade un nuevo usuario al sistema. Solo para administradores.
 ''' residencias: cadena CSV, ej. "GIJON,SOTO"
 Public Function AltaUsuario( _
     ByVal nombreUsuario As String, _
@@ -1455,7 +1501,7 @@ End Function
 ' UTILIDADES
 ' ===========================
 
-''' Función auxiliar para manejar valores Null de Access.
+''' Funciï¿½n auxiliar para manejar valores Null de Access.
 ''' Si el valor es Null, retorna el valor por defecto especificado.
 Private Function Nz(ByVal valor As Variant, Optional ByVal valorDefecto As Variant = "") As Variant
     If IsNull(valor) Then
@@ -1466,11 +1512,11 @@ Private Function Nz(ByVal valor As Variant, Optional ByVal valorDefecto As Varia
 End Function
 
 ' ==============================================================================
-' ELIMINACIÓN DE ÓRDENES Y AUDITORÍA
+' ELIMINACIï¿½N DE ï¿½RDENES Y AUDITORï¿½A
 ' ==============================================================================
 
 ''' Obtiene la clave de residencia normalizada ("GIJON", "SOTO", "OVIEDO")
-''' a partir del nombre de una hoja (ej. "RESIDENCIA GIJÓN" -> "GIJON").
+''' a partir del nombre de una hoja (ej. "RESIDENCIA GIJï¿½N" -> "GIJON").
 Public Function ObtenerClaveResidenciaDesdeHoja(ByVal nombreHoja As String) As String
     Dim n As String
     n = UCase(Trim(nombreHoja))
@@ -1486,7 +1532,7 @@ Public Function ObtenerClaveResidenciaDesdeHoja(ByVal nombreHoja As String) As S
 End Function
 
 ''' Copia la orden completa a Ordenes_Historico, la elimina de la tabla activa Ordenes
-''' y registra la acción en LogActividad. Retorna True si la operación fue exitosa.
+''' y registra la acciï¿½n en LogActividad. Retorna True si la operaciï¿½n fue exitosa.
 Public Function EliminarOrdenBD( _
     ByVal numOrden As Long, _
     ByVal residencia As String _
@@ -1499,7 +1545,7 @@ Public Function EliminarOrdenBD( _
     claveRes = ObtenerClaveResidenciaDesdeHoja(residencia)
     If claveRes = "" Then claveRes = UCase(Trim(residencia))
     
-    ' 1. Asegurar limpieza de copia previa en histórico si existiera (idempotencia)
+    ' 1. Asegurar limpieza de copia previa en histï¿½rico si existiera (idempotencia)
     Call ExecuteNonQuery("DELETE FROM Ordenes_Historico WHERE NumOrden = " & numOrden & _
                          " AND Residencia = '" & EscaparSQL(claveRes) & "'")
     
@@ -1513,24 +1559,24 @@ Public Function EliminarOrdenBD( _
                 " AND Residencia = '" & EscaparSQL(claveRes) & "'"
     exito = ExecuteNonQuery(sqlDelete)
     
-    ' 4. Registrar auditoría completa
+    ' 4. Registrar auditorï¿½a completa
     If exito Then
         Dim usr As String
         usr = m_NombreUsuario
         If Len(usr) = 0 Then usr = Environ("USERNAME")
         
         Call InsertarLog(usr, "BORRADO_ORDEN", _
-            "Archivado en Histórico y retirado Nº ORDEN " & numOrden & " de " & claveRes)
+            "Archivado en Histï¿½rico y retirado Nï¿½ ORDEN " & numOrden & " de " & claveRes)
     End If
     
     EliminarOrdenBD = exito
 End Function
 
 ' ==============================================================================
-' CONSULTAS DE CÓDIGOS POSTALES Y MUNICIPIOS (TABLA CodigosPostales EN ACCESS)
+' CONSULTAS DE Cï¿½DIGOS POSTALES Y MUNICIPIOS (TABLA CodigosPostales EN ACCESS)
 ' ==============================================================================
 
-''' Normaliza un texto removiendo acentos y convirtiendo a mayúsculas para búsquedas.
+''' Normaliza un texto removiendo acentos y convirtiendo a mayï¿½sculas para bï¿½squedas.
 Public Function NormalizarTextoBusqueda(ByVal texto As String) As String
     Dim res As String
     res = UCase(Trim(texto))
@@ -1539,34 +1585,34 @@ Public Function NormalizarTextoBusqueda(ByVal texto As String) As String
         Exit Function
     End If
     
-    res = Replace(res, "Á", "A")
-    res = Replace(res, "À", "A")
-    res = Replace(res, "Ä", "A")
-    res = Replace(res, "Â", "A")
-    res = Replace(res, "É", "E")
-    res = Replace(res, "È", "E")
-    res = Replace(res, "Ë", "E")
-    res = Replace(res, "Ê", "E")
-    res = Replace(res, "Í", "I")
-    res = Replace(res, "Ì", "I")
-    res = Replace(res, "Ï", "I")
-    res = Replace(res, "Î", "I")
-    res = Replace(res, "Ó", "O")
-    res = Replace(res, "Ò", "O")
-    res = Replace(res, "Ö", "O")
-    res = Replace(res, "Ô", "O")
-    res = Replace(res, "Ú", "U")
-    res = Replace(res, "Ù", "U")
-    res = Replace(res, "Ü", "U")
-    res = Replace(res, "Û", "U")
-    res = Replace(res, "Ñ", "N")
-    res = Replace(res, "Ç", "C")
+    res = Replace(res, "ï¿½", "A")
+    res = Replace(res, "ï¿½", "A")
+    res = Replace(res, "ï¿½", "A")
+    res = Replace(res, "ï¿½", "A")
+    res = Replace(res, "ï¿½", "E")
+    res = Replace(res, "ï¿½", "E")
+    res = Replace(res, "ï¿½", "E")
+    res = Replace(res, "ï¿½", "E")
+    res = Replace(res, "ï¿½", "I")
+    res = Replace(res, "ï¿½", "I")
+    res = Replace(res, "ï¿½", "I")
+    res = Replace(res, "ï¿½", "I")
+    res = Replace(res, "ï¿½", "O")
+    res = Replace(res, "ï¿½", "O")
+    res = Replace(res, "ï¿½", "O")
+    res = Replace(res, "ï¿½", "O")
+    res = Replace(res, "ï¿½", "U")
+    res = Replace(res, "ï¿½", "U")
+    res = Replace(res, "ï¿½", "U")
+    res = Replace(res, "ï¿½", "U")
+    res = Replace(res, "ï¿½", "N")
+    res = Replace(res, "ï¿½", "C")
     NormalizarTextoBusqueda = res
 End Function
 
-''' Consulta en Access la población y provincia asociadas a un código postal.
-''' Si existen múltiples municipios para el CP, colMunicipios contendrá todos ellos.
-''' Retorna True si encontró al menos un registro.
+''' Consulta en Access la poblaciï¿½n y provincia asociadas a un cï¿½digo postal.
+''' Si existen mï¿½ltiples municipios para el CP, colMunicipios contendrï¿½ todos ellos.
+''' Retorna True si encontrï¿½ al menos un registro.
 Public Function ObtenerUbicacionPorCP( _
     ByVal cp As String, _
     ByRef colMunicipios As Collection, _
@@ -1617,9 +1663,9 @@ ErrorHandler:
     ObtenerUbicacionPorCP = False
 End Function
 
-''' Consulta en Access los códigos postales y provincia asociados a un municipio.
-''' La búsqueda es insensible a mayúsculas y acentos gracias a la columna MunicipioNormalizado.
-''' Retorna True si encontró al menos un registro.
+''' Consulta en Access los cï¿½digos postales y provincia asociados a un municipio.
+''' La bï¿½squeda es insensible a mayï¿½sculas y acentos gracias a la columna MunicipioNormalizado.
+''' Retorna True si encontrï¿½ al menos un registro.
 Public Function ObtenerCPsPorPoblacion( _
     ByVal poblacion As String, _
     ByRef colCPs As Collection, _

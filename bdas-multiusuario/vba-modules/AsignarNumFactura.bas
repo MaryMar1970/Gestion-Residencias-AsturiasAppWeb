@@ -24,24 +24,40 @@ Public Sub AsignarFacturaPorColumna(ws As Worksheet, _
     Dim valorResolucion As String
     Dim mensajeAsignacion As String
     
-    ' OPTIMIZACI�N v2.0: Variables para sincronizaci�n
+    ' OPTIMIZACIÓN v2.0: Variables para sincronización
     Dim nombreHojaResidencia As String
     Dim nombreHojaResumen As String
     Dim columnaPagadoResidencia As String
     Dim columnaPagadoResumen As String
     Dim columnaFacturaResumen As String
+    Dim resCode As String
 
-    ' Determinar las hojas correspondientes
-    Select Case ws.Name
-        Case "RESIDENCIA GIJ�N"
-            nombreHojaFactura = "FACTURA GIJ�N"
-            nombreHojaResidencia = "RESIDENCIA GIJ�N"
-            nombreHojaResumen = "RESUMEN GIJ�N"
+    ' ==============================================================================
+    ' Determinar código de residencia por CodeName (inmune a nombres de pestaña y codificación)
+    ' con fallback por Name mediante modDatabase.ObtenerClaveResidenciaDesdeHoja
+    ' ==============================================================================
+    Select Case ws.CodeName
+        Case "Hoja2"
+            resCode = "GIJON"
+        Case "Hoja20"
+            resCode = "SOTO"
+        Case "Hoja24"
+            resCode = "OVIEDO"
+        Case Else
+            resCode = modDatabase.ObtenerClaveResidenciaDesdeHoja(ws.Name)
+    End Select
+
+    ' Determinar las hojas y columnas correspondientes según la residencia
+    Select Case resCode
+        Case "GIJON"
+            nombreHojaFactura = "FACTURA GIJÓN"
+            nombreHojaResidencia = "RESIDENCIA GIJÓN"
+            nombreHojaResumen = "RESUMEN GIJÓN"
             columnaPagadoResidencia = "AA"
             columnaPagadoResumen = "M"
             columnaFacturaResumen = "N"
             
-        Case "RESIDENCIA SOTO"
+        Case "SOTO"
             nombreHojaFactura = "FACTURA SOTO"
             nombreHojaResidencia = "RESIDENCIA SOTO"
             nombreHojaResumen = "RESUMEN SOTO"
@@ -49,7 +65,7 @@ Public Sub AsignarFacturaPorColumna(ws As Worksheet, _
             columnaPagadoResumen = "L"
             columnaFacturaResumen = "M"
             
-        Case "RESIDENCIA OVIEDO"
+        Case "OVIEDO"
             nombreHojaFactura = "FACTURA OVIEDO"
             nombreHojaResidencia = "RESIDENCIA OVIEDO"
             nombreHojaResumen = "RESUMEN OVIEDO"
@@ -58,13 +74,16 @@ Public Sub AsignarFacturaPorColumna(ws As Worksheet, _
             columnaFacturaResumen = "N"
             
         Case Else
-            MsgBox "Esta hoja no est� habilitada para el proceso de facturaci�n autom�tica.", vbExclamation
+            MsgBox "Esta hoja no está habilitada para el proceso de facturación automática.", vbExclamation
             Exit Sub
     End Select
 
     ' Intentar obtener la hoja de factura
     On Error Resume Next
     Set hojaFactura = ws.Parent.Worksheets(nombreHojaFactura)
+    If hojaFactura Is Nothing And resCode = "GIJON" Then
+        Set hojaFactura = ws.Parent.Worksheets("FACTURA GIJON")
+    End If
     On Error GoTo 0
 
     If hojaFactura Is Nothing Then
@@ -77,21 +96,13 @@ Public Sub AsignarFacturaPorColumna(ws As Worksheet, _
         Application.enableEvents = False
 
         For Each celda In Intersect(Target, ws.Columns(columnaCheck))
-            ' Usamos la validacin centralizada de pagos para SMS, Bizum, Transferencia, Tarjeta, Efectivo y SI
+            ' Usamos la validación centralizada de pagos para SMS, Bizum, Transferencia, Tarjeta, Efectivo y SI
             If MarcarSiPagadosEnResidencia.EsEstadoPagado(celda.Value) Then
                 ' Validar columna RESOLUCION (P = columna 16)
                 valorResolucion = UCase$(Trim(ws.Cells(celda.Row, 16).Value))
                 
                 If valorResolucion = "SI" Or valorResolucion = "CONCEDIDA" Or valorResolucion = "REEVALUADA" Then
-                    ' === NUEVA LÓGICA: Obtener número atómico desde Access ===
-                    Dim resCode As String
-                    Select Case ws.Name
-                        Case "RESIDENCIA GIJN", "RESIDENCIA GIJON": resCode = "GIJON"
-                        Case "RESIDENCIA SOTO": resCode = "SOTO"
-                        Case "RESIDENCIA OVIEDO": resCode = "OVIEDO"
-                        Case Else: resCode = "GIJON"
-                    End Select
-                    
+                    ' === Obtener número atómico desde Access ===
                     nuevoNumero = modDatabase.ObtenerSiguienteNumFactura(resCode, Year(Now))
                     mensajeAsignacion = "Asignación atómica de factura desde Access para " & resCode
                     
