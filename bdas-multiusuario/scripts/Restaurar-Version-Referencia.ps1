@@ -1,8 +1,9 @@
 # ==============================================================================
 # Script: Restaurar-Version-Referencia.ps1
 # Propósito: Restaurar de forma instantánea la Versión de Referencia Estable
-#            (Hito 2026-10-17: Selector Multirresidencia, LOG, RibbonX Dinámico,
-#             Tarifas Dinámicas Anti-Solapes y Blindaje Universal de Fórmulas)
+#            (Hito 2026-10-19 01:50: Carátula Casa Cuartel en INICIO + Login Centrado +
+#             Persistencia Universal Reservas/LOGs + Turno por Defecto Soto +
+#             Eliminación Hoja Lista Negra + Blindaje Hojas Gijón + Roles Centralizados)
 #            en caso de que se produzcan errores en futuras modificaciones.
 # ==============================================================================
 
@@ -11,8 +12,8 @@ param(
 )
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-17)       " -ForegroundColor Cyan
-Write-Host "   (Multirresidencia + LOG + RibbonX + Blindaje de Formulas)     " -ForegroundColor Cyan
+Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-19 01:50) " -ForegroundColor Cyan
+Write-Host "   (Carátula Casa Cuartel + Persistencia Reservas + Turno Soto)  " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $refDir = "H:\ResidenciaBD\Plantilla\VersionReferencia"
@@ -51,4 +52,16 @@ if (Test-Path $deployXlsm) {
     Write-Host "[OK] Copia en despliegue restaurada con exito: $deployXlsm" -ForegroundColor Green
 }
 
-Write-Host "`nRESTAURACION FINALIZADA. El proyecto ha vuelto a la version de referencia 2026-10-17." -ForegroundColor Cyan
+# 4. Restaurar Base de Datos Access Backend si existe la replica
+if (Test-Path $refFileAccdb) {
+    if (Test-Path $activeAccdb) {
+        $bkpAccdb = Join-Path $backupDir "Residencia_BE_PREVIO_RESTAURACION_$timestamp.accdb"
+        Copy-Item -LiteralPath $activeAccdb -Destination $bkpAccdb -Force
+        Write-Host "[INFO] Copia de seguridad de BD previa guardada en: $bkpAccdb" -ForegroundColor Gray
+    }
+    Copy-Item -LiteralPath $refFileAccdb -Destination $activeAccdb -Force
+    Set-ItemProperty -LiteralPath $activeAccdb -Name IsReadOnly -Value $false
+    Write-Host "[OK] Base de datos Access backend restaurada con exito: $activeAccdb" -ForegroundColor Green
+}
+
+Write-Host "`nRESTAURACION FINALIZADA. El proyecto ha vuelto a la version de referencia 2026-10-19." -ForegroundColor Cyan
