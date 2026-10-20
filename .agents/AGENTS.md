@@ -9,6 +9,10 @@
 - **Inmutabilidad del Golden Master**: La réplica Golden Master NUNCA se modificará ni sobrescribirá, salvo petición EXPRESA e inequívoca del usuario indicándolo textualmente, quedando reservada para posibles errores de inicio del proyecto.
 - **Copias de Seguridad Incrementales Diarias**: En cada sesión o día de trabajo donde se realicen modificaciones sobre el libro Excel o la base de datos, se generará una copia de respaldo con fecha y hora (`BACKUP_AAAA-MM-DD_HHMM`) antes y después de los cambios, asegurando un historial completo de versiones de fácil reversión.
 - **Borrado Exclusivo de Base de Datos (RGPD)**: El borrado físico y definitivo de datos personales de la base de datos Access (`Residencia_BE.accdb`, tablas `Ordenes` y `Ordenes_Historico`) queda reservado DE MANERA EXCLUSIVA a la pestaña `RGPD-Panel de Control/Gestión de Borrado`. Ninguna acción ordinaria en las hojas de residencia (como borrar celdas o pulsar Supr en Nº de Orden) destruirá datos de personas en la base de datos; dichas acciones únicamente archivarán o retirarán la visualización de la orden en la vista activa.
+- **Protocolo Estricto de Codificación y Cero Mojibake en VBA**:
+  1. **Codificación Nativa Obligatoria (Windows-1252)**: Queda terminantemente prohibido inyectar código en módulos VBA desde archivos o scripts temporales guardados en UTF-8 sin conversión explícita previa a Windows-1252 (ANSI).
+  2. **Prohibición de Scripts VBScript para Literales en Español**: Cualquier manipulación automatizada de cadenas con tildes, signos `¿` o `¡` debe realizarse exclusivamente mediante Python especificando `encoding='windows-1252'` o utilizando secuencias de escape numéricas (`Chr(x)` / `ChrW(x)`).
+  3. **Control de Puerta Obligatorio Pre-Entrega**: Antes de dar por finalizada cualquier petición que toque código VBA, el asistente está OBLIGADO a ejecutar un escaneo automatizado contra patrones de mojibake (`Ã`, `Â`, `ǭ`, `?` en palabras) en los componentes modificados. Si detecta un solo carácter corrupto, deberá subsanarlo de inmediato antes de responder al usuario.
 
 ## Recuperación y verificación del contexto técnico del proyecto
 
