@@ -1,124 +1,124 @@
-Attribute VB_Name = "EvitarDuplicidadSolicitudesGyS"
 ' ======================================================================================
-' EVITAR DUPLICIDAD SOLICITUDES RESIDENCIAS GIJï¿½N - SOTO - OVIEDO
+' EVITAR DUPLICIDAD SOLICITUDES RESIDENCIAS GIJÓN - SOTO - OVIEDO
 ' ======================================================================================
-' Procedimiento que revisa si la solicitud actual ya existe en los ï¿½ltimos 30 dï¿½as
-' comparando DNI, fechas de entrada/salida y nï¿½mero de pax.
+' Procedimiento que revisa si la solicitud actual ya existe en los últimos 30 días
+' comparando DNI, fechas de entrada/salida y número de pax.
 ' Si encuentra una coincidencia, muestra un aviso con opciones para:
 '   1) Continuar sin cambios
-'   2) Marcar la resoluciï¿½n como DESESTIMADA y conservar la solicitud
+'   2) Marcar la resolución como DESESTIMADA y conservar la solicitud
 '   3) Borrar toda la solicitud actual
 Public Sub VerificarDuplicadoUltimos30Dias(ws As Worksheet, fila As Long)
     On Error GoTo ErrorHandler
 
     ' -----------------------------
-    ' DECLARACIï¿½N DE VARIABLES
+    ' DECLARACIÓN DE VARIABLES
     ' -----------------------------
-    Dim dni As String                 ' DNI de la solicitud actual, normalizado para comparaciï¿½n
-    Dim entrada As Double             ' Fecha/hora de entrada de la solicitud actual en formato numï¿½rico Excel
-    Dim Salida As Double              ' Fecha/hora de salida de la solicitud actual en formato numï¿½rico Excel
-    Dim pax As Long                   ' Nï¿½mero de personas (pax) de la solicitud actual
-    Dim fechaOrden As Variant         ' Fecha de peticiï¿½n/orden de la solicitud actual
-    Dim currentFechaOrden As Date     ' Fecha de peticiï¿½n convertida a Date para validar rango
+    Dim dni As String                 ' DNI de la solicitud actual, normalizado para comparación
+    Dim entrada As Double             ' Fecha/hora de entrada de la solicitud actual en formato numérico Excel
+    Dim Salida As Double              ' Fecha/hora de salida de la solicitud actual en formato numérico Excel
+    Dim pax As Long                   ' Número de personas (pax) de la solicitud actual
+    Dim fechaOrden As Variant         ' Fecha de petición/orden de la solicitud actual
+    Dim currentFechaOrden As Date     ' Fecha de petición convertida a Date para validar rango
     Dim i As Long                     ' Variable para recorrer filas anteriores
     Dim celdaS As Range               ' Referencia a la celda S de la fila actual
     Dim entradaComparar As Double     ' Fecha/hora de entrada de una solicitud anterior
     Dim salidaComparar As Double      ' Fecha/hora de salida de una solicitud anterior
     Dim msgTexto As String            ' Texto del mensaje de advertencia al detectar duplicado
-    Dim opcion As String              ' Opciï¿½n elegida por el usuario en el InputBox
-    Dim col As Long                   ' Variable auxiliar para limpiar celdas en la opciï¿½n 3
+    Dim opcion As String              ' Opción elegida por el usuario en el InputBox
+    Dim col As Long                   ' Variable auxiliar para limpiar celdas en la opción 3
 
     ' -----------------------------
     ' VALIDACIONES PREVIAS
     ' -----------------------------
-    ' Si la fila no es vï¿½lida (cabecera, cero, o fuera del rango de la hoja), se sale
+    ' Si la fila no es válida (cabecera, cero, o fuera del rango de la hoja), se sale
     If fila <= 1 Or fila > ws.Rows.Count Then Exit Sub
 
-    ' Se toma la celda S de la fila actual aunque en este bloque no se use despuï¿½s directamente
+    ' Se toma la celda S de la fila actual aunque en este bloque no se use después directamente
     Set celdaS = ws.Cells(fila, "S")
 
-    ' Se obtiene la fecha de peticiï¿½n/orden de la fila actual desde la columna B
+    ' Se obtiene la fecha de petición/orden de la fila actual desde la columna B
     fechaOrden = ws.Cells(fila, "B").Value
 
     ' Se obtiene el DNI de la fila actual, normalizado:
     ' - Trim elimina espacios
-    ' - UCase pone en mayï¿½sculas para comparar sin importar el formato
+    ' - UCase pone en mayúsculas para comparar sin importar el formato
     dni = UCase(Trim(CStr(ws.Cells(fila, "I").Value)))
 
-    ' Si las fechas de entrada o salida no son vï¿½lidas, no se puede comparar duplicados
+    ' Si las fechas de entrada o salida no son válidas, no se puede comparar duplicados
     If Not IsDate(ws.Cells(fila, "L").Value) Or _
        Not IsDate(ws.Cells(fila, "M").Value) Then Exit Sub
 
-    ' Conversiï¿½n de entrada y salida a valor numï¿½rico de fecha de Excel
+    ' Conversión de entrada y salida a valor numérico de fecha de Excel
     entrada = CDbl(CDate(ws.Cells(fila, "L").Value))
     Salida = CDbl(CDate(ws.Cells(fila, "M").Value))
 
-    ' La columna O debe contener un valor numï¿½rico vï¿½lido
+    ' La columna O debe contener un valor numérico válido
     If Not IsNumeric(ws.Cells(fila, "O").Value) Then Exit Sub
 
-    ' Si el nï¿½mero de pax es cero o negativo, se aborta
+    ' Si el número de pax es cero o negativo, se aborta
     If CLng(ws.Cells(fila, "O").Value) <= 0 Then Exit Sub
     pax = CLng(ws.Cells(fila, "O").Value)
 
     ' Si no hay DNI, no tiene sentido buscar duplicados
     If dni = "" Then Exit Sub
 
-    ' La fecha de peticin debe ser vlida
+    ' La fecha de petición debe ser válida
     If Not IsDate(fechaOrden) Then Exit Sub
 
     ' -----------------------------
     ' CONSULTA DE DUPLICADOS EN ACCESS
     ' -----------------------------
     Dim resCod As String
-    resCod = modDatabase.ObtenerResidenciaActiva()
+    resCod = modDatabase.ObtenerClaveResidenciaDesdeHoja(ws.Name)
     If Len(resCod) = 0 Then resCod = "GIJON"
+
     
     If modDatabase.ExisteDuplicado(dni, resCod, CDate(ws.Cells(fila, "L").Value), CDate(ws.Cells(fila, "M").Value)) Then
-        msgTexto = "âš ï¸ SOLICITUD DUPLICADA EN ACCESS DNI: " & dni & vbCrLf & _
+        msgTexto = "ATENCION: SOLICITUD DUPLICADA EN ACCESS DNI: " & dni & vbCrLf & _
             String(45, "-") & vbCrLf & _
             "DNI            : " & dni & vbCrLf & _
             "Fecha entrada  : " & Format(CDate(ws.Cells(fila, "L").Value), "dd/mm/yyyy") & vbCrLf & _
             "Fecha salida   : " & Format(CDate(ws.Cells(fila, "M").Value), "dd/mm/yyyy") & vbCrLf & _
             String(45, "-") & vbCrLf & vbCrLf & _
-            "Elija una opciÃ³n:" & vbCrLf & _
+            "Elija una opción:" & vbCrLf & _
             "  1 -> Continuar sin cambios" & vbCrLf & _
-            "  2 -> Marcar resoluciÃ³n como DESESTIMADA y grabar solicitud" & vbCrLf & _
+            "  2 -> Marcar resolución como DESESTIMADA y grabar solicitud" & vbCrLf & _
             "  3 -> Borrar toda la solicitud actual"
 
                     ' ==========================================================
-                    ' BUCLE DE VALIDACIN DE LA OPCIN DEL USUARIO
+                    ' BUCLE DE VALIDACIÓN DE LA OPCIÓN DEL USUARIO
                     ' ==========================================================
                     Do
                         ' Se muestra un InputBox con el mensaje de duplicidad.
                         ' El valor por defecto es "1"
                         opcion = Trim(InputBox(msgTexto, "Advertencia de Duplicidad", "1"))
 
-                        ' Si el usuario cancela o deja vacï¿½o el cuadro, se interpreta como opciï¿½n 1
+                        ' Si el usuario cancela o deja vacío el cuadro, se interpreta como opción 1
                         If opcion = "" Then opcion = "1"
 
-                        ' Solo son vï¿½lidas las opciones 1, 2 o 3
+                        ' Solo son válidas las opciones 1, 2 o 3
                         If opcion <> "1" And opcion <> "2" And opcion <> "3" Then
-                            MsgBox "Opciï¿½n no vï¿½lida. Introduzca 1, 2 o 3.", _
-                                   vbExclamation, "Opciï¿½n incorrecta"
+                            MsgBox "Opción no válida. Introduzca 1, 2 o 3.", _
+                                   vbExclamation, "Opción incorrecta"
                         End If
                     Loop While opcion <> "1" And opcion <> "2" And opcion <> "3"
 
                     ' ==========================================================
-                    ' EJECUCIï¿½N DE LA OPCIï¿½N ELEGIDA
+                    ' EJECUCIÓN DE LA OPCIÓN ELEGIDA
                     ' ==========================================================
                     Select Case opcion
 
                         Case "1"
-                            ' Opciï¿½n 1: no realiza cambios
-                            ' Simplemente continï¿½a sin modificar la solicitud actual
+                            ' Opción 1: no realiza cambios
+                            ' Simplemente continúa sin modificar la solicitud actual
 
                         Case "2"
-                            ' Opciï¿½n 2: marcar la solicitud actual como DESESTIMADA
-                            ' y limpiar ciertos campos segï¿½n la hoja activa
+                            ' Opción 2: marcar la solicitud actual como DESESTIMADA
+                            ' y limpiar ciertos campos según la hoja activa
 
                             Application.enableEvents = False
                             
-                            ' Se cambia el estado de la resoluciï¿½n a DESESTIMADA
+                            ' Se cambia el estado de la resolución a DESESTIMADA
                             ws.Cells(fila, "P").Value = "DESESTIMADA"
 
                             If ws.CodeName = "Hoja24" Then
@@ -127,7 +127,7 @@ Public Sub VerificarDuplicadoUltimos30Dias(ws As Worksheet, fila As Long)
                                 ws.Cells(fila, "T").ClearContents
                                 ws.Cells(fila, "AB").ClearContents
                             Else
-                                ' GIJï¿½N/SOTO: Limpiar solo Factura (C), Habitaciones (S) y Pagado (AA)
+                                ' GIJÓN/SOTO: Limpiar solo Factura (C), Habitaciones (S) y Pagado (AA)
                                 ws.Cells(fila, "C").ClearContents
                                 ws.Cells(fila, "S").ClearContents
                                 ws.Cells(fila, "AA").ClearContents
@@ -135,28 +135,28 @@ Public Sub VerificarDuplicadoUltimos30Dias(ws As Worksheet, fila As Long)
 
                             Application.enableEvents = True
 
-                            ' Selecciï¿½n de la celda correcta para disparar el aviso flotante
-                            ' y llamar a la funciï¿½n de copia
+                            ' Selección de la celda correcta para disparar el aviso flotante
+                            ' y llamar a la función de copia
                             Dim colAviso As String
                             If ws.CodeName = "Hoja24" Then
                                 colAviso = "AF"         ' OVIEDO
                             Else
-                                colAviso = "AB"         ' GIJï¿½N/SOTO
+                                colAviso = "AB"         ' GIJÓN/SOTO
                             End If
 
                             ws.Cells(fila, colAviso).Select
                             Call Portapapeles.CopiarYAvisarSiNoVacio(ws.Cells(fila, colAviso).Value, frmAviso)
 
                         Case "3"
-                            ' Opciï¿½n 3: borrar la solicitud actual completa
-                            ' Solo se eliminan los contenidos de las celdas que no contienen fï¿½rmulas
+                            ' Opción 3: borrar la solicitud actual completa
+                            ' Solo se eliminan los contenidos de las celdas que no contienen fórmulas
 
                             Application.enableEvents = False
 
                             ' Recorre todas las columnas usadas de la hoja
                             For col = 1 To ws.UsedRange.Columns.Count
-                                ' Si la celda no contiene fï¿½rmula, se borra su contenido
-                                ' para evitar eliminar fï¿½rmulas que podrï¿½an ser necesarias
+                                ' Si la celda no contiene fórmula, se borra su contenido
+                                ' para evitar eliminar fórmulas que podrían ser necesarias
                                 If Not ws.Cells(fila, col).HasFormula Then
                                     ws.Cells(fila, col).ClearContents
                                 End If
@@ -168,18 +168,13 @@ Public Sub VerificarDuplicadoUltimos30Dias(ws As Worksheet, fila As Long)
                     ' Una vez tratada la duplicidad, se sale del procedimiento
                     Exit Sub
                 End If
-            End If
-        End If
 
-SiguienteFila:
-        ' Etiqueta usada para saltar filas invï¿½lidas o incompletas
-        ' y continuar con la siguiente iteraciï¿½n del bucle
-    Next i
-    
     Exit Sub
 
 ErrorHandler:
     Application.enableEvents = True
     MsgBox "Error inesperado al verificar duplicados: " & Err.Description, vbCritical, "Control de Duplicados"
 End Sub
+
+
 
