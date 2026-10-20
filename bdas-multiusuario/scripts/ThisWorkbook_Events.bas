@@ -158,8 +158,8 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
         Dim respSalida As VbMsgBoxResult
         
         msgSalida = "¿Desea cerrar la aplicación BDAS Multiusuario?" & vbCrLf & vbCrLf & _
-                    "  • Base de Datos central: Sincronizada y actualizada." & vbCrLf & _
-                    "  • Todos los registros y modificaciones han sido guardados." & vbCrLf & vbCrLf & _
+                    "  - Base de Datos central: Sincronizada y actualizada." & vbCrLf & _
+                    "  - Todos los registros y modificaciones han sido guardados." & vbCrLf & vbCrLf & _
                     "Pulse 'Sí' para salir o 'No' para continuar trabajando."
                     
         respSalida = MsgBox(msgSalida, vbQuestion + vbYesNo + vbDefaultButton2, "BDAS Multiusuario - Confirmación de Salida")
