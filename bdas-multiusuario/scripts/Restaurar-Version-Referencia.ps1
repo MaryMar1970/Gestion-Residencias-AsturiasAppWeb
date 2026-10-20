@@ -1,9 +1,9 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Script: Restaurar-Version-Referencia.ps1
 # Propósito: Restaurar de forma instantánea la Versión de Referencia Estable
-#            (Hito 2026-10-19 01:50: Carátula Casa Cuartel en INICIO + Login Centrado +
-#             Persistencia Universal Reservas/LOGs + Turno por Defecto Soto +
-#             Eliminación Hoja Lista Negra + Blindaje Hojas Gijón + Roles Centralizados)
+#            (Hito 2026-10-20 19:35: Tarifas Dinamicas Facturas Gijon/Oviedo + Saneamiento Auditoría LOGs + Sincronización
+#             Relacional Top 500 + Blindaje Error 50290 + Persistencia Inmune de Sesión
+#             y Rol ADMIN/OPERADOR)
 #            en caso de que se produzcan errores en futuras modificaciones.
 # ==============================================================================
 
@@ -12,8 +12,8 @@ param(
 )
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-19 01:50) " -ForegroundColor Cyan
-Write-Host "   (Carátula Casa Cuartel + Persistencia Reservas + Turno Soto)  " -ForegroundColor Cyan
+Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-20 19:35) " -ForegroundColor Cyan
+Write-Host "   (Tarifas Dinamicas Facturas + Auditoria LOGs + Sesion Persistente)" -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $refDir = "H:\ResidenciaBD\Plantilla\VersionReferencia"
