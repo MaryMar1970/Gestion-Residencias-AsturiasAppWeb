@@ -1,9 +1,9 @@
 # ==============================================================================
 # Script: Restaurar-Version-Referencia.ps1
 # Propósito: Restaurar de forma instantánea la Versión de Referencia Estable
-#            (Hito 2026-10-20 23:15: Tarifas Dinamicas Facturas Gijon/Oviedo + Saneamiento Auditoría LOGs + Sincronización
-#             Relacional Top 500 + Blindaje Error 50290 + Persistencia Inmune de Sesión
-#             y Rol ADMIN/OPERADOR + Integridad de 171 Componentes Preservados)
+#            (Hito 2026-10-21 00:55: Cierre Suave y Seguro UX en ThisWorkbook + Protocolo Estricto Cero Mojibake +
+#             Saneamiento Ortográfico Integral en EvitarDuplicidadSolicitudesGyS + Tarifas Dinámicas +
+#             Auditoría LOGs + Sesión Persistente + 171 Componentes Preservados)
 #            en caso de que se produzcan errores en futuras modificaciones.
 # ==============================================================================
 
@@ -12,8 +12,8 @@ param(
 )
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-20 23:15) " -ForegroundColor Cyan
-Write-Host "   (Tarifas Dinamicas Facturas + Auditoria LOGs + Sesion Persistente)" -ForegroundColor Cyan
+Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-21 00:55) " -ForegroundColor Cyan
+Write-Host "   (Cierre UX + Protocolo Cero Mojibake + Duplicados + Tarifas)  " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $refDir = "H:\ResidenciaBD\Plantilla\VersionReferencia"
@@ -64,4 +64,4 @@ if (Test-Path $refFileAccdb) {
     Write-Host "[OK] Base de datos Access backend restaurada con exito: $activeAccdb" -ForegroundColor Green
 }
 
-Write-Host "`nRESTAURACION FINALIZADA. El proyecto ha vuelto a la version de referencia 2026-10-19." -ForegroundColor Cyan
+Write-Host "`nRESTAURACION FINALIZADA. El proyecto ha vuelto a la version de referencia 2026-10-21 (00:55)." -ForegroundColor Cyan
