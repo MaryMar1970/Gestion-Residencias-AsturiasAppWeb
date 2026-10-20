@@ -81,9 +81,9 @@ Public Sub VerificarDuplicadoUltimos30Dias(ws As Worksheet, fila As Long)
             "Fecha salida   : " & Format(CDate(ws.Cells(fila, "M").Value), "dd/mm/yyyy") & vbCrLf & _
             String(45, "-") & vbCrLf & vbCrLf & _
             "Elija una opción:" & vbCrLf & _
-            "  1 ➔ Continuar sin cambios" & vbCrLf & _
-            "  2 ➔ Marcar resolución como DESESTIMADA y grabar solicitud" & vbCrLf & _
-            "  3 ➔ Borrar toda la solicitud actual"
+            "  1 -> Continuar sin cambios" & vbCrLf & _
+            "  2 -> Marcar resolución como DESESTIMADA y grabar solicitud" & vbCrLf & _
+            "  3 -> Borrar toda la solicitud actual"
 
                     ' ==========================================================
                     ' BUCLE DE VALIDACIN DE LA OPCIN DEL USUARIO
