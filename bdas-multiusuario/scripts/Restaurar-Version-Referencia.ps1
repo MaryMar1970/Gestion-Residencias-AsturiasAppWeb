@@ -1,9 +1,9 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Script: Restaurar-Version-Referencia.ps1
 # Propósito: Restaurar de forma instantánea la Versión de Referencia Estable
-#            (Hito 2026-10-20 19:35: Tarifas Dinamicas Facturas Gijon/Oviedo + Saneamiento Auditoría LOGs + Sincronización
+#            (Hito 2026-10-20 23:15: Tarifas Dinamicas Facturas Gijon/Oviedo + Saneamiento Auditoría LOGs + Sincronización
 #             Relacional Top 500 + Blindaje Error 50290 + Persistencia Inmune de Sesión
-#             y Rol ADMIN/OPERADOR)
+#             y Rol ADMIN/OPERADOR + Integridad de 171 Componentes Preservados)
 #            en caso de que se produzcan errores en futuras modificaciones.
 # ==============================================================================
 
@@ -12,7 +12,7 @@ param(
 )
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-20 19:35) " -ForegroundColor Cyan
+Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-20 23:15) " -ForegroundColor Cyan
 Write-Host "   (Tarifas Dinamicas Facturas + Auditoria LOGs + Sesion Persistente)" -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 

@@ -144,3 +144,46 @@ Cuando vuelvas, dile al asistente:
 > **"Quiero continuar con la implementación BDAS Multiusuario (Excel + Access en H:\). Lee el archivo `H:\ResidenciaApp\bdas-multiusuario\scripts\ESTADO-IMPLEMENTACION-BDAS-MULTIUSUARIO.md` para ver dónde quedamos."**
 
 ---
+
+---
+
+## Hito 2026-10-12: Desacoplamiento Completo de BDAS a Access, Purga RGPD y Limpieza Estructural
+
+- Ordenacion Cronologica Estricta (Id ASC): En modDatabase.SincronizarHojaDesdeAccess, resuelto el salto de ano fiscal para que las ordenes de 2025 precedan correlativamente a las de 2026.
+- Blindaje Multirresidencia en ActualizarOrden: Resuelta la colision de ordenes coincidentes en numero entre residencias cuando se seleccionan varias sedes en el login.
+- Motor SQL Atomico en Access (Fase 1): Creadas funciones nativas en modDatabase (ArchivarOrdenesAntiguasBD, ContarOrdenesArchivablesBD, ContarHistoricoPurgableRGPD, PurgarHistoricoRGPD).
+- Desacoplamiento Operativo (Fase 2):
+  * ModuloArchivadoDatosBDAS: archivado y conteo delegado a Access; buscarEnBDAS consulta Ordenes_Historico UNION BDAS_Historico_Snapshot.
+  * BorradoFilasHojasBDAS: purga fisica > 3 anos delegada a modDatabase.PurgarHistoricoRGPD(3).
+- Auditoria Integral (Fase 3):
+  * 0 formulas rotas y 0 nombres externos dependientes en el libro.
+  * Corregido modDatabase.ObtenerNombreHoja para apuntar a RESIDENCIA <SEDE>.
+- Eliminacion Fisica de Hojas BDAS y Limpieza de Modulos (Fase 4):
+  * Eliminadas las 3 hojas ocultas legacy: BDAS GIJON, BDAS SOTO, BDAS OVIEDO.
+  * Eliminados 6 modulos obsoletos/temporales del proyecto VBA: modMigracion, modTestPerf, ModuloCrearHojaConfig, ModuloAjusteZoomHojas, ModuloTEMPORAL, TemporalEliminarLuego.
+  * Compilacion VBA: 0 errores.
+  * Tamano de archivo reducido de ~6,55 MB a ~5,97 MB (ahorro de casi 600 KB comprimidos).
+- Copias de Seguridad Incrementales: Registrado BDAS_Multiusuario_BACKUP_2026-10-12_2153.xlsm y .accdb en H:\ResidenciaBD\BackupsDiarios\.
+
+---
+
+## Hito 2026-10-20 23:15: Consolidación y Promoción a Versión de Referencia Oficial
+
+- **Promoción a Versión de Referencia**:
+  * Réplica protegida en `H:\ResidenciaBD\Plantilla\VersionReferencia\BDAS_Multiusuario_VERSION_REFERENCIA.xlsm` (7.151.821 bytes, MD5: `5A23A4AB3A34A88442E6C28D5B1FB021`, `ReadOnly`).
+  * Réplica de base de datos en `H:\ResidenciaBD\Plantilla\VersionReferencia\Residencia_BE_VERSION_REFERENCIA.accdb` (6.725.632 bytes, MD5: `2D5E9D788825B17AAECEF46531D9ADFC`, `ReadOnly`).
+  * Copia desplegada en red actualizada: `H:\ResidenciaBD\BDAS_Multiusuario.xlsm` (MD5: `5A23A4AB3A34A88442E6C28D5B1FB021`).
+  * Hito previo archivado: `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-20_1935.xlsm` y `Residencia_BE_VERSION_REFERENCIA_2026-10-20_1935.accdb`.
+- **Funcionalidades Consolidadas**:
+  * **Tarifas Dinámicas en Facturas PAX**: Gijón y Oviedo vinculadas dinámicamente con `TARIFAS UNIDAD`, con cuadre contable exacto al céntimo.
+  * **Dictamen Forense de Conservación Integral (171 Componentes)**: Prohibición expresa de eliminación de módulos legacy (`ModuloVariablesGlobales.bas`, `ModListaNegra.bas`, `CalculoDiasUso.bas`, etc.) debido a acoplamiento en código de hojas de trabajo (`Hoja2`, `Hoja20`, `Hoja24`). Estabilidad garantizada con 0 errores de compilación.
+  * **Saneamiento Integral de Auditoría LOG**: Parseo estricto por columnas `[Usuario, Fecha/Hora, Nº Orden, Columna, Valor anterior, Valor nuevo]` con neutralización de inyección de fórmulas (`'=`).
+  * **Sincronización Relacional Top 500**: Subconsulta descendente en Access para traer los 500 registros más recientes sin truncamiento histórico.
+  * **Filtrado Exclusivo de Login**: Sin contaminación cruzada entre sedes.
+  * **Erradicación del Error 50290**: Blindaje en `Hoja11` (`SOBRE GIJÓN`) ante edición de celdas y listas desplegables.
+  * **Sesión Persistente y Auto-reparable**: Preservación en Nombres Definidos Ocultos de Excel resistente a la volatilidad de memoria VBA y reseteos.
+  * **Blindaje de la Barra de Estado**: Leyenda de conexión permanente sin interferencias de alertas de accesibilidad.
+  * **Saneamiento Global de Mojibake**: 171 componentes y 127 módulos limpios con normalización 7-bit ASCII.
+  * **Script de Reversión Inmediata**: Actualizado `bdas-multiusuario\scripts\Restaurar-Version-Referencia.ps1`.
+
+
