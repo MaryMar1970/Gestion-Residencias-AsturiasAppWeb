@@ -145,6 +145,7 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
     ' CIERRE DEL BDAS MULTIUSUARIO
     ' =====================================================
     ' - Confirmación de salida informativa para el usuario
+    ' - Transición suave sin parpadeo (Opción A)
     ' - Registrar logout en el log de Access
     ' - Preparar carátula INICIO para la próxima apertura
     ' - NUNCA guardar cambios en el .xlsm compartido
@@ -168,26 +169,54 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
             Exit Sub
         End If
         
-        ' Registrar logout si el usuario confirmó la salida
-        modDatabase.InsertarLog modDatabase.ObtenerUsuarioActual(), "LOGOUT", _
-                               "Cierre de sesión normal"
+        ' --- Transición suave de salida (Opción A) ---
+        ' 1. Congelar pantalla para evitar parpadeos o saltos de hoja
+        Application.ScreenUpdating = False
+        
+        ' 2. Cambiar cursor a espera
+        Application.Cursor = xlWait
+        
+        ' 3. Mensaje de despedida elegante en la barra de estado
+        Application.StatusBar = "Sesión guardada correctamente. Desconectando de forma segura... ¡Hasta pronto!"
+        DoEvents
+        
+        ' 4. Registrar logout en Access
+        modDatabase.InsertarLog modDatabase.ObtenerUsuarioActual(), "LOGOUT", "Cierre de sesión normal"
+        
+        ' 5. Preparar carátula INICIO en memoria para la próxima apertura (sin salto visual)
+        On Error Resume Next
+        Dim wsInicioClose As Worksheet
+        Set wsInicioClose = modDatabase.ObtenerHojaSegura("INICIO")
+        If Not wsInicioClose Is Nothing Then
+            wsInicioClose.visible = xlSheetVisible
+            wsInicioClose.Activate
+            ActiveWindow.DisplayGridlines = False
+            ActiveWindow.DisplayHeadings = False
+        End If
+        On Error GoTo 0
+        
+        ' 6. Breve pausa elegante (0.8 segundos) para mostrar el mensaje de despedida
+        Dim tFin As Single
+        tFin = Timer + 0.8
+        Do While Timer < tFin
+            DoEvents
+        Loop
+        
+        ' 7. Restaurar cursor y limpiar barra de estado
+        Application.Cursor = xlDefault
+        Application.StatusBar = False
     End If
-    
-    ' Preparar carátula INICIO para la próxima apertura
-    On Error Resume Next
-    Dim wsInicioClose As Worksheet
-    Set wsInicioClose = modDatabase.ObtenerHojaSegura("INICIO")
-    If Not wsInicioClose Is Nothing Then
-        wsInicioClose.visible = xlSheetVisible
-        wsInicioClose.Activate
-        ActiveWindow.DisplayGridlines = False
-        ActiveWindow.DisplayHeadings = False
-    End If
-    On Error GoTo 0
     
     ' Evitar el diálogo "¿Guardar cambios?"
     ' El .xlsm es una plantilla compartida, NO debe guardarse con datos de sesión
     ThisWorkbook.Saved = True
+    
+    ' Si es el único libro abierto, cerrar la aplicación Excel de forma coordinada
+    On Error Resume Next
+    If Application.Workbooks.Count <= 1 Then
+        Application.Quit
+    End If
+    On Error GoTo 0
 End Sub
 
 ' ==============================================================================
