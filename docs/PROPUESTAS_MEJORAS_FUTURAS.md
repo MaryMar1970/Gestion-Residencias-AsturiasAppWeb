@@ -10,7 +10,7 @@ Este documento recopila propuestas técnicas, extensiones funcionales y mejoras 
 |:---:|:---:|:---|:---|:---:|
 | **PROP-01** | 18/10/2026 | Auditoría / Lista Negra | Replicación de Altas y Bajas de Lista Negra en Hojas LOG de Excel | 📋 Resuelta (Sync desde Access) |
 | **PROP-02** | 19/10/2026 | Interfaz / Arranque | Mitigación y Amortiguación de Parpadeos Visuales (Flicker) al Iniciar la App y Login | ⏳ Pendiente de Revisión |
-| **PROP-03** | 21/10/2026 | Conectividad / BD | Monitor de Conectividad en Tiempo Real ("Semáforo de Red") y Detección Temprana de Pérdida de Conexión con Access | ⏳ Pendiente de Valoración |
+| **PROP-03** | 21/10/2026 | Resiliencia / Conectividad | Sistema de Continuidad Operativa Fuera de Línea (Modo Contingencia Nivel 2 — "Buffer & Sync") | 📋 Planificada para Próxima Fase |
 
 ---
 
@@ -140,43 +140,133 @@ Y su invocación directa en [frmGestionListaNegra.frm](file:///H:/ResidenciaApp/
 
 ---
 
-### [PROP-03] Monitor de Conectividad en Tiempo Real ("Semáforo de Red") y Detección Temprana de Pérdida de Conexión con el Backend Access
+---
 
-- **Fecha de Registro:** 21 de octubre de 2026.
-- **Origen:** Consulta del usuario sobre la resiliencia y el comportamiento del Front-End (Excel) ante caídas, cortes o degradación de la red hacia el Back-End (`H:\ResidenciaBD\Residencia_BE.accdb`).
-- **Estado:** ⏳ **Pendiente de Valoración.**
+### [PROP-03] Sistema de Continuidad Operativa Fuera de Línea (Modo Contingencia Nivel 2 — "Buffer & Sync")
+
+- **Nombre del Proyecto de Mejora:** **SICO-N2** (*Sistema de Continuidad Operativa Nivel 2*) / **Operativa de Contingencia "Buffer & Sync"**.
+- **Fecha de Registro y Planificación:** 21–22 de octubre de 2026.
+- **Origen:** Análisis y decisión expresa del usuario para dotar a la aplicación de resiliencia total ante pérdidas prolongadas de comunicación con la base de datos central (`H:\ResidenciaBD\Residencia_BE.accdb`).
+- **Estado:** 📋 **Planificada y Priorizada para Próxima Fase de Trabajo.**
 - **Módulos Implicados:**
-  - [modDatabase.bas](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules/modDatabase.bas) (`ComprobarConexion`, `SincronizarFilaHaciaAccess`, `ActualizarOrden`, `ExecuteNonQuery`)
-  - [ThisWorkbook.cls](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules/ThisWorkbook.cls) / Barra de Estado (`Application.StatusBar`) / Encabezado de Hoja
-  - Hojas operativas (`Hoja2`, `Hoja3`, `Hoja4` - `Worksheet_Change`)
+  - Hoja de Sistema Oculta `SYS_COLA_SYNC` (Persistencia no volátil en disco de operaciones locales).
+  - [modDatabase.bas](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules/modDatabase.bas) (Capa de persistencia ADO, comprobación rápida de red y motor de volcado FIFO).
+  - `ModuloSeguridadLocal.bas` (Caché local cifrada de credenciales para login desconectado).
+  - [ThisWorkbook.cls](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules/ThisWorkbook.cls) (Control de ciclo de vida, arranque en contingencia, salvaguarda en cierre).
+  - Hojas operativas: `Hoja2` (`RESIDENCIA GIJÓN`), `Hoja3` (`RESIDENCIA SOTO DEL BARCO`), `Hoja4` (`RESIDENCIA OVIEDO`) en sus eventos `Worksheet_Change`.
+  - Barra de Estado (`Application.StatusBar`) y Ribbon/Cabecera (Semáforo de Red e indicador de cambios en búfer).
 
-#### 1. Diagnóstico del Estado Actual y Justificación
-- La arquitectura actual de BDAS Multiusuario está diseñada bajo un modelo cliente-servidor transaccional directo en tiempo real.
-- Al arrancar, si no hay conexión con `H:\ResidenciaBD\Residencia_BE.accdb`, la aplicación bloquea el acceso de forma segura y se cierra para evitar trabajar a ciegas sin autenticación ni sincronización.
-- Sin embargo, si la conexión se interrumpe o degrada **con la aplicación ya abierta**:
-  1. Excel mantiene los datos en la memoria RAM local y permite al usuario seguir introduciendo o modificando valores en la cuadrícula.
-  2. Cada edición dispara llamadas ADODB que intentan conectar con Access; si la red falla o está degradada, se consumen hasta 5 segundos de espera (`ConnectionTimeout`) por celda, provocando congelaciones intermitentes.
-  3. Los cambios editados quedan en la pantalla local pero **no se graban en la base de datos central**.
-  4. Si el operador no advierte el fallo y sigue trabajando, al reabrir la aplicación en la siguiente sesión los datos descargados desde Access sobrescribirán lo tecleado fuera de línea, provocando pérdida involuntaria de trabajo.
+---
 
-#### 2. Vías Técnicas de Solución Propuestas
-1. **Vía A: Indicador Visual Permanente de Estado ("Semáforo de Red")**:
-   - Integrar un indicador de latencia y estado en la Barra de Estado de Excel (`Application.StatusBar`) o como un pequeño elemento visual en la cabecera fija de las hojas de residencia:
-     * 🟢 **`[CONECTADO - H:\ResidenciaBD]`**: Comunicación fluida con el backend Access.
-     * 🟡 **`[CONEXIÓN LENTA]`**: Tiempo de respuesta superior a 2 segundos en la última consulta.
-     * 🔴 **`[SIN RED / DESCONECTADO]`**: Base de datos inaccesible; advertencia inmediata al usuario.
-2. **Vía B: Alerta Temprana Emergente y Protección Preventiva**:
-   - Modificar las rutinas de sincronización en caliente (`SincronizarFilaHaciaAccess` y `ActualizarOrden`) para que, ante el primer fallo de escritura en Access:
-     * Intercepte el error antes de propagar más llamadas a la red.
-     * Muestre un aviso claro e instructivo:
-       > *"ALERTA DE CONEXIÓN: Se ha interrumpido la comunicación con la base de datos central en H:\ResidenciaBD. Los últimos cambios no se han podido guardar. Por favor, detén la introducción de datos y comprueba el acceso a la red antes de continuar."*
-     * Evita que el operador continúe introduciendo datos a ciegas creyendo que se están guardando.
-3. **Vía C: Búfer Temporal de Reintentos en Memoria (Cola Local Ligera)**:
-   - Para microcortes de pocos segundos, retener las filas modificadas en una colección interna (`FilasPendientesReintento`) y reintentar su inserción/actualización de forma transparente en cuanto la conexión vuelva a estar disponible, evitando la pérdida de datos ante pequeñas fluctuaciones de red.
+#### 1. Objetivos Estratégicos del Proyecto
+1. **Cero Bloqueos al Iniciar:** Permitir que el operador encienda su ordenador y comience a trabajar de inmediato, incluso si la unidad `H:\` o la red están completamente caídas desde primera hora de la mañana.
+2. **Capacidad Operativa Real (Recepción Activa):** Despachar todas las operaciones ordinarias de recepción sin necesidad de apuntes en papel (cobros en metálico/banco, actualización de teléfonos, matrículas, notas de estancia, check-in).
+3. **Persistencia Permanente Multidiaria:** Los datos acumulados no se pierden al apagar el equipo por la tarde; se conservan físicamente en el archivo `.xlsm` durante días o fines de semana completos hasta que regrese la conexión.
+4. **Sincronización Invisible y Reconciliación FIFO:** Al regresar la red, el sistema vuelca automáticamente todas las operaciones en orden cronológico estricto a Access en menos de 2 segundos, preservando la fecha y hora original de cada cobro para la auditoría.
+5. **Blindaje de Líneas Rojas Contables:** Bloqueo preventivo de numeraciones correlativas de facturas y asignación de habitaciones simultáneas no consolidadas para evitar colisiones fiscales o duplicidades entre residencias.
 
-#### 3. Criterios de Valoración
-- **Ventajas:**
-  - Transparencia total para los operadores sobre la salud y disponibilidad de su conexión de red.
-  - Prevención garantizada de pérdidas de datos por desconexión no advertida.
-  - Experiencia de usuario (UX) mucho más sólida, profesional y confiable.
-- **Riesgos / Impacto:** Mínimo. No altera la estructura de tablas de Access ni los cálculos contables o de facturación de las hojas.
+---
+
+#### 2. Arquitectura Técnica de la Solución
+
+```
++-----------------------------------------------------------------------------------+
+|                            FRONT-END (Excel .xlsm)                                |
+|                                                                                   |
+|  [Operador edita celda / registra cobro]                                          |
+|                       |                                                           |
+|                       v                                                           |
+|             ¿Hay conexión con H:\?                                                |
+|            /                      \                                              |
+|         (SÍ)                      (NO)                                            |
+|          |                         |                                              |
+|          v                         v                                              |
+|   Persistencia ADODB      [SYS_COLA_SYNC] (Hoja oculta en disco)                  |
+|   directa en Access       +---------------------------------------------+         |
+|   (Residencia_BE.accdb)   | ID | FechaHora | Usuario | Orden | Campo | Valor|         |
+|                           +---------------------------------------------+         |
+|                                    |                                              |
+|                                    | (Persiste apagados y reinicios)              |
+|                                    v                                              |
+|                         [Al detectar retorno de red]                              |
+|                                    |                                              |
+|                                    v                                              |
+|                       Sincronización Diferida FIFO                                |
+|                       -> Vuelca cambios a Access con fecha real                   |
+|                       -> Registra apunte en LogActividad                         |
+|                       -> Vacía la cola y emite notificación                      |
++-----------------------------------------------------------------------------------+
+```
+
+---
+
+#### 3. Especificación de Componentes a Desarrollar
+
+##### A. Hoja de Sistema Oculta: `SYS_COLA_SYNC`
+- Propiedad: `xlSheetVeryHidden` (invisible en el selector de hojas de Excel).
+- Protegida con la clave maestra de hojas (`ModuloConfigSegura.ObtenerPasswordHojas()`).
+- Columnas normalizadas:
+  1. `ID_Transaccion` (Autonumérico local GUID/Long).
+  2. `FechaHoraLocal` (Fecha y hora exacta en que el operador realizó la acción).
+  3. `Usuario` (Identificador del operador que registró el cambio).
+  4. `Residencia` (`GIJON`, `SOTO`, `OVIEDO`).
+  5. `NumOrden` (Nº de orden de la reserva afectada).
+  6. `TipoOperacion` (`UPDATE_PAGO`, `UPDATE_CONTACTO`, `UPDATE_ESTADO`, `PRERESERVA`).
+  7. `CampoModificado` (Nombre del campo en Access: `EstadoPago`, `Telefono`, `Direccion`, etc.).
+  8. `ValorAnterior` (Para trazabilidad y rollback).
+  9. `ValorNuevo` (Valor que debe consolidarse en Access).
+  10. `EstadoSync` (`PENDIENTE`, `SINCRONIZANDO`, `CONCILIADO`, `ERROR`).
+  11. `Reintentos` (Contador de intentos).
+
+##### B. Módulo de Caché de Credenciales Locales: `ModuloSeguridadLocal.bas`
+- En cada login exitoso conectado a Access, guarda en un Nombre Definido oculto de Excel (`app_local_cred_cache`) el par `[Usuario | Hash_SHA256 | Residencias | Timestamp]`, cifrado con sal local vinculada a la máquina.
+- Al arrancar sin red:
+  * Si la conexión falla, `Workbook_Open` no se cierra; invoca el login de contingencia.
+  * Valida las credenciales contra la caché local.
+  * Si coinciden, abre las hojas de la residencia correspondiente en **Modo Contingencia Nivel 2**.
+
+##### C. Semáforo de Red y Monitor No Bloqueante
+- Indicador visual permanente en la Barra de Estado de Excel:
+  * 🟢 **`[CONECTADO - H:\ResidenciaBD]`**: Operativa ordinaria en vivo.
+  * 🟡 **`[MODO CONTINGENCIA N2 - X cambios pendientes]`**: Desconectado; datos asegurados en búfer local.
+  * 🔄 **`[SINCRONIZANDO CON SERVIDOR...]`**: Volcando cola en segundo plano.
+- Detección de fallo ultra-rápida: si una petición da error de red, activa el modo desconectado durante 60 segundos antes del siguiente sondeo, eliminando retardos o relojes de arena en la cuadrícula.
+
+##### D. Enrutador de Guardado en Hojas Operativas (`Hoja2`, `Hoja3`, `Hoja4`)
+- En `Worksheet_Change`, si el semáforo está en amarillo/rojo:
+  * Desvía el cambio inmediatamente a `SYS_COLA_SYNC` mediante el procedimiento `EncolarOperacionOffline`.
+  * La celda de Excel se actualiza en pantalla al instante (0 milisegundos de espera).
+  * Opcional: marca visual sutil (borde tenue o sombreado suave) indicando que ese dato específico está pendiente de subir a Access.
+
+##### E. Motor de Reconciliación Automática (FIFO)
+- Procedimiento `SincronizarColaOfflineHaciaAccess`:
+  * Se dispara al detectar el paso de 🔴 a 🟢 (o mediante botón en cinta de opciones: *"Sincronizar Cola Ahora"*).
+  * Ordena los registros pendientes por `ID_Transaccion` ascendente (cronológico estricto).
+  * Ejecuta los `UPDATE` transaccionales sobre la tabla `Ordenes` en Access.
+  * Inserta en `LogActividad` de Access el registro de auditoría con la fecha y hora real en que ocurrió la acción offline.
+  * Elimina las filas de `SYS_COLA_SYNC` solo tras confirmación positiva de Access.
+  * Muestra resumen al usuario: *"🟢 Sincronización completada: X operaciones consolidadas en el servidor central"*.
+
+##### F. Blindaje de Líneas Rojas Contables y de Asignación
+- **Facturación:** El botón de asignación de número de factura muestra un aviso informativo:
+  > *"La emisión de números oficiales de factura requiere conexión con el servidor central para garantizar la correlatividad estricta. Esta función se activará en cuanto se restablezca la red."*
+- **Nuevas Reservas:** Si el operador introduce una nueva orden sin red, se registra con estado `"PRE-RESERVA EN ESPERA"`. Al volver la red, el sistema comprueba la no duplicidad y disponibilidad de la habitación antes de consolidarla como orden firme.
+
+---
+
+#### 4. Plan de Implementación en 5 Fases
+
+| Fase | Tareas y Alcance | Entregables / Módulos |
+| :---: | :---| :---|
+| **Fase 1** | **Estructura y Persistencia del Búfer Local:**<br>- Creación de la hoja oculta protegida `SYS_COLA_SYNC`.<br>- Procedimientos `EncolarOperacionOffline` y lectura de cola.<br>- Prueba de persistencia al guardar y reabrir el archivo `.xlsm`. | `SYS_COLA_SYNC`<br>`modDatabase.bas` |
+| **Fase 2** | **Autenticación Desconectada en Caché:**<br>- Cifrado y almacenamiento local de credenciales.<br>- Adaptación de `frmLogin.frm` y `Workbook_Open` para tolerar arranque sin red.<br>- Validación segura de contingencia y apertura de hojas asignadas. | `ModuloSeguridadLocal.bas`<br>`frmLogin.frm`<br>`ThisWorkbook.cls` |
+| **Fase 3** | **Semáforo de Conectividad y Enrutador de Celdas:**<br>- Implementación del indicador visual en `StatusBar`.<br>- Intercepción transparente en `Worksheet_Change` de Gijón, Soto y Oviedo.<br>- Eliminación de retardos y bloqueos de red. | `Hoja2`, `Hoja3`, `Hoja4`<br>`ThisWorkbook.cls` |
+| **Fase 4** | **Motor de Sincronización Diferida (FIFO):**<br>- Procedimiento de volcado masivo cronológico a Access.<br>- Registro en `LogActividad` con marca temporal histórica.<br>- Notificaciones al usuario y vaciado seguro de la cola. | `modDatabase.bas`<br>`ModuloLOG.bas` |
+| **Fase 5** | **Blindaje de Líneas Rojas y Pruebas de Estrés:**<br>- Protección de facturas y pre-reservas.<br>- Simulación de corte de 24/48 horas con apagado de equipo.<br>- Verificación forense de cuadre en Access tras reconexión. | Protocolo de Pruebas<br>Documentación Final |
+
+---
+
+#### 5. Criterios de Calidad y Gobernanza
+- Cumplimiento estricto del estándar **ECRMC** (código modular, tipado explícito, control de errores hermético).
+- Protocolo **Cero Mojibake** (Windows-1252 ANSI nativo).
+- **Inmutabilidad del Golden Master** y generación de copias de seguridad incrementales antes de cada fase.
