@@ -1,0 +1,915 @@
+Option Explicit
+
+' =============================================================================
+' ======================= HOJA: RESIDENCIA GIJÓN =============================
+' =============================================================================
+' Este módulo gestiona los eventos y validaciones avanzadas de la hoja de GIJÓN.
+' Las funcionalidades incluyen validación recursiva, registro en log, sincronización
+' de pagos, comprobación de duplicados, formato, apertura/cierre de formularios
+' para selección de habitaciones, protección de celdas, gestión de listas negras, etc.
+
+' -----------------------
+' ===== VARIABLES DE CONTROL A NIVEL MÓDULO =====
+' -----------------------
+Private processingChange As Boolean       ' Flag para evitar recursividad dental en Worksheet_Change
+Private processingSelection As Boolean    ' Flag para evitar ejecución recursiva en Worksheet_SelectionChange
+Private lastValue As Variant             ' Valor previo usado para logging de cambios
+' Wrapper seguro para habilitar/deshabilitar eventos
+Private Sub SafeEnableEvents(Optional ByVal Enable As Boolean = True)
+    On Error Resume Next
+    Application.enableEvents = Enable
+    On Error GoTo 0
+End Sub
+
+' Wrapper para restaurar entorno tras cambios masivos o errores
+Private Sub RestaurarEntorno(ByVal estadoEventos As Boolean)
+    On Error Resume Next
+    If Application.calculation <> xlCalculationAutomatic Then
+        Application.calculation = xlCalculationAutomatic
+    End If
+    Application.enableEvents = estadoEventos
+    Application.screenUpdating = True
+    Application.StatusBar = False
+    On Error GoTo 0
+End Sub
+
+' =============================================================================
+' EVENTO: Worksheet_Activate
+' Se activa cada vez que el usuario selecciona la hoja.
+' Limita el área desplazable a columnas A-AD y filas 1-4000; esto asegura que el usuario
+' sólo interactúe en el rango relevante y evita errores de desplazamiento.
+Private Sub Worksheet_Activate()
+    On Error GoTo SafeExit
+    Application.screenUpdating = False
+    Application.enableEvents = False
+    Me.ScrollArea = "A1:AD4000"
+    ' Refresco ultraligero de facturas desde Access
+    Call modDatabase.RefrescarColumnaFacturasDesdeAccess(Me, "GIJON")
+    ' Validar incoherencias de resolución y habitación (Columna S para Gijón)
+    Call ModuloImpresionFacturasSobres.VerificarIncoherenciasResidencia(Me, "S")
+SafeExit:
+    Me.DisplayPageBreaks = False
+    Application.enableEvents = True
+    Application.screenUpdating = True
+End Sub
+
+
+' =============================================================================
+' EVENTO: Worksheet_Change_GIJÓN
+' =============================================================================
+' Gestiona la validación y registro de cambios en la hoja. Incluye:
+' - Registro de cambios en LOG
+' - Sincronización de pagos
+' - Aplicación de formato ProperCase o mayúsculas
+' - Comprobación de duplicados y secuencia
+' - Validación de fechas y llamadas a formularios de disponibilidad
+Private Sub Worksheet_Change(ByVal Target As Range)
+    On Error GoTo ErrHandler_Change
+
+    ' ---- Evita doble ejecución por recursividad ----
+    If processingChange Then Exit Sub
+    processingChange = True
+
+    ' ---- Salida temprana si el valor no cambió realmente ----
+    If Target.Cells.Count = 1 Then
+        If Target.Value = ThisWorkbook.ValorAnteriorGijon Then
+            processingChange = False
+            Exit Sub
+        End If
+    End If
+
+    ' ---- Optimización de rendimiento en procesamiento masivo ----
+    Application.enableEvents = False
+    Application.screenUpdating = False
+    Application.calculation = xlCalculationManual
+
+    ' ---- Corte de pegado masivo ----
+    If Target.Cells.CountLarge > 50 Then
+        RestaurarEntorno True
+        processingChange = False
+        Exit Sub
+    End If
+
+    ' ---- Salida temprana si fuera del area relevante ----
+    If Target.Row < 2 Or Target.Column > 30 Then GoTo Cleanup_Change
+
+    ' ---- Variables locales ----
+    Dim celda As Range, unaCelda As Range, ultimaFila As Long, rango As Range
+    Dim v As String, valorP As String
+    Dim fechaEntrada As Date, fechaSalida As Date
+    Dim Separacion As Long, numOrdenAA As Variant
+    Dim yaSincronizadoColA As Boolean
+
+    Separacion = SeparacionGijon   ' Parámetro de reglas de disponibilidad para Gijón
+
+    ' =============== REGISTRO EN LOG DE CAMBIOS ===============
+    If Target.Cells.Count = 1 Then
+        If Target.Value <> ThisWorkbook.ValorAnteriorGijon Then
+            Call RegistrarCambioLOG(Target, ThisWorkbook.usuarioActual, ThisWorkbook.ValorAnteriorGijon, "LOG_GIJÓN")
+        End If
+    Else
+        For Each unaCelda In Target
+            Call RegistrarCambioLOG(unaCelda, ThisWorkbook.usuarioActual, "Borrado multiples celdas", "LOG_GIJÓN")
+        Next unaCelda
+    End If
+
+    ' ============== BLOQUE FINALIDAD: COLUMNA D -> H =======================
+    If Not Intersect(Target, Me.Columns("D")) Is Nothing Then
+        If Target.Cells.Count = 1 Then
+            v = Trim$(CStr(Target.Value))
+            Select Case v
+                Case "Comisión NO indem.", "Destino"
+                    Target.Offset(0, 4).Value = "SI"
+                Case ""
+                    Target.Offset(0, 4).ClearContents
+                Case Else
+                    Target.Offset(0, 4).Value = "NO"
+            End Select
+        End If
+    End If
+
+    ' ================ TRAMAS PRINCIPALES SEGUN COLUMNA MODIFICADA ================
+    Dim targetCol As Long
+    Dim targetRow As Long
+    targetCol = Target.Column
+    targetRow = Target.Row
+
+    Select Case targetCol
+
+        ' --------- COLUMNA A: Duplicados y secuencia ----------
+        Case 1
+            If Target.Cells.Count = 1 And targetRow >= 2 Then
+                ' Si la celda NO está vacía, validar y sincronizar
+                If Not IsEmpty(Target.Value) Then
+                    ultimaFila = Me.Cells(Me.Rows.Count, "A").End(xlUp).Row
+                    Set rango = Me.Range("A1:A" & ultimaFila)
+                    Call VerificarDuplicados(Target, rango, "NUM. ORDEN")
+                    Dim msg As String
+                    msg = VerificarSecuenciaOrden(Me, "A", 2)
+                    If msg <> "" Then
+                        MsgBox msg, vbExclamation, "Error en Num ORDEN"
+                        Target.Select
+                    End If
+
+                    ' Sincronizar Nº ORDEN + campos en 1 sola operación
+                    Dim numOrdenSync As Variant
+                    numOrdenSync = Me.Cells(targetRow, "A").Value
+                    If Trim(CStr(numOrdenSync)) <> "" Then
+                        Call MarcarSiPagadosEnResidencia.SincronizarOrdenYCampos( _
+                            "RESIDENCIA GIJÓN", "C", "AA", "RESUMEN GIJÓN", "N", "M", numOrdenSync)
+                        If IsNumeric(numOrdenSync) And CLng(numOrdenSync) > 0 Then
+                            Call modDatabase.AsegurarOrdenExiste(CLng(numOrdenSync), "GIJON")
+                            Call modDatabase.SincronizarFilaHaciaAccess(Me, targetRow)
+                        End If
+                    End If
+
+                ' Si la celda está VACÍA, confirmar y borrar fila completa
+                Else
+                    Call BorradoNumOrden.GestionarBorradoOrden( _
+                        Me, targetRow, ThisWorkbook.ValorAnteriorGijon, _
+                        "RESUMEN GIJÓN", "AD")
+                End If
+            End If
+            yaSincronizadoColA = True
+
+        ' --------- COLUMNA B: Fechas y duplicados ----------
+        Case 2
+            If targetRow >= 2 Then
+                Call VerificarDuplicadoUltimos30Dias(Me, targetRow)
+                Call ValidacionYFormatoFechas(Target, Me)
+            End If
+
+        ' --------- COLUMNA C: Duplicados factura y validacion huecos ----------
+        Case 3
+            Call AsignarNumFactura.ProcesarCambioManualFactura(Me, Target, targetRow, "C")
+
+
+        ' --------- COLUMNAS D, E, F: FINALIDAD, EMPLEO, SITUACION -> EVALUACION (Col G) ----------
+        Case 4 To 6
+            If targetRow >= 2 Then
+                Dim vFin As String, vEmp As String, vSit As String, vRes As String
+                vFin = Trim(CStr(Me.Cells(targetRow, "D").Value))
+                vEmp = Trim(CStr(Me.Cells(targetRow, "E").Value))
+                vSit = Trim(CStr(Me.Cells(targetRow, "F").Value))
+                If vFin <> "" And vEmp <> "" And vSit <> "" Then
+                    vRes = EvaluacionSolicitudes.ObtenerResultado(vFin, vEmp, vSit)
+                If vRes <> "" Then
+                    Me.Cells(targetRow, "G").Value = vRes
+                Else
+                    Me.Cells(targetRow, "G").ClearContents
+                End If
+                Else
+                    Me.Cells(targetRow, "G").ClearContents
+                End If
+            End If
+
+        ' --------- COLUMNA I: DNI / Lista Negra ----------
+        Case 9
+            If targetRow >= 2 Then
+                For Each celda In Target.Cells
+                    If celda.Row >= 2 And Not IsEmpty(celda.Value) Then
+                        If celda.Value <> UCase(celda.Value) Then
+                            celda.Value = UCase(celda.Value)
+                        End If
+                        Call VerificarOCorregirUnaCeldaDNI(celda)
+                    End If
+                Next celda
+                Call ModListaNegra.CheckBlacklist(Me, Target)
+                If Target.Cells.Count = 1 Then
+                    Call ManejarCopiaDNI(Target, Me)
+                End If
+            End If
+
+        ' --------- COLUMNA K: ProperCase ----------
+        Case 11
+            If targetRow >= 2 And Not IsEmpty(Target.Value) Then
+                Target.Value = StrConv(Target.Value, vbProperCase)
+            End If
+
+        ' --------- COLUMNAS L, M: Fechas disponibilidad ----------
+        Case 12, 13
+            If targetRow >= 2 Then
+                Call ValidacionYFormatoFechas(Target, Me)
+            End If
+            If targetRow >= 2 And Target.Rows.Count = 1 Then
+                If Not IsEmpty(Me.Cells(targetRow, "L").Value) And _
+                   Not IsEmpty(Me.Cells(targetRow, "M").Value) Then
+                    If IsDate(Me.Cells(targetRow, "L").Value) And _
+                       IsDate(Me.Cells(targetRow, "M").Value) Then
+                        Dim valPaxTemp As Variant
+                        valPaxTemp = Me.Cells(targetRow, "O").Value
+                        If IsNumeric(valPaxTemp) And CLng(valPaxTemp) > 0 Then
+                            fechaEntrada = Me.Cells(targetRow, "L").Value
+                            fechaSalida = Me.Cells(targetRow, "M").Value
+                            Call VerificarDisponibilidadGijon(fechaEntrada, fechaSalida, targetRow, Separacion)
+                        End If
+                    End If
+                End If
+            End If
+
+        ' --------- COLUMNA O: Nº de personas ----------
+        Case 15
+            If targetRow >= 2 Then
+                If IsNumeric(Target.Value) And CLng(Target.Value) > 0 Then
+                    If IsDate(Me.Cells(targetRow, "L").Value) And IsDate(Me.Cells(targetRow, "M").Value) Then
+                        fechaEntrada = Me.Cells(targetRow, "L").Value
+                        fechaSalida = Me.Cells(targetRow, "M").Value
+                        Call VerificarDisponibilidadGijon(fechaEntrada, fechaSalida, targetRow, Separacion)
+                    End If
+                End If
+            End If
+
+        ' --------- COLUMNA P: Resolucion ----------
+        Case 16
+            If targetRow >= 2 Then
+                valorP = UCase(Trim(CStr(Target.Value)))
+
+                ' --- BLOQUE 1: RENUNCIA ---
+                If valorP = "RENUNCIA" Then
+                    If Trim(CStr(Me.Cells(targetRow, "S").Value)) = "" Then
+                        Dim ord As Variant
+                        ord = Me.Cells(targetRow, "A").Value
+                        If Not IsEmpty(ord) And ord = UltimoOrdenLiberado And Me.Name = UltimaHojaLiberada Then
+                            Application.enableEvents = False
+                            Me.Cells(targetRow, "S").Value = UltimasHabitacionesLiberadas
+                            Application.enableEvents = True
+                        End If
+                    End If
+                    Call ReevaluarRenunciaResidencia(Me.Name, targetRow, "S", "GIJON")
+                End If
+
+                ' --- BLOQUE 2: REEVALUADA ---
+                If valorP = "REEVALUADA" Then
+                    If Trim(CStr(Me.Cells(targetRow, "S").Value)) = "" Then
+                        If IsDate(Me.Cells(targetRow, "L").Value) And IsDate(Me.Cells(targetRow, "M").Value) Then
+                            fechaEntrada = Me.Cells(targetRow, "L").Value
+                            fechaSalida = Me.Cells(targetRow, "M").Value
+                            Call VerificarDisponibilidadGijon(fechaEntrada, fechaSalida, targetRow, Separacion)
+                        Else
+                            MsgBox "La solicitud no tiene fechas de entrada y salida válidas para buscar disponibilidad.", vbExclamation, "Fechas no válidas"
+                            Call EscribirResolucionDenegada(Me, targetRow, Me.Cells(targetRow, "L").Value)
+                        End If
+                    End If
+                End If
+
+                ' --- BLOQUE 3: LIMPIEZA DE CAMPOS ---
+                If valorP <> "SI" And valorP <> "CONCEDIDA" And valorP <> "REEVALUADA" Then
+                    If Trim(CStr(Me.Cells(targetRow, "S").Value)) <> "" Then
+                        UltimoOrdenLiberado = Me.Cells(targetRow, "A").Value
+                        UltimasHabitacionesLiberadas = Me.Cells(targetRow, "S").Value
+                        UltimaHojaLiberada = Me.Name
+                    End If
+                    Me.Cells(targetRow, "S").ClearContents
+                    Me.Cells(targetRow, "C").ClearContents
+                    Me.Cells(targetRow, "AA").ClearContents
+                End If
+            End If
+
+        ' --------- COLUMNA V: Telefono ----------
+        Case 22
+            If targetRow >= 2 Then
+                Call VerificaFormatoTelefonoCelda(Me, Target)
+            End If
+
+        ' --------- COLUMNA W: ProperCase ----------
+        Case 23
+            If targetRow >= 2 And Not IsEmpty(Target.Value) Then
+                Target.Value = StrConv(Target.Value, vbProperCase)
+            End If
+
+        ' --------- COLUMNA X: Codigo Postal ----------
+        Case 24
+            If targetRow >= 2 Then
+                Call ListasDinamicasCPyPoblaciones.ProcesarCambioCP_Poblacion(Target, Me, 24, 25, 26)
+            End If
+
+        ' --------- COLUMNA Y: Poblacion (ProperCase + busqueda) ----------
+        Case 25
+            If targetRow >= 2 Then
+                If Not IsEmpty(Target.Value) Then
+                    Target.Value = StrConv(Target.Value, vbProperCase)
+                End If
+                Call ListasDinamicasCPyPoblaciones.ProcesarCambioCP_Poblacion(Target, Me, 24, 25, 26)
+                Call ListasDinamicasCPyPoblaciones.ProcesarAutocompletadoPoblacion(Target, Me, 25, 24, 26)
+            End If
+
+        ' --------- COLUMNA Z: Provincia (ProperCase + busqueda) ----------
+        Case 26
+            If targetRow >= 2 Then
+                If Not IsEmpty(Target.Value) Then
+                    Target.Value = StrConv(Target.Value, vbProperCase)
+                End If
+                Call ListasDinamicasCPyPoblaciones.ProcesarCambioCP_Poblacion(Target, Me, 24, 25, 26)
+            End If
+
+        ' --------- COLUMNA AA: Pagado y Factura ----------
+        Case 27
+            If targetRow >= 2 Then
+                Dim sVal As String
+                sVal = UCase(Trim(CStr(Target.Value)))
+                If MarcarSiPagadosEnResidencia.EsEstadoPagado(sVal) Then
+                    Dim metodoPagoGijon As String
+                    If sVal = "SI" Then
+                        metodoPagoGijon = MarcarSiPagadosEnResidencia.PedirMetodoPago()
+                        If metodoPagoGijon = "" Then
+                            Application.enableEvents = False
+                            Target.ClearContents
+                            Application.enableEvents = True
+                            GoTo Cleanup_Change
+                        End If
+                        Application.enableEvents = False
+                        Target.Value = metodoPagoGijon
+                        Application.enableEvents = True
+                    Else
+                        metodoPagoGijon = Target.Value
+                    End If
+                                        Call AsignarFacturaPorColumna(Me, Target, "AA")
+                    If Not EstaSincronizandoPagado() Then
+                        numOrdenAA = Me.Cells(targetRow, "A").Value
+                        If Trim(CStr(numOrdenAA)) <> "" Then
+                            Call MarcarPagadoEnResumen(numOrdenAA, metodoPagoGijon)
+                            ' Sincronizar con la base de datos Access (fuente de verdad)
+                            If IsNumeric(numOrdenAA) And CLng(numOrdenAA) > 0 Then
+                                modDatabase.ActualizarOrden CLng(numOrdenAA), "EstadoPago", CStr(metodoPagoGijon)
+                            End If
+                        End If
+                    End If
+                Else
+                    Call AsignarFacturaPorColumna(Me, Target, "AA")
+                    If Not EstaSincronizandoPagado() Then
+                        numOrdenAA = Me.Cells(targetRow, "A").Value
+                        If Trim(CStr(numOrdenAA)) <> "" Then
+                            Call MarcarPagadoEnResumen(numOrdenAA, "")
+                            ' Sincronizar borrado de pago en Access
+                            If IsNumeric(numOrdenAA) And CLng(numOrdenAA) > 0 Then
+                                modDatabase.ActualizarOrden CLng(numOrdenAA), "EstadoPago", ""
+                            End If
+                        End If
+                    End If
+                End If
+
+            End If
+
+    End Select
+
+' == RESTAURACIÓN DE ENTORNO Y FINALIZACIÓN DEL EVENTO CHANGE ==
+Cleanup_Change:
+    ' Persistencia automatica hacia Access DB (fuente de verdad multiusuario)
+    Dim fRowG As Long
+    For fRowG = Target.Row To Target.Row + Target.Rows.Count - 1
+        If fRowG >= 2 Then
+            If IsNumeric(Me.Cells(fRowG, 1).Value) And Len(Trim$(CStr(Me.Cells(fRowG, 1).Value))) > 0 Then
+                If CLng(Me.Cells(fRowG, 1).Value) > 0 Then
+                    Call modDatabase.SincronizarFilaHaciaAccess(Me, fRowG)
+                End If
+            End If
+        End If
+    Next fRowG
+
+    ' Refrescar el "valor anterior" en las columnas con lista desplegable:
+    ' D, E, F (4-6), J (10), P (16), T (20), AA (27) y AD (30)
+    If Target.Cells.Count = 1 Then
+        Select Case Target.Column
+            Case 4 To 6, 10, 16, 20, 27, 30
+                On Error Resume Next
+                ThisWorkbook.ValorAnteriorGijon = Target.Value
+                On Error GoTo ErrHandler_Change
+        End Select
+    End If
+
+    RestaurarEntorno True
+    processingChange = False
+    Exit Sub
+
+ErrHandler_Change:
+    Dim numError As Long, descError As String
+    numError = Err.Number
+    descError = Err.Description
+    RestaurarEntorno True
+    processingChange = False
+    MsgBox "Error en Worksheet_Change (" & numError & "): " & descError, vbCritical, "RESIDENCIA GIJÓN"
+End Sub
+
+' =============================================================================
+' EVENTO: Worksheet_SelectionChange
+' =============================================================================
+' Este evento se ejecuta cada vez que el usuario selecciona una celda diferente.
+' Incluye validaciones de habitaciones, apertura/cierre de formularios, manejo de avisos flotantes,
+' y copia/consistencia en columnas de adjudicaciones.
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+
+    On Error GoTo ErrHandler_Sel
+    
+    ' ------ Salida temprana si seleccion masiva o fuera de area relevante ------
+    If Target.Cells.CountLarge > 50 Then Exit Sub
+    If Target.Row < 2 Then Exit Sub
+    
+    Dim numOrden As String, wsCal As Worksheet, celdaEncontrada As Range
+    Dim filaSel As Long, textoAB As String, nro As Long
+
+    ' Guarda el valor anterior en variable global para registro en log.
+    If Target.Cells.Count = 1 Then
+        lastValue = Target.Value
+        ThisWorkbook.ValorAnteriorGijon = lastValue
+    Else
+        ThisWorkbook.ValorAnteriorGijon = ""
+    End If
+
+    If processingSelection Then Exit Sub
+    processingSelection = True
+
+    Application.enableEvents = False
+'    Application.screenUpdating = False
+
+    ' == Validación/aviso si selecciona columna AB (28) ==
+    If Target.Cells.Count = 1 And Target.Column = 28 Then
+        filaSel = Target.Row
+        If Not ValidateHabitaciones(filaSel, True) Then GoTo Cleanup_Sel
+    End If
+
+
+    ' == Si selecciona columna AC (29), abre formulario reservas para registro actual ==
+    If Target.Cells.Count = 1 And Target.Column = 29 And Target.Row > 1 Then
+        If Len(Trim(Me.Cells(Target.Row, "A").Value)) > 0 And IsNumeric(Me.Cells(Target.Row, "A").Value) Then
+            nro = CLng(Me.Cells(Target.Row, "A").Value)
+            On Error Resume Next
+            frmReservasUnidad.Show vbModeless
+            If Err.Number <> 0 Then
+                Err.Clear
+            Else
+                On Error GoTo ErrHandler_Sel
+                frmReservasUnidad.GenerarTextoDesdeOrden nro, "GIJÓN", "RESIDENCIA GIJÓN"
+            End If
+        End If
+    End If
+
+    ' == Cierre automático de formulario de reservas si selecciona fuera de la columna ==
+    On Error Resume Next
+    If Not frmReservasUnidad Is Nothing Then
+        If frmReservasUnidad.visible Then
+            If Not (Target.Column = 29 And Target.Row > 1) Then
+                frmReservasUnidad.CerrarFormulario
+            End If
+        End If
+    End If
+    On Error GoTo ErrHandler_Sel
+
+    ' == Copia y aviso flotante si columna AB (28) y hay valor ==
+    If Target.Cells.Count = 1 And Target.Column = 28 Then
+        textoAB = Me.Cells(Target.Row, "AB").Value
+        CopiarYAvisarSiNoVacio textoAB, frmAviso
+    End If
+
+    ' == Oculta el aviso emergente si se cambia fuera de columna AB ==
+    On Error Resume Next
+    If Not (Target.Column = 28) Then
+        If Not frmAviso Is Nothing Then
+            If frmAviso.visible Then Unload frmAviso
+        End If
+    End If
+    On Error GoTo ErrHandler_Sel
+
+Cleanup_Sel:
+    Application.enableEvents = True
+'    Application.screenUpdating = True
+    processingSelection = False
+    Exit Sub
+
+ErrHandler_Sel:
+    MsgBox "Error " & Err.Number & ": " & Err.Description, vbCritical, "RESIDENCIA GIJÓN - SelectionChange"
+    Resume Cleanup_Sel
+End Sub
+
+' =============================================================================
+' FUNCIONES AUXILIARES DE VALIDACIÓN DE HABITACIONES
+' =============================================================================
+' Validación avanzada para coherencia entre habitaciones adjudicadas, facturadas,
+' ocupación válida, estudios, sobreocupaciones y reglas especiales de negocio.
+Private Function ValidateHabitaciones(ByVal filaActual As Long, Optional ByVal promptIfMismatch As Boolean = False) As Boolean
+    On Error GoTo ErrValidate
+    ValidateHabitaciones = True
+
+    ' --------- Variables de valores clave asignados en la fila a validar ----------
+    Dim pVal As String
+    Dim qVal As Long, rVal As Long
+    Dim sVal As String, valoresS() As String
+    Dim numValoresS As Long, i As Long
+    Dim contieneSolo4 As Boolean, contiene4 As Boolean
+
+    ' --------- Lectura de valores desde la hoja para la fila seleccionada ----------
+    pVal = UCase(Trim(Me.Cells(filaActual, "P").Value))
+
+    ' Si la resolución no es válida, limpia campo y sale.
+    If Not (pVal = "CONCEDIDA" Or pVal = "SI" Or pVal = "REEVALUADA") Then
+        Me.Cells(filaActual, "S").ClearContents
+        Exit Function
+    End If
+
+    ' Verifica que los valores de habitaciones sean numéricos.
+    If Not IsNumeric(Me.Cells(filaActual, "Q").Value) Or Not IsNumeric(Me.Cells(filaActual, "R").Value) Then
+        MsgBox "Las columnas Q (HAB. IND.) y R (HAB. DOBLE) deben ser números", vbExclamation, "Error de tipo"
+        Me.Cells(filaActual, "Q").Select
+        ValidateHabitaciones = False
+        Exit Function
+    End If
+
+    qVal = CLng(val(Me.Cells(filaActual, "Q").Value))
+    rVal = CLng(val(Me.Cells(filaActual, "R").Value))
+    sVal = Trim(Me.Cells(filaActual, "S").Value)
+
+    If sVal <> "" Then
+        valoresS = Split(sVal, ",")
+        numValoresS = UBound(valoresS) - LBound(valoresS) + 1
+    Else
+        numValoresS = 0
+    End If
+
+    Dim sumaQR As Long
+    sumaQR = qVal + rVal
+
+    ' Comprobación avanzada: nº habitaciones facturadas debe coincidir con las adjudicadas.
+    If sumaQR <> numValoresS Then
+        If promptIfMismatch Then
+            Dim resp As VbMsgBoxResult
+            resp = MsgBox("El número de habitaciones a facturar no coincide con las habitaciones adjudicadas." & vbCrLf & _
+                          "SOLICITADAS: " & sumaQR & " - ADJUDICADAS: " & numValoresS & vbCrLf & vbCrLf & _
+                          "¿Desea modificar los valoresí", vbYesNo + vbExclamation, "Validación habitaciones")
+            If resp = vbYes Then
+                Me.Cells(filaActual, "S").Select
+                ValidateHabitaciones = False
+                Exit Function
+            End If
+        Else
+            MsgBox "ERROR DE COHERENCIA: Habitaciones facturadas: " & sumaQR & " - Habitaciones adjudicadas: " & numValoresS, vbExclamation, "Validación habitaciones FACTURADAS/ADJUDICADAS"
+            Me.Cells(filaActual, "S").Select
+            ValidateHabitaciones = False
+            Exit Function
+        End If
+    End If
+
+    ' Validaciones especiales para habitación 4 y estudios (Est.1, Est.2, Est.3)
+    If sVal <> "" And numValoresS > 0 Then
+        contieneSolo4 = (numValoresS = 1 And Trim(valoresS(LBound(valoresS))) = "4")
+        contiene4 = False
+        For i = LBound(valoresS) To UBound(valoresS)
+            If Trim(valoresS(i)) = "4" Then
+                contiene4 = True
+                Exit For
+            End If
+        Next i
+
+        If contieneSolo4 Then
+            If val(Me.Cells(filaActual, "O").Value) <> 1 Or val(Me.Cells(filaActual, "Q").Value) <> 1 Then
+                MsgBox "Si adjudicamos sólo la habitación 4, entonces:" & vbCrLf & "? PAX debe ser 1" & vbCrLf & "? HAB. IND. debe ser 1", vbExclamation, "Validación especial"
+                Me.Cells(filaActual, "S").Select
+                ValidateHabitaciones = False
+                Exit Function
+            End If
+        ElseIf contiene4 Then
+            If val(Me.Cells(filaActual, "Q").Value) <= 0 Or val(Me.Cells(filaActual, "O").Value) <= 1 Then
+                MsgBox "Si adjudicamos la habitación 4 junto a otra/s, entonces:" & vbCrLf & "? PAX debe ser al menos 2" & vbCrLf & "? HAB. IND. debe ser al menos 1", vbExclamation, "Validación especial"
+                Me.Cells(filaActual, "S").Select
+                ValidateHabitaciones = False
+                Exit Function
+            End If
+        End If
+    End If
+
+
+' Validación avanzada: coherencia entre PAX, habitaciones adjudicadas y FACTURACIÓN
+' Validación: coincidencia exacta entre PAX y plazas facturadas
+    Dim paxValue As Long
+    Dim plazasFacturadas As Long
+    
+    paxValue = val(Me.Cells(filaActual, "O").Value)
+    plazasFacturadas = (qVal * 1) + (rVal * 2)
+    
+    If paxValue <> plazasFacturadas Then
+        MsgBox "ERROR DE COHERENCIA EN FACTURACIÓN:" & vbCrLf & vbCrLf & _
+       "El número de PAX debe coincidir exactamente con las plazas facturadas." & vbCrLf & vbCrLf & _
+       "Valores actuales:" & vbCrLf & _
+       "-> PAX solicitud= " & paxValue & vbCrLf & _
+       "-> PAX facturados= " & plazasFacturadas & vbCrLf & _
+       "  " & qVal & " * HAB. IND. + " & rVal & " * HAB. DOBLE = " & (qVal * 1) & " + " & (rVal * 2) & " = " & plazasFacturadas & vbCrLf & vbCrLf & _
+       "Recuerde:" & vbCrLf & _
+       "# HAB. DOBLE con 1 PAX -> facturar como HAB. IND." & vbCrLf & _
+       "# HAB. DOBLE con 2 PAX -> facturar como HAB. DOBLE", _
+       vbExclamation, "Error de validación"
+        Me.Cells(filaActual, "Q").Select
+        ValidateHabitaciones = False
+        Exit Function
+    End If
+
+If sVal <> "" And numValoresS > 0 And rVal > 0 Then
+    ' Cuenta cuántas habitaciones adjudicadas son dobles
+    Dim numHabDobles As Long, numHabIndividuales As Long
+    numHabDobles = 0
+    numHabIndividuales = 0
+    
+    For i = LBound(valoresS) To UBound(valoresS)
+        Dim habCheck As String
+        habCheck = Trim(valoresS(i))
+        
+        ' Habitaciones individuales
+        If habCheck = "4" Or habCheck = "Est.1" Or habCheck = "Est.2" Or habCheck = "Est.3" Then
+            numHabIndividuales = numHabIndividuales + 1
+        ' Habitaciones dobles
+        ElseIf habCheck = "1" Or habCheck = "2" Or habCheck = "3" Or habCheck = "5" Or _
+               habCheck = "6" Or habCheck = "7" Or habCheck = "Of.1" Or habCheck = "Of.2" Or habCheck = "Of.3" Then
+            numHabDobles = numHabDobles + 1
+        End If
+    Next i
+    
+    ' Validación: si PAX = Nº habitaciones, TODAS deben facturarse como individuales
+    If paxValue = numValoresS Then
+        If rVal > 0 Then
+            MsgBox "ERROR DE FACTURACIÓN:" & vbCrLf & vbCrLf & _
+                   "Cuando el número de PAX coincide con el número de habitaciones adjudicadas," & vbCrLf & _
+                   "todas las habitaciones se ocupan individualmente y deben facturarse como INDIVIDUALES." & vbCrLf & vbCrLf & _
+                   "Valores actuales:" & vbCrLf & _
+                   "? PAX = " & paxValue & vbCrLf & _
+                   "? Habitaciones adjudicadas = " & numValoresS & vbCrLf & _
+                   "? HAB. IND. = " & qVal & vbCrLf & _
+                   "? HAB. DOBLE = " & rVal & vbCrLf & vbCrLf & _
+                   "Debe ser: HAB. IND. = " & numValoresS & " y HAB. DOBLE = 0", _
+                   vbExclamation, "Error de validación"
+            Me.Cells(filaActual, "R").Select
+            ValidateHabitaciones = False
+            Exit Function
+        End If
+    
+    ' Validación: número de habitaciones DOBLES facturadas no puede superar las adjudicadas
+    ElseIf rVal > numHabDobles Then
+        MsgBox "ERROR DE FACTURACIÓN:" & vbCrLf & vbCrLf & _
+               "El número de habitaciones DOBLES facturadas no puede superar" & vbCrLf & _
+               "el número de habitaciones dobles adjudicadas." & vbCrLf & vbCrLf & _
+               "Habitaciones dobles adjudicadas: " & numHabDobles & vbCrLf & _
+               "Habitaciones DOBLES facturadas: " & rVal & vbCrLf & vbCrLf & _
+               "Recuerde: Las habitaciones dobles con ocupación individual" & vbCrLf & _
+               "deben facturarse como INDIVIDUALES.", _
+               vbExclamation, "Error de validación"
+        Me.Cells(filaActual, "R").Select
+        ValidateHabitaciones = False
+        Exit Function
+    End If
+End If
+
+    ' Validación coherente de ocupación y sobreocupación.
+    Dim pax As Long, habInd As Long, habDoble As Long, capacidadMaxima As Long
+    pax = val(Me.Cells(filaActual, "O").Value)
+    habInd = qVal
+    habDoble = rVal
+
+    If pax = 1 And habInd <> 1 Then
+        MsgBox "ERROR DE COHERENCIA: Si el número de PAX es 1, HAB. IND. debe ser 1.", vbExclamation, "Validación de residencia"
+        Me.Cells(filaActual, "Q").Select
+        ValidateHabitaciones = False
+        Exit Function
+    End If
+    If pax < (habInd + habDoble) Then
+        MsgBox "ERROR DE COHERENCIA: El número de PAX debe ser igual o mayor al número de habitaciones solicitadas.", vbExclamation, "Validación de residencia"
+        Me.Cells(filaActual, "O").Select
+        ValidateHabitaciones = False
+        Exit Function
+    End If
+    capacidadMaxima = CalcularCapacidadReal(sVal)
+    If pax > capacidadMaxima Then
+        Dim respSobre As VbMsgBoxResult
+        respSobre = MsgBox("Nº PAX supera la capacidad máxima del alojamiento. ¿Desea continuar con la adjudicaciónº", vbYesNo + vbExclamation, "Aviso de sobreocupación")
+        If respSobre = vbNo Then
+            Me.Cells(filaActual, "O").Select
+            ValidateHabitaciones = False
+            Exit Function
+        End If
+    End If
+    ValidateHabitaciones = True
+    Exit Function
+
+ErrValidate:
+    MsgBox "Error " & Err.Number & ": " & Err.Description, vbCritical, "ValidateHabitaciones"
+    ValidateHabitaciones = False
+    End Function
+    ' Función auxiliar: Calcula la capacidad real según las habitaciones adjudicadas
+Private Function CalcularCapacidadReal(ByVal listaHabitaciones As String) As Long
+    On Error GoTo ErrCapacidad
+    CalcularCapacidadReal = 0
+    
+    If Trim(listaHabitaciones) = "" Then Exit Function
+    
+    Dim habitaciones() As String
+    Dim i As Long, hab As String
+    Dim capacidad As Long
+    
+    habitaciones = Split(listaHabitaciones, ",")
+    capacidad = 0
+    
+    For i = LBound(habitaciones) To UBound(habitaciones)
+        hab = Trim(habitaciones(i))
+        
+        ' Habitaciones individuales (capacidad 1)
+        If hab = "4" Or hab = "Est.1" Or hab = "Est.2" Or hab = "Est.3" Then
+            capacidad = capacidad + 1
+        ' Habitaciones dobles (capacidad 2)
+        ElseIf hab = "1" Or hab = "2" Or hab = "3" Or hab = "5" Or hab = "6" Or hab = "7" Or _
+               hab = "Of.1" Or hab = "Of.2" Or hab = "Of.3" Then
+            capacidad = capacidad + 2
+        End If
+    Next i
+    
+    CalcularCapacidadReal = capacidad
+    Exit Function
+    
+ErrCapacidad:
+    CalcularCapacidadReal = 0
+End Function
+    
+
+' =========================================================================
+' EVENTO: Worksheet_BeforeDoubleClick
+' =========================================================================
+' Permite al usuario abrir formularios personalizados haciendo doble clic en:
+' - Celda I1: configuración de búsqueda BDAS
+' - Celdas columna A: navega al calendario de GIJÓN usando el nº ORDEN seleccionado.
+Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
+    On Error GoTo ErrHandler
+
+    ' Doble clic en I1 -> abre configuración BDAS (búsquedas avanzadas)
+    If Not Intersect(Target, Me.Range("I1")) Is Nothing Then
+        Cancel = True
+        frmConfigBusquedaBDAS.Show
+        Exit Sub
+    End If
+    
+    ' Doble clic en K1 -> muestra la hoja oculta "BDAS GIJÓN"
+    If Not Intersect(Target, Me.Range("K1")) Is Nothing Then
+        Cancel = True
+        Dim wsBDAS As Worksheet
+        On Error Resume Next
+        Set wsBDAS = ThisWorkbook.Worksheets("BDAS GIJÓN")
+        On Error GoTo ErrHandler
+        If wsBDAS Is Nothing Then
+            MsgBox "No se encuentra la hoja 'BDAS GIJÓN'.", vbCritical
+            Exit Sub
+        End If
+        wsBDAS.visible = xlSheetVisible
+        wsBDAS.Activate
+        Exit Sub
+    End If
+
+    ' Doble clic en columna A, fila >= 2 -> navega directo al registro del calendario de GIJÓN
+    If Target.Column = 1 And Target.Row > 1 Then
+        Dim numOrden As String
+        numOrden = Trim(CStr(Target.Value))
+        If numOrden = "" Then Exit Sub
+        Cancel = True
+
+        Dim wsCal As Worksheet
+        Dim celda As Range, rangoBusqueda As Range
+        Dim encontrado As Boolean
+
+        On Error Resume Next
+        Set wsCal = ThisWorkbook.Worksheets("Calendario GIJÓN")
+        If wsCal Is Nothing Then Set wsCal = ThisWorkbook.Worksheets("Calendario Gijón")
+        On Error GoTo ErrHandler
+
+        If wsCal Is Nothing Then
+            MsgBox "No se encuentra la hoja 'Calendario GIJÓN'.", vbCritical
+            Exit Sub
+        End If
+
+        ' Bloquea pantalla durante búsqueda y navegación
+        Application.screenUpdating = False
+        Application.enableEvents = False
+        Application.StatusBar = "Buscando Nº ORDEN " & numOrden & " en Calendario GIJÓN..."
+
+        encontrado = False
+        Set rangoBusqueda = wsCal.Range("B2:AQB26")
+        For Each celda In rangoBusqueda
+            If ExtraerNumeroOrden(CStr(celda.Value)) = numOrden Then
+                encontrado = True
+                Exit For
+            End If
+        Next celda
+
+        Application.StatusBar = False
+
+        If encontrado Then
+            wsCal.Activate
+            Application.GoTo celda, True
+        Else
+            MsgBox "No se encontró el Nº ORDEN '" & numOrden & "' en 'Calendario GIJÓN'.", vbInformation
+        End If
+
+        Application.enableEvents = True
+        Application.screenUpdating = True
+
+        Exit Sub
+    End If
+
+    Exit Sub
+
+ErrHandler:
+    Application.StatusBar = False
+    Application.enableEvents = True
+    Application.screenUpdating = True
+    MsgBox "Error al buscar en calendario: " & Err.Description, vbExclamation
+End Sub
+
+'==============================================================================
+' FUNCIÓN AUXILIAR: BorrarFilaEnResumen
+' Borra la fila correspondiente en RESUMEN cuando se borra Nº ORDEN
+'==============================================================================
+Private Sub BorrarFilaEnResumen(numOrden As Variant, nombreHojaResumen As String)
+    Dim wsResumen As Worksheet
+    Dim celdaEncontrada As Range
+    Dim ultimaFila As Long
+    Dim numOrdenStr As String
+    
+    numOrdenStr = Trim(CStr(numOrden))
+    If numOrdenStr = "" Then Exit Sub
+    
+    On Error Resume Next
+    Set wsResumen = ThisWorkbook.Worksheets(nombreHojaResumen)
+    On Error GoTo 0
+    
+    If wsResumen Is Nothing Then Exit Sub
+    
+    ultimaFila = wsResumen.Cells(wsResumen.Rows.Count, "A").End(xlUp).Row
+    If ultimaFila < 2 Then Exit Sub
+    
+    ' Buscar el Nº ORDEN en RESUMEN
+    On Error Resume Next
+    Set celdaEncontrada = wsResumen.Range("A2:A" & ultimaFila).Find( _
+        What:=numOrdenStr, LookIn:=xlValues, LookAt:=xlWhole, MatchCase:=False)
+    On Error GoTo 0
+    
+If Not celdaEncontrada Is Nothing Then
+        Application.enableEvents = False
+        celdaEncontrada.EntireRow.Delete
+        Application.enableEvents = True
+    End If
+End Sub
+
+' =============================================================================
+' FIN HOJA RESIDENCIA GIJÓN
+' =============================================================================
+
+
+
+
+
+
+
+Private Sub Worksheet_Deactivate()
+    On Error Resume Next
+    Dim rAct As Long
+    rAct = ActiveCell.Row
+    If rAct >= 2 Then
+        If IsNumeric(Me.Cells(rAct, 1).Value) And Len(Trim$(CStr(Me.Cells(rAct, 1).Value))) > 0 Then
+            If CLng(Me.Cells(rAct, 1).Value) > 0 Then
+                Call modDatabase.SincronizarFilaHaciaAccess(Me, rAct)
+            End If
+        End If
+    End If
+End Sub
+

@@ -18,8 +18,8 @@ $currentRefXlsm = Join-Path $refDir "BDAS_Multiusuario_VERSION_REFERENCIA.xlsm"
 $currentRefAccdb = Join-Path $refDir "Residencia_BE_VERSION_REFERENCIA.accdb"
 
 Write-Host "=== 1. Generando Backup Incremental de Cierre de Sesion ===" -ForegroundColor Cyan
-$bkpXlsm = Join-Path $backupDir "BDAS_Multiusuario_BACKUP_2026-10-21_0055_VERSION_REFERENCIA.xlsm"
-$bkpAccdb = Join-Path $backupDir "Residencia_BE_BACKUP_2026-10-21_0055_VERSION_REFERENCIA.accdb"
+$bkpXlsm = Join-Path $backupDir "BDAS_Multiusuario_BACKUP_2026-10-21_2330_VERSION_REFERENCIA.xlsm"
+$bkpAccdb = Join-Path $backupDir "Residencia_BE_BACKUP_2026-10-21_2330_VERSION_REFERENCIA.accdb"
 
 Copy-Item -LiteralPath $activeXlsm -Destination $bkpXlsm -Force
 Write-Host "[OK] Backup XLSM creado: $bkpXlsm" -ForegroundColor Green
@@ -30,8 +30,8 @@ if (Test-Path $backendAccdb) {
 }
 
 Write-Host "=== 2. Archivando Referencia Previa en Historico ===" -ForegroundColor Cyan
-$histXlsm = Join-Path $histDir "BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-20_2315.xlsm"
-$histAccdb = Join-Path $histDir "Residencia_BE_VERSION_REFERENCIA_2026-10-20_2315.accdb"
+$histXlsm = Join-Path $histDir "BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-21_0055.xlsm"
+$histAccdb = Join-Path $histDir "Residencia_BE_VERSION_REFERENCIA_2026-10-21_0055.accdb"
 
 if (Test-Path $currentRefXlsm) {
     Copy-Item -LiteralPath $currentRefXlsm -Destination $histXlsm -Force

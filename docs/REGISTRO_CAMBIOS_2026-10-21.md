@@ -72,3 +72,74 @@ En caso de requerirse en el futuro restaurar el entorno al estado óptimo de est
 powershell -ExecutionPolicy Bypass -File "H:\ResidenciaApp\bdas-multiusuario\scripts\Restaurar-Version-Referencia.ps1"
 ```
 El script realiza un backup automático de seguridad previo y restablece tanto el libro Excel de trabajo como la base de datos backend Access y la copia de red.
+
+---
+
+## Hito 2026-10-21 23:30: Auto-Fit Dinámico de Carátula, Tarjeta de Login Anclada y Erradicación de Reloj de Arena en Gijón
+
+### 1. Resumen Ejecutivo
+Se ha consolidado y promocionado formalmente a **Versión de Referencia Oficial** el libro activo de trabajo `H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm` y la base de datos backend `H:\ResidenciaBD\Residencia_BE.accdb`. Este hito resuelve integralmente la visibilidad de la carátula histórica de la Casa Cuartel adaptándola proporcionalmente a cualquier pantalla sin recortes, integra el formulario de login como una tarjeta compacta anclada en la base entre los dos guardias civiles, erradica el retardo y reloj de arena al seleccionar la columna T (*DTO. FAM. NUM.*) en `RESIDENCIA GIJÓN`, y actualiza las réplicas protegidas contra escritura en `H:\ResidenciaBD\Plantilla\VersionReferencia\`.
+
+---
+
+### 2. Identificadores Forenses y Verificación de Integridad
+
+| Archivo / Réplica | Ubicación | Tamaño (Bytes) | Hash MD5 | Atributos |
+| :--- | :--- | :--- | :--- | :--- |
+| **Versión de Referencia (XLSM)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\BDAS_Multiusuario_VERSION_REFERENCIA.xlsm` | 7.188.546 | `2507104C574B3DD48E11DD9A0FD76A76` | Solo Lectura (`ReadOnly = True`) |
+| **Versión de Referencia (ACCDB)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Residencia_BE_VERSION_REFERENCIA.accdb` | 6.725.632 | `D51AE318D49BC74C4BC738F5B58B2B51` | Solo Lectura (`ReadOnly = True`) |
+| **Versión Activa de Trabajo** | `H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm` | 7.188.546 | `2507104C574B3DD48E11DD9A0FD76A76` | Lectura / Escritura |
+| **Base de Datos Activa** | `H:\ResidenciaBD\Residencia_BE.accdb` | 6.725.632 | `D51AE318D49BC74C4BC738F5B58B2B51` | Lectura / Escritura |
+| **Copia Desplegada en Producción** | `H:\ResidenciaBD\BDAS_Multiusuario.xlsm` | 7.188.546 | `2507104C574B3DD48E11DD9A0FD76A76` | Lectura / Escritura |
+
+#### Histórico Archivado del Hito Previo (2026-10-21 00:55):
+- `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-21_0055.xlsm` (7.171.197 bytes, MD5: `E8AE2E58DC520C55042E93C8992945F9`, `ReadOnly = True`)
+- `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\Residencia_BE_VERSION_REFERENCIA_2026-10-21_0055.accdb` (6.725.632 bytes, MD5: `E3586759300882BCEEEB1677F31643B7`, `ReadOnly = True`)
+
+---
+
+### 3. Vinculación de Copias Incrementales con Funcionalidades y Código
+
+| Copia Incremental XLSM / ACCDB | Fecha / Hora | MD5 Criptográfico | Tamaño (bytes) | Funcionalidad y Cambios Asociados |
+| :---| :---: | :---:| :---:| :---|
+| `BDAS_Multiusuario_BACKUP_2026-10-21_0055_VERSION_REFERENCIA.xlsm` | 21/10/2026 00:55 | `E8AE2E58DC520C55042E93C8992945F9` | 7.171.197 | **Línea Base de Inicio:** Consolidación de salida segura UX, protocolo anti-mojibake y saneamiento ortográfico en duplicados. |
+| `BDAS_Multiusuario_BACKUP_2026-10-21_2330_VERSION_REFERENCIA.xlsm` | 21/10/2026 23:30 | `2507104C574B3DD48E11DD9A0FD76A76` | 7.188.546 | **Hito Consolidado:** Auto-Fit dinámico de carátula en `ThisWorkbook`, tarjeta de Login anclada entre guardias en `frmLogin`, y erradicación de retardo/reloj de arena en columna T de `Hoja2 (RESIDENCIA GIJÓN)`. |
+| `Residencia_BE_BACKUP_2026-10-21_2330_VERSION_REFERENCIA.accdb` | 21/10/2026 23:30 | `D51AE318D49BC74C4BC738F5B58B2B51` | 6.725.632 | **Copia Incremental Backend Access:** Base de datos relacional sincronizada y verificada. |
+
+---
+
+### 4. Alcance Técnico Consolidado en este Hito
+
+1. **Auto-Fit Dinámico Proporcional de la Carátula (`ThisWorkbook.cls`)**:
+   - Implementación del procedimiento privado `AjustarCaratulaInicio` en `ThisWorkbook`.
+   - Detección en tiempo real de `Application.UsableWidth` y `Application.UsableHeight`.
+   - Reescalado automático de la forma `ImgCaratulaCasaCuartel` respetando la proporción nativa $1.858 : 1$ ($1570 \times 845\text{ px}$) con márgenes de cortesía visual ($92\%$ alto, $96\%$ ancho).
+   - Centrado horizontal y vertical en pantalla, garantizando que el tercio inferior (calzada y base) sea **100% visible sin recortes** en cualquier monitor (portátiles 1080p a escala 125%, sobremesa o pantallas 4K).
+   - Manejo seguro de desprotección y reprotección mediante `ModuloConfigSegura.ObtenerPasswordHojas()`.
+
+2. **Tarjeta de Login Estilizada y Anclada Milimétricamente (`frmLogin.frm`)**:
+   - Rediseño compacto tipo tarjeta: $240\text{ pt}$ ancho $\times 165\text{ pt}$ alto, fondo blanco puro a juego con la fachada encalada y botón de entrada en verde institucional sobrio (`RGB(35, 75, 45)`).
+   - Posicionamiento manual exacto (`StartUpPosition = 0`) calculado en `PosicionarFormulario`: centrado en el eje horizontal y situado al $52\%$ de la altura útil, encajado con precisión milimétrica en el patio empedrado entre los dos guardias civiles.
+   - Ambos guardias civiles (a izquierda y derecha) quedan completamente despejados y visibles.
+   - Navegación optimizada por teclado: foco automático inicial en Usuario, salto con `Enter` a Clave, y ejecución inmediata de `ProcesarLogin` con `Enter` desde la casilla de clave.
+
+3. **Erradicación del Reloj de Arena en Columna T de `Hoja2 (RESIDENCIA GIJÓN)`**:
+   - Supresión de la condición redundante y prematura `Or Target.Column = 20` dentro de `Worksheet_SelectionChange`.
+   - Eliminación de la ejecución parásita de `ValidateHabitaciones` al hacer clic o desplazarse por la columna *DTO. FAM. NUM.*
+   - Se mantiene intacta la validación de coherencia habitacional en la columna **AB** (*Grabación Solicitud*), equiparando el comportamiento fluido de Gijón con el de Soto (columna AB) y Oviedo (columna AF).
+
+4. **Estado de Validación del Proyecto**:
+   - **Compilación VBA en Microsoft Excel:** 🟢 **0 ERRORES** (`CommandBars.FindControl(1, 578).Enabled = False`).
+   - **Linter de Codificación y Mojibake:** 🟢 Módulos modificados 100% limpios en Windows-1252 ANSI.
+   - **Preservación Total:** 171 componentes operativos e inmutabilidad estricta del Golden Master.
+
+---
+
+### 5. Protocolo de Reversión
+
+En caso de requerirse en el futuro restaurar el entorno al estado óptimo de este hito:
+```powershell
+powershell -ExecutionPolicy Bypass -File "H:\ResidenciaApp\bdas-multiusuario\scripts\Restaurar-Version-Referencia.ps1"
+```
+El script realiza un backup automático de seguridad previo y restablece tanto el libro Excel de trabajo como la base de datos backend Access y la copia de red.
+
