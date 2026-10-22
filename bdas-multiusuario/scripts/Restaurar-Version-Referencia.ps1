@@ -1,9 +1,10 @@
 # ==============================================================================
 # Script: Restaurar-Version-Referencia.ps1
 # Propósito: Restaurar de forma instantánea la Versión de Referencia Estable
-#            (Hito 2026-10-21 23:30: Auto-Fit Dinámico Carátula Casa Cuartel en ThisWorkbook +
-#             Tarjeta Login Anclada entre Guardias en frmLogin + Erradicación Reloj de Arena en Columna T de Gijón +
-#             Cierre UX + Protocolo Cero Mojibake + Duplicados + Tarifas Dinámicas + 171 Componentes Preservados)
+#            (Hito 2026-10-22 18:55: Carátula Pantalla Completa Casa Cuartel Antigua en INICIO +
+#             Tarjeta Login Compacta Anclada entre Guardias en frmLogin +
+#             Erradicación Total Error de Sintaxis por Continuaciones Rotas '_' en ThisWorkbook +
+#             Gobernanza Cero Mojibake Windows-1252 ANSI + Preservación 171 Componentes)
 #            en caso de que se produzcan errores en futuras modificaciones.
 # ==============================================================================
 
@@ -12,8 +13,8 @@ param(
 )
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-21 23:30) " -ForegroundColor Cyan
-Write-Host "   (Auto-Fit Caratula + Tarjeta Login + Fix Columna T Gijon)     " -ForegroundColor Cyan
+Write-Host "   RESTAURACION DE VERSION DE REFERENCIA (HITO 2026-10-22 18:55) " -ForegroundColor Cyan
+Write-Host "   (Caratula Completa + Login Compacto + Cero Error Sintaxis)   " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $refDir = "H:\ResidenciaBD\Plantilla\VersionReferencia"
