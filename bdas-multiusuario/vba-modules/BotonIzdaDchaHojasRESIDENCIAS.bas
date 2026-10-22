@@ -1,8 +1,8 @@
-ï»¿Attribute VB_Name = "BotonIzdaDchaHojasRESIDENCIAS"
+Attribute VB_Name = "BotonIzdaDchaHojasRESIDENCIAS"
 Public Sub DesplazarBloqueHaciaIzquierda(control As IRibbonControl)
     Dim BLOQUE_COLUMNAS As Integer
     Dim nuevaColumna As Long
-    ' Intenta leer el tamaï¿½o de bloque de la celda B1 de la hoja activa
+    ' Intenta leer el tamaÓo de bloque de la celda B1 de la hoja activa
     If IsNumeric(ActiveSheet.Range("B1").Value) Then
         BLOQUE_COLUMNAS = ActiveSheet.Range("B1").Value
     Else
@@ -10,7 +10,7 @@ Public Sub DesplazarBloqueHaciaIzquierda(control As IRibbonControl)
     End If
 
     Select Case ActiveSheet.Name
-        Case "RESIDENCIA GIJï¿½N", "RESIDENCIA SOTO", "RESIDENCIA OVIEDO"
+        Case "RESIDENCIA GIJÓN", "RESIDENCIA SOTO", "RESIDENCIA OVIEDO"
             nuevaColumna = ActiveWindow.ScrollColumn - BLOQUE_COLUMNAS
             If nuevaColumna < 1 Then nuevaColumna = 1
             ActiveWindow.ScrollColumn = nuevaColumna
@@ -23,7 +23,7 @@ Public Sub DesplazarBloqueHaciaDerecha(control As IRibbonControl)
     Dim nuevaColumna As Long
     Dim columnasVisible As Long
 
-    ' Intenta leer el tamaï¿½o de bloque de la celda B1 de la hoja activa
+    ' Intenta leer el tamaÓo de bloque de la celda B1 de la hoja activa
     If IsNumeric(ActiveSheet.Range("B1").Value) Then
         BLOQUE_COLUMNAS = ActiveSheet.Range("B1").Value
     Else
@@ -31,7 +31,7 @@ Public Sub DesplazarBloqueHaciaDerecha(control As IRibbonControl)
     End If
 
     Select Case ActiveSheet.Name
-        Case "RESIDENCIA GIJï¿½N", "RESIDENCIA SOTO", "RESIDENCIA OVIEDO"
+        Case "RESIDENCIA GIJÓN", "RESIDENCIA SOTO", "RESIDENCIA OVIEDO"
             maxColumna = ActiveSheet.Columns.Count
             columnasVisible = ActiveWindow.VisibleRange.Columns.Count
             nuevaColumna = ActiveWindow.ScrollColumn + BLOQUE_COLUMNAS

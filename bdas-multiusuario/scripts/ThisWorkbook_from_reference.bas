@@ -100,6 +100,11 @@ Private Sub Workbook_Open()
     ' --- Paso 8: Entrada directa y fluida (Opción B: Bienvenida en StatusBar sin MsgBox) ---
     modDatabase.ActualizarBarraEstado
 
+    ' Reponer barras de desplazamiento, encabezados y cuadrculas para la operativa normal de las hojas
+    ActiveWindow.DisplayVerticalScrollBar = True
+    ActiveWindow.DisplayHorizontalScrollBar = True
+    ActiveWindow.DisplayHeadings = True
+    ActiveWindow.DisplayGridlines = True
 
     ' Recálculo único consolidado y restauración de entorno
     Application.Calculate
@@ -107,6 +112,10 @@ Private Sub Workbook_Open()
 
 CleanClose:
     On Error Resume Next
+    ActiveWindow.DisplayVerticalScrollBar = True
+    ActiveWindow.DisplayHorizontalScrollBar = True
+    ActiveWindow.DisplayHeadings = True
+    ActiveWindow.DisplayGridlines = True
     Application.screenUpdating = True
     Application.enableEvents = True
     Application.calculation = xlCalculationAutomatic
@@ -213,6 +222,21 @@ Private Sub Workbook_SheetActivate(ByVal Sh As Object)
     modDatabase.ActualizarBarraEstado
     Dim nomSh As String
     nomSh = UCase(Trim(Sh.Name))
+
+    ' Si se activa la cartula de inicio, mantenerla limpia sin barras de desplazamiento
+    If nomSh = "INICIO" Then
+        ActiveWindow.DisplayVerticalScrollBar = False
+        ActiveWindow.DisplayHorizontalScrollBar = False
+        ActiveWindow.DisplayHeadings = False
+        ActiveWindow.DisplayGridlines = False
+        Sh.ScrollArea = "A1:A1"
+    Else
+        ' En cualquier hoja operativa (Residencias, Calendarios, Resumen, etc.), reponer siempre las barras
+        ActiveWindow.DisplayVerticalScrollBar = True
+        ActiveWindow.DisplayHorizontalScrollBar = True
+        ActiveWindow.DisplayHeadings = True
+        ActiveWindow.DisplayGridlines = True
+    End If
 
     If nomSh = "LOG_GIJÓN" Or nomSh = "LOG_GIJON" Or nomSh = "LOG_SOTO" Or nomSh = "LOG_OVIEDO" Then
         Dim logPassword As String
