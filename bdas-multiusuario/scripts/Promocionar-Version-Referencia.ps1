@@ -17,9 +17,9 @@ $backupDir = "H:\ResidenciaBD\BackupsDiarios"
 $currentRefXlsm = Join-Path $refDir "BDAS_Multiusuario_VERSION_REFERENCIA.xlsm"
 $currentRefAccdb = Join-Path $refDir "Residencia_BE_VERSION_REFERENCIA.accdb"
 
-Write-Host "=== 1. Generando Backup Incremental de Cierre de Sesion ===" -ForegroundColor Cyan
-$bkpXlsm = Join-Path $backupDir "BDAS_Multiusuario_BACKUP_2026-10-21_2330_VERSION_REFERENCIA.xlsm"
-$bkpAccdb = Join-Path $backupDir "Residencia_BE_BACKUP_2026-10-21_2330_VERSION_REFERENCIA.accdb"
+Write-Host "=== 1. Generando Backup Incremental de Cierre de Sesion (Hito 2026-10-22 19:45) ===" -ForegroundColor Cyan
+$bkpXlsm = Join-Path $backupDir "BDAS_Multiusuario_BACKUP_2026-10-22_1945_VERSION_REFERENCIA.xlsm"
+$bkpAccdb = Join-Path $backupDir "Residencia_BE_BACKUP_2026-10-22_1945_VERSION_REFERENCIA.accdb"
 
 Copy-Item -LiteralPath $activeXlsm -Destination $bkpXlsm -Force
 Write-Host "[OK] Backup XLSM creado: $bkpXlsm" -ForegroundColor Green
@@ -29,23 +29,26 @@ if (Test-Path $backendAccdb) {
     Write-Host "[OK] Backup ACCDB creado: $bkpAccdb" -ForegroundColor Green
 }
 
-Write-Host "=== 2. Archivando Referencia Previa en Historico ===" -ForegroundColor Cyan
-$histXlsm = Join-Path $histDir "BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-21_0055.xlsm"
-$histAccdb = Join-Path $histDir "Residencia_BE_VERSION_REFERENCIA_2026-10-21_0055.accdb"
+Write-Host "=== 2. Archivando Referencias Previas en Historico ===" -ForegroundColor Cyan
+$hist1855Xlsm = Join-Path $histDir "BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-22_1855.xlsm"
+$hist1855Accdb = Join-Path $histDir "Residencia_BE_VERSION_REFERENCIA_2026-10-22_1855.accdb"
 
-if (Test-Path $currentRefXlsm) {
-    Copy-Item -LiteralPath $currentRefXlsm -Destination $histXlsm -Force
-    Set-ItemProperty -LiteralPath $histXlsm -Name IsReadOnly -Value $true
-    Write-Host "[OK] Historico XLSM archivado: $histXlsm" -ForegroundColor Green
+$prev1855Xlsm = Join-Path $backupDir "BDAS_Multiusuario_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.xlsm"
+$prev1855Accdb = Join-Path $backupDir "Residencia_BE_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.accdb"
+
+if ((-not (Test-Path $hist1855Xlsm)) -and (Test-Path $prev1855Xlsm)) {
+    Copy-Item -LiteralPath $prev1855Xlsm -Destination $hist1855Xlsm -Force
+    Set-ItemProperty -LiteralPath $hist1855Xlsm -Name IsReadOnly -Value $true
+    Write-Host "[OK] Historico 18:55 XLSM archivado: $hist1855Xlsm" -ForegroundColor Green
 }
 
-if (Test-Path $currentRefAccdb) {
-    Copy-Item -LiteralPath $currentRefAccdb -Destination $histAccdb -Force
-    Set-ItemProperty -LiteralPath $histAccdb -Name IsReadOnly -Value $true
-    Write-Host "[OK] Historico ACCDB archivado: $histAccdb" -ForegroundColor Green
+if ((-not (Test-Path $hist1855Accdb)) -and (Test-Path $prev1855Accdb)) {
+    Copy-Item -LiteralPath $prev1855Accdb -Destination $hist1855Accdb -Force
+    Set-ItemProperty -LiteralPath $hist1855Accdb -Name IsReadOnly -Value $true
+    Write-Host "[OK] Historico 18:55 ACCDB archivado: $hist1855Accdb" -ForegroundColor Green
 }
 
-Write-Host "=== 3. Promocionando a Nueva Version de Referencia Oficial ===" -ForegroundColor Cyan
+Write-Host "=== 3. Promocionando a Nueva Version de Referencia Oficial (Hito 2026-10-22 19:45) ===" -ForegroundColor Cyan
 if (Test-Path $currentRefXlsm) {
     Set-ItemProperty -LiteralPath $currentRefXlsm -Name IsReadOnly -Value $false
 }

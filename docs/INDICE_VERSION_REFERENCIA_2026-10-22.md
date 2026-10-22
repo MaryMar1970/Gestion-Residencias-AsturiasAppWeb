@@ -1,8 +1,8 @@
-# Índice Técnico de la Versión de Referencia Oficial — Hito 2026-10-22 19:35
+# Índice Técnico de la Versión de Referencia Oficial — Hito 2026-10-22 19:45
 
 > **Ubicación de Referencia Protegida:** `H:\ResidenciaBD\Plantilla\VersionReferencia\`  
 > **Libro Maestro:** `BDAS_Multiusuario_VERSION_REFERENCIA.xlsm` (MD5: `DB8FFA1648DD2917C385E2AAED7E9BD8` | 6.755.115 bytes)  
-> **Base de Datos Maestro:** `Residencia_BE_VERSION_REFERENCIA.accdb` (MD5: `133BA235E1D42C42AF2448890E3ED64B` | 6.729.728 bytes)  
+> **Base de Datos Maestro:** `Residencia_BE_VERSION_REFERENCIA.accdb` (MD5: `6E41A8521D884B740907CD9DEF187CEA` | 6.729.728 bytes)  
 > **Estado de Atributos:** Ambos archivos protegidos contra escritura (`IsReadOnly = True`).  
 > **Script de Recuperación Inmediata:** `bdas-multiusuario\scripts\Restaurar-Version-Referencia.ps1`  
 
@@ -57,6 +57,7 @@ Esta versión de referencia consolida la totalidad de mejoras del hito previo (2
 
 | Hito Temporal | Libro XLSM en `Historico\` | Base de Datos ACCDB en `Historico\` | MD5 Criptográfico XLSM | Tamaño XLSM |
 | :---: | :---| :---| :---: | :---: |
+| **2026-10-22 18:55** | `BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-22_1855.xlsm` | `Residencia_BE_VERSION_REFERENCIA_2026-10-22_1855.accdb` | `275253EADF79F252644FFBF9140516A3` | 6.748.351 bytes |
 | **2026-10-21 23:30** | `BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-21_2330.xlsm` | `Residencia_BE_VERSION_REFERENCIA_2026-10-21_2330.accdb` | `2507104C574B3DD48E11DD9A0FD76A76` | 7.188.546 bytes |
 | **2026-10-21 00:55** | `BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-21_0055.xlsm` | `Residencia_BE_VERSION_REFERENCIA_2026-10-21_0055.accdb` | `E8AE2E58DC520C55042E93C8992945F9` | 7.171.197 bytes |
 | **2026-10-20 23:15** | `BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-20_2315.xlsm` | `Residencia_BE_VERSION_REFERENCIA_2026-10-20_2315.accdb` | `5A23A4AB3A34A88442E6C28D5B1FB021` | 7.151.821 bytes |
@@ -73,7 +74,7 @@ Esta versión de referencia consolida la totalidad de mejoras del hito previo (2
 
 ## 3. Matriz de Componentes Clave en este Hito
 
-| Componente | Tipo | Función Principal en Hito 2026-10-22 19:35 |
+| Componente | Tipo | Función Principal en Hito 2026-10-22 19:45 |
 | :--- | :--- | :--- |
 | [ThisWorkbook.cls](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules/ThisWorkbook.cls) | Objeto Excel | Auto-Fit a pantalla completa de carátula en `INICIO`, reposición dinámica de barras de desplazamiento en `Workbook_Open` y `Workbook_SheetActivate`, erradicación de continuaciones rotas ` _`, confirmación interactiva de salida y protección de LOGs. |
 | [frmLogin.frm](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules/frmLogin.frm) | UserForm | Tarjeta de identificación compactada al 70%, campos reducidos al 80%, botones elevados y anclaje milimétrico en el patio empedrado entre guardias civiles. |

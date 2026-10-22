@@ -1,11 +1,11 @@
 # REGISTRO DE CAMBIOS - 2026-10-22
 
-## Hito 2026-10-22 19:35: Consolidación y Promoción a Versión de Referencia Oficial
+## Hito 2026-10-22 19:45: Consolidación y Promoción a Versión de Referencia Oficial
 
 ### 1. Resumen Ejecutivo
-Se ha promocionado formalmente la versión activa de trabajo `H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm` a **Versión de Referencia Oficial**, estableciendo las réplicas protegidas contra escritura en el repositorio central de plantillas maestras (`H:\ResidenciaBD\Plantilla\VersionReferencia\`), archivando el hito previo (2026-10-21 23:30) en el histórico, actualizando el script de restauración inmediata (`Restaurar-Version-Referencia.ps1`), registrando exhaustivamente la trazabilidad de copias de seguridad incrementales diarias y sincronizando la copia de despliegue en red (`H:\ResidenciaBD\BDAS_Multiusuario.xlsm`).
+Se ha promocionado formalmente la versión activa de trabajo `H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm` a **Versión de Referencia Oficial**, estableciendo las réplicas protegidas contra escritura en el repositorio central de plantillas maestras (`H:\ResidenciaBD\Plantilla\VersionReferencia\`), archivando los hitos previos en el histórico (`Historico\`), actualizando los scripts de promoción y restauración inmediata (`Promocionar-Version-Referencia.ps1`, `Restaurar-Version-Referencia.ps1`), registrando exhaustivamente la trazabilidad de copias de seguridad incrementales diarias vinculadas al código y sincronizando la copia de despliegue en red (`H:\ResidenciaBD\BDAS_Multiusuario.xlsm`).
 
-Asimismo, se ha implementado el **restablecimiento dinámico e integral de las barras de desplazamiento (vertical y horizontal)** en todas las hojas operativas de la aplicación una vez superado el proceso de identificación inicial, garantizando la navegación completa por todas las columnas y filas de datos (especialmente en `RESIDENCIA OVIEDO`, `RESIDENCIA GIJÓN` y `RESIDENCIA SOTO`).
+Asimismo, se ha consolidado el **restablecimiento dinámico e integral de las barras de desplazamiento (vertical y horizontal)** en todas las hojas operativas de la aplicación una vez superado el proceso de identificación inicial, garantizando la navegación completa por todas las columnas y filas de datos (especialmente en `RESIDENCIA OVIEDO`, `RESIDENCIA GIJÓN` y `RESIDENCIA SOTO`).
 
 ---
 
@@ -14,21 +14,26 @@ Asimismo, se ha implementado el **restablecimiento dinámico e integral de las b
 | Archivo / Réplica | Ubicación | Tamaño (Bytes) | Hash MD5 | Atributos |
 | :--- | :--- | :--- | :--- | :--- |
 | **Versión de Referencia Oficial (XLSM)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\BDAS_Multiusuario_VERSION_REFERENCIA.xlsm` | 6.755.115 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | Solo Lectura (`ReadOnly = True`) |
-| **Versión de Referencia Oficial (ACCDB)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Residencia_BE_VERSION_REFERENCIA.accdb` | 6.729.728 | `133BA235E1D42C42AF2448890E3ED64B` | Solo Lectura (`ReadOnly = True`) |
+| **Versión de Referencia Oficial (ACCDB)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Residencia_BE_VERSION_REFERENCIA.accdb` | 6.729.728 | `6E41A8521D884B740907CD9DEF187CEA` | Solo Lectura (`ReadOnly = True`) |
 | **Versión Activa de Trabajo (App)** | `H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm` | 6.755.115 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | Lectura / Escritura |
 | **Copia Desplegada en Producción** | `H:\ResidenciaBD\BDAS_Multiusuario.xlsm` | 6.755.115 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | Lectura / Escritura |
-| **Base de Datos Activa (Backend)** | `H:\ResidenciaBD\Residencia_BE.accdb` | 6.729.728 | `133BA235E1D42C42AF2448890E3ED64B` | Lectura / Escritura |
+| **Base de Datos Activa (Backend)** | `H:\ResidenciaBD\Residencia_BE.accdb` | 6.729.728 | `6E41A8521D884B740907CD9DEF187CEA` | Lectura / Escritura |
+| **Copia Cierre Ref. XLSM (19:45)** | `H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-22_1945_VERSION_REFERENCIA.xlsm` | 6.755.115 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | Respaldo Incremental |
+| **Copia Cierre Ref. ACCDB (19:45)** | `H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-22_1945_VERSION_REFERENCIA.accdb` | 6.729.728 | `6E41A8521D884B740907CD9DEF187CEA` | Respaldo Incremental |
 | **Copia Incremental Post Barras XLSM** | `H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-22_1935_POST_BARRAS_SCROLL.xlsm` | 6.755.115 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | Respaldo Incremental |
 | **Copia Incremental Pre Barras XLSM** | `H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-22_1925_PRE_BARRAS_SCROLL.xlsm` | 6.748.351 | `275253EADF79F252644FFBF9140516A3` | Respaldo Incremental |
-| **Copia Incremental Ref. ACCDB** | `H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.accdb` | 6.729.728 | `133BA235E1D42C42AF2448890E3ED64B` | Respaldo Incremental |
-| **Histórico Referencia Previa (XLSM)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-21_2330.xlsm` | 7.188.546 | `2507104C574B3DD48E11DD9A0FD76A76` | Solo Lectura (`ReadOnly = True`) |
-| **Histórico Referencia Previa (ACCDB)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\Residencia_BE_VERSION_REFERENCIA_2026-10-21_2330.accdb` | 6.725.632 | `D51AE318D49BC74C4BC738F5B58B2B51` | Solo Lectura (`ReadOnly = True`) |
+| **Copia Incremental Ref. Previa XLSM** | `H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.xlsm` | 6.748.351 | `275253EADF79F252644FFBF9140516A3` | Respaldo Incremental |
+| **Copia Incremental Ref. Previa ACCDB** | `H:\ResidenciaBD\BackupsDiarios\Residencia_BE_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.accdb` | 6.729.728 | `133BA235E1D42C42AF2448890E3ED64B` | Respaldo Incremental |
+| **Histórico Referencia Previa (XLSM)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-22_1855.xlsm` | 6.748.351 | `275253EADF79F252644FFBF9140516A3` | Solo Lectura (`ReadOnly = True`) |
+| **Histórico Referencia Previa (ACCDB)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\Residencia_BE_VERSION_REFERENCIA_2026-10-22_1855.accdb` | 6.729.728 | `133BA235E1D42C42AF2448890E3ED64B` | Solo Lectura (`ReadOnly = True`) |
+| **Histórico Referencia 21-Oct (XLSM)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\BDAS_Multiusuario_VERSION_REFERENCIA_2026-10-21_2330.xlsm` | 7.188.546 | `2507104C574B3DD48E11DD9A0FD76A76` | Solo Lectura (`ReadOnly = True`) |
+| **Histórico Referencia 21-Oct (ACCDB)** | `H:\ResidenciaBD\Plantilla\VersionReferencia\Historico\Residencia_BE_VERSION_REFERENCIA_2026-10-21_2330.accdb` | 6.725.632 | `D51AE318D49BC74C4BC738F5B58B2B51` | Solo Lectura (`ReadOnly = True`) |
 
 ---
 
 ### 3. Vinculación de Copias Incrementales con Funcionalidades y Código
 
-Durante la sesión técnica del 22/10/2026 se generaron 6 copias de seguridad incrementales en `H:\ResidenciaBD\BackupsDiarios\`, vinculadas de forma biunívoca a cada funcionalidad desarrollada:
+Durante la sesión técnica del 22/10/2026 se generaron 8 copias de seguridad incrementales en `H:\ResidenciaBD\BackupsDiarios\`, vinculadas de forma biunívoca a cada funcionalidad desarrollada:
 
 | Copia Incremental XLSM / ACCDB | Fecha / Hora | MD5 Criptográfico | Tamaño (bytes) | Funcionalidad y Cambios Asociados |
 | :---| :---: | :---:| :---:| :---|
@@ -36,9 +41,11 @@ Durante la sesión técnica del 22/10/2026 se generaron 6 copias de seguridad in
 | `BDAS_Multiusuario_BACKUP_2026-10-22_1815.xlsm` | 22/10/2026 18:01 | `A8259062895A56600B67A7E75C5C8DE9` | 7.214.915 | **Ajuste a Pantalla Completa de Carátula y Bloqueo de Recorrido de Hoja INICIO:** Actualización de `AjustarCaratulaInicio` en `ThisWorkbook.cls` (`shp.LockAspectRatio = msoFalse`, asignación a `UsableWidth` y `UsableHeight`, `shp.Left = 0, Top = 0`, `shp.ZOrder msoSendToBack`). Ocultación total de barras de desplazamiento vertical y horizontal en la carátula (`DisplayVerticalScrollBar = False`, `DisplayHorizontalScrollBar = False`) y congelación hermética en celda única con `ScrollArea = "A1:A1"`. |
 | `BDAS_Multiusuario_BACKUP_2026-10-22_1845.xlsm` | 22/10/2026 18:41 | `275253EADF79F252644FFBF9140516A3` | 6.748.351 | **Erradicación del Error de Sintaxis por Continuaciones Rotas ` _` y Saneamiento CRLF Puro:** Diagnóstico de causa raíz por generación de saltos `\r\r\n` que insertaban líneas en blanco tras el guion bajo ` _` en instrucciones multilínea (`MsgBox "No se puede conectar a la base de datos Access." & vbCrLf & vbCrLf & _`). Saneamiento de 18 continuaciones rotas en `ThisWorkbook.cls` y 11 en `EvitarDuplicidadSolicitudesGyS.bas`. Normalización a codificación Windows-1252 ANSI nativa con 0 secuencias UTF-8 multibyte (`\xc3`), preservación estricta de `GIJÓN` literal (0 `Chr(211)`). Compilación limpia certificada en Excel COM (`FindControl(1, 578).Enabled == False`). |
 | `BDAS_Multiusuario_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.xlsm` | 22/10/2026 18:55 | `275253EADF79F252644FFBF9140516A3` | 6.748.351 | **Promoción Inicial a Versión de Referencia:** Consolidación formal de la versión de trabajo, establecimiento de réplicas maestras en `H:\ResidenciaBD\Plantilla\VersionReferencia\`, archivado histórico del hito 2026-10-21 23:30 y actualización del script de restauración. |
+| `Residencia_BE_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.accdb` | 22/10/2026 18:55 | `133BA235E1D42C42AF2448890E3ED64B` | 6.729.728 | **Respaldo Incremental de Base de Datos Backend Pre-Barras:** Copia de seguridad completa de la base de datos Access backend sincronizada con el hito 18:55. |
 | `BDAS_Multiusuario_BACKUP_2026-10-22_1925_PRE_BARRAS_SCROLL.xlsm` | 22/10/2026 19:25 | `275253EADF79F252644FFBF9140516A3` | 6.748.351 | **Punto de Control Pre-Restauración de Barras de Scroll:** Salvaguarda del estado previo a la reactivación de las barras de desplazamiento operativas. |
-| `BDAS_Multiusuario_BACKUP_2026-10-22_1935_POST_BARRAS_SCROLL.xlsm` | 22/10/2026 19:35 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | 6.755.115 | **Restauración Integral de Barras de Desplazamiento y Promoción Definitiva:** Restablecimiento automático de `DisplayVerticalScrollBar = True` y `DisplayHorizontalScrollBar = True` (junto con encabezados y cuadrículas) al finalizar el arranque en `Workbook_Open` y de forma reactiva en `Workbook_SheetActivate` para cualquier hoja que no sea `INICIO`. Saneamiento de `BotonIzdaDchaHojasRESIDENCIAS.bas` en Windows-1252 ANSI puro. Verificación COM activa con 0 errores de compilación y consolidación de la réplica de referencia. |
-| `Residencia_BE_BACKUP_2026-10-22_1855_VERSION_REFERENCIA.accdb` | 22/10/2026 18:55 | `133BA235E1D42C42AF2448890E3ED64B` | 6.729.728 | **Respaldo Incremental de Base de Datos Backend:** Copia de seguridad completa de la base de datos Access backend sincronizada con el hito de referencia 2026-10-22. |
+| `BDAS_Multiusuario_BACKUP_2026-10-22_1935_POST_BARRAS_SCROLL.xlsm` | 22/10/2026 19:35 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | 6.755.115 | **Restauración Integral de Barras de Desplazamiento y Saneamiento RibbonX:** Restablecimiento automático de `DisplayVerticalScrollBar = True` y `DisplayHorizontalScrollBar = True` (junto con encabezados y cuadrículas) al finalizar el arranque en `Workbook_Open` y de forma reactiva en `Workbook_SheetActivate` para cualquier hoja que no sea `INICIO`. Saneamiento de `BotonIzdaDchaHojasRESIDENCIAS.bas` en Windows-1252 ANSI puro. Verificación COM activa con 0 errores de compilación. |
+| `BDAS_Multiusuario_BACKUP_2026-10-22_1945_VERSION_REFERENCIA.xlsm` | 22/10/2026 19:45 | `DB8FFA1648DD2917C385E2AAED7E9BD8` | 6.755.115 | **Consolidación Oficial y Cierre de Sesión:** Promoción formal y definitiva a Versión de Referencia Oficial con protección de solo lectura en `Plantilla\VersionReferencia\`, sincronización en red de `H:\ResidenciaBD\BDAS_Multiusuario.xlsm` y archivo en histórico. |
+| `Residencia_BE_BACKUP_2026-10-22_1945_VERSION_REFERENCIA.accdb` | 22/10/2026 19:45 | `6E41A8521D884B740907CD9DEF187CEA` | 6.729.728 | **Respaldo Incremental de Base de Datos Backend Consolidada:** Copia de seguridad completa de la base de datos Access backend sincronizada con el hito de referencia 2026-10-22 19:45. |
 
 ---
 
