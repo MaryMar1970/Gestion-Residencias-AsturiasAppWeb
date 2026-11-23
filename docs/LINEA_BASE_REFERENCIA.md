@@ -1,108 +1,48 @@
-# Línea Base de Referencia Técnica — BDAS Multiusuario
+# Línea base de referencia — estado de la depuración 23/11/2026
 
-> **Estado de Consolidación:** Activa y Verificada  
-> **Fecha de Certificación:** 17 de Octubre de 2026 (00:15)  
-> **Ámbito de Aplicación:** `H:\ResidenciaApp` (Código y Scripts) / `H:\ResidenciaBD` (Datos y Plantillas)
+## Repositorio Git
 
----
+- Rama: `main`.
+- Commit previo a esta depuración: `61615b5`.
+- `origin/main` estaba sincronizada con ese commit antes de los cambios documentales.
+- El commit base del stash revisado era `9f67b2c`.
+- Rama de seguridad preservada: `respaldo/main-antes-sincronizacion_20261123_201324`.
+- Etiqueta Golden Master preservada: `GOLDEN_MASTER_2026-10-24`.
+- Respaldo externo que conserva el estado previo: `H:\ResidenciaApp_RESPALDO_PRE_SYNC_20261123_201324`.
 
-## 1. Certificado de Integridad y Huellas Digitales (Hashes)
+## Divergencia del libro Excel
 
-Para asegurar que cualquier trabajo se realiza sobre una versión íntegra y trazable, se fijan las siguientes huellas criptográficas oficiales:
+| Artefacto | Tamaño | SHA-256 | Procedencia |
+|---|---:|---|---|
+| `bdas-multiusuario/BDAS_Multiusuario.xlsm` de `main` | 6.755.115 bytes | `9114EA53C4DBA8EC2D88166B27F356C67CD75468990B61471801C6DB2B5626B9` | Snapshot del hito 22/10/2026; blob Git `7607819b3c75a1a6030ba66cc89ba1421f59f8d1` |
+| Candidato `BDAS_Multiusuario.xlsm` del respaldo externo | 6.621.963 bytes | `B9117659842369515FFAF714AB63B8BB3B1927CD2F7FB6D589882AC7F6E419D7` | Snapshot del 09/11/2026, coherente con el índice de referencia 10/11 y los informes 1H–1X |
 
-| Elemento | Ruta Absoluta | Hash MD5 Oficial | Estado |
-| :--- | :--- | :--- | :--- |
-| **Versión de Referencia Oficial y Trabajo** | `H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm` | `F814E071502409B94A89C2FA545AC513` | 🟢 **REFERENCIA ACTIVA** (17/10/2026 23:16) |
-| **Base de Datos Backend** | `H:\ResidenciaBD\Residencia_BE.accdb` | `740739C2D02DD8D98F17C4DD75F09AD2` | 🟢 Producción |
-| **Libro Compartido en Red** | `H:\ResidenciaBD\BDAS_Multiusuario.xlsm` | `F814E071502409B94A89C2FA545AC513` | 📁 Servidor Red (Sincronizado) |
-| **Último Backup Verificado** | `H:\ResidenciaBD\BackupsDiarios\BDAS_Multiusuario_BACKUP_2026-10-17_2316_POST_BLINDAJE_FORMULAS.xlsm` | `F814E071502409B94A89C2FA545AC513` | 🔒 Respaldo Blindaje Fórmulas |
+El candidato del 09/11 es posterior al libro versionado en `main`. No se ha promovido ni sustituido durante esta depuración: la autorización excluía modificar el libro Excel y los módulos VBA. Se conserva en el respaldo externo para una reconciliación posterior explícita.
 
----
+El `modDatabase.bas` del candidato, en CRLF, tiene 298.794 bytes y SHA-256 `EF4FDB01AE65E46129057903BEF0DF8125A398CAC39A305B4E92438043C3BA47`, coincidente con la evidencia de la Orden 1H. Esto identifica la procedencia del código; no acredita compilación ni pruebas en Excel.
 
-## 2. Réplicas Maestras y Puntos de Restauración
+## Access y Preflight
 
-Siguiendo las reglas de gobernanza del proyecto ([AGENTS.md](file:///H:/ResidenciaApp/.agents/AGENTS.md)), existen dos niveles de protección de referencia:
+- Backend de producción: `H:\ResidenciaBD\Residencia_BE.accdb`; no se modificó.
+- La adenda de Preflight aclara que la inspección documentada apuntó a ese backend de producción en modo de solo lectura, no a un backend de pruebas.
+- No se repitieron consultas en producción. Otras estaciones remotas siguen sin inspeccionar.
+- Los datos y conclusiones del Preflight son evidencia histórica fechada, no una lectura en vivo ni una aprobación de migración.
 
-### A. Versión de Referencia Estable Activa (Hito 2026-10-11)
-- **Ubicación protegida:**
-  - `H:\ResidenciaBD\Plantilla\VersionReferencia\BDAS_Multiusuario_VERSION_REFERENCIA.xlsm`
-  - `H:\ResidenciaBD\Plantilla\VersionReferencia\Residencia_BE_VERSION_REFERENCIA.accdb`
-- **Características:** Incorpora el Selector Multirresidencia dinámico con Checkboxes, registro de auditoría en hojas LOG y RibbonX unificado.
-- **Mecanismo de restauración inmediata:**
-  Ejecutar el script [Restaurar-Version-Referencia.ps1](file:///H:/ResidenciaApp/bdas-multiusuario/scripts/Restaurar-Version-Referencia.ps1).
+## Laboratorio Gate 2
 
-### B. Protocolo de Recuperación Instantánea (Golden Master)
-- **Ubicación protegida (Solo Lectura estricto):**
-  - `H:\ResidenciaBD\Plantilla\GoldenMaster\BDAS_Multiusuario_GOLDEN_MASTER.xlsm`
-- **Etiqueta en Git:** `GOLDEN_MASTER_TEXTOS_OK`
-- **Inmutabilidad:** Esta réplica **NUNCA** se sobrescribe, quedando reservada exclusivamente para contingencias mayores de inicio de proyecto.
-- **Mecanismo de restauración de emergencia:**
-  Ejecutar el script [Restaurar-Golden-Master.ps1](file:///H:/ResidenciaApp/bdas-multiusuario/scripts/Restaurar-Golden-Master.ps1).
+- Ruta local excluida de Git: `LABORATORIO_GATE2_20261120_1558/`.
+- `BASELINE/` contiene el libro y el backend de referencia y debe permanecer inmutable.
 
----
+| Archivo de BASELINE | Tamaño | SHA-256 |
+|---|---:|---|
+| `BDAS_Multiusuario.xlsm` | 6.621.963 bytes | `B9117659842369515FFAF714AB63B8BB3B1927CD2F7FB6D589882AC7F6E419D7` |
+| `Residencia_BE.accdb` | 7.639.040 bytes | `77DB1D7FFEBA4184451C0B9496DFA9D7EEC27FFA3AE4C4A733686A042CBFDC03` |
 
-## 3. Inventario Físico de Componentes de Código (141 Archivos)
+La copia física de `BASELINE` coincide por SHA-256 con la copia externa verificada. Estos hashes identifican snapshots de laboratorio; no son una afirmación sobre el estado actual del backend de producción.
+- El respaldo externo contiene 104 archivos en `EVIDENCIAS/` y 45 en `TRABAJO/`; el árbol del stash contiene 92 y 49, respectivamente. Los cuatro WAL sintéticos son las cuatro entradas de `TRABAJO/` que faltan en el respaldo externo. La unión que se debe recuperar es `BASELINE` (2) + `EVIDENCIAS` (104) + `TRABAJO` (49) = 155 archivos.
+- La restauración de `EVIDENCIAS/` y `TRABAJO/` desde el respaldo externo, más los cuatro WAL sintéticos conservados en el stash, queda pendiente de completar y verificar mediante la operación elevada solicitada.
+- La preparación del Paso 1 no certifica Gate 2 completo ni autoriza producción. La Fase 2A del Ledger no está aprobada; el parche WAL es solo de laboratorio.
 
-El directorio de módulos exportados [vba-modules](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules) contiene la totalidad del código fuente desagregado:
+## Alcance de esta depuración
 
-*   **Módulos Estándar (`.bas`):** 117 módulos.
-    *   *Infraestructura Core:* `modDatabase.bas` (100 KB), `ModuloConfigSegura.bas` (25 KB), `GestionarAccesoUsuarios.bas`.
-    *   *Lógica de Negocio:* `AsignarNumFactura.bas`, `FechasPeticion.bas`, `EvitarDuplicidadSolicitudesGyS.bas`, `DuplicadosOrdenyFactura.bas`.
-    *   *Calendarios y Ocupación:* `ModuloCalendarioGijon.bas`, `ModuloCalendarioOviedo.bas`, `ModuloCalendarioSoto.bas`.
-    *   *Facturación y Liquidación:* `FacturacionMesGIJON.bas`, `FacturacionMesOVIEDO.bas`, `FacturacionMesSOTO.bas`.
-    *   *Lavandería:* `ModuloLavanderia_Core.bas`, `ModuloLavanderia_Gijon.bas`, `ModuloLavanderia_Oviedo.bas`, `ModuloLavanderia_Soto.bas`.
-    *   *Ribbon y Botones:* 35 módulos de interconexión con la cinta de opciones.
-*   **Módulos de Clase (`.cls`):**
-    *   [Hoja34_TarifasUnidad.cls](file:///H:/ResidenciaApp/bdas-multiusuario/vba-modules/Hoja34_TarifasUnidad.cls): Controlador de eventos de hoja y validación anti-solapes en tiempo real.
-*   **Formularios de Usuario (`.frm` y binarios `.frx`):** 11 formularios interactivos.
-    *   `frmLogin`: Autenticación de usuario con hash SHA-256.
-    *   `frmSelectorResidencia`: Selección dinámica de sedes asignadas.
-    *   `frmPanelRGPD`: Panel de control de política de retención y borrado legal de datos.
-    *   `frmGestionPasswords`: Panel de administración de contraseñas ofuscadas del sistema.
-    *   `frmReservasUnidad`: Formulario principal de alta y edición de solicitudes.
-    *   `frmBusqueda`: Búsqueda multicriterio.
-    *   `frmConfigBusquedaBDAS`: Ajustes de búsqueda en BDAS.
-    *   `frmCambiarPassword`: Cambio de clave personal por el usuario.
-    *   `frmAviso`: Mensajes modales formateados.
-    *   `frmSeparacion`: Configuración de margen de días entre reservas.
-    *   `ResultadosGijon` / `ResultadosOviedo` / `ResultadosSoto`: Vistas de consulta rápida.
-
----
-
-## 4. Esquema Consolidado de la Base de Datos Access (`Residencia_BE.accdb`)
-
-La base de datos contiene 8 tablas estructuradas:
-
-```
-┌─────────────────────────────────┐       ┌─────────────────────────────────┐
-│            Usuarios             │       │             Ordenes             │
-├─────────────────────────────────┤       ├─────────────────────────────────┤
-│ Id (PK)                         │       │ Id (PK)                         │
-│ NombreUsuario                   │       │ NumOrden (Indexed)              │
-│ NombreCompleto                  │       │ Residencia (GIJON, SOTO, OVIEDO)│
-│ Clave (SHA-256)                 │       │ DNI, Nombre, Apellidos          │
-│ Rol (ADMIN / OPERADOR)          │       │ FechaEntrada, FechaSalida       │
-│ Residencias (CSV)               │       │ Importe, NumFactura, EstadoPago │
-│ Activo (Boolean)                │       │ 41 campos en total...           │
-└─────────────────────────────────┘       └─────────────────────────────────┘
-                                                           ▲
-                                                           │ (Archivado RGPD)
-                                                           ▼
-┌─────────────────────────────────┐       ┌─────────────────────────────────┐
-│         ContadorFacturas        │       │        Ordenes_Historico        │
-├─────────────────────────────────┤       ├─────────────────────────────────┤
-│ Id (PK)                         │       │ Id (PK)                         │
-│ Ejercicio                       │       │ NumOrden                        │
-│ Residencia                      │       │ Residencia                      │
-│ UltimoNumero                    │       │ 41 campos idénticos a Ordenes   │
-└─────────────────────────────────┘       └─────────────────────────────────┘
-```
-
-*   **`Ordenes`:** 41 columnas. Almacena las órdenes activas en curso.
-*   **`Ordenes_Historico`:** 41 columnas. Archivo histórico para auditoría y cumplimiento de retención RGPD.
-*   **`Usuarios`:** 8 columnas. Credenciales y roles (`ADMIN` / `OPERADOR`).
-*   **`ContadorFacturas`:** 4 columnas. Control atómico del correlativo de facturas para evitar duplicidades en entornos concurrentes.
-*   **`ListaNegra`:** 6 columnas. Control de exclusiones.
-*   **`LogActividad`:** 5 columnas. Trazabilidad de operaciones de administración.
-*   **`CodigosPostales`:** 5 columnas. Catálogo nacional de municipios y códigos postales.
-*   **`BDAS_Historico_Snapshot`:** 41 columnas. Copia de respaldo de seguridad de datos importados.
+No se modificaron el XLSM, los módulos VBA, el backend Access ni los datos de producción. No se ejecutó compilación ni prueba funcional. Los cambios realizados son documentales, de organización del repositorio y de configuración de texto.

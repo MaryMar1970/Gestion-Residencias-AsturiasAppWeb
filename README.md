@@ -1,82 +1,24 @@
-# Residencia App
+# ResidenciaApp — repositorio principal
 
-Base de referencia para una aplicación web multiusuario orientada a la gestión de una residencia, con:
+Este repositorio reúne dos líneas de trabajo distintas. No deben confundirse ni tratarse como una única implementación.
 
-- Arquitectura en capas: API, Application, Infrastructure y Domain
-- Autenticación JWT + ASP.NET Identity
-- Entity Framework Core + SQL Server
-- Frontend React + TypeScript con Vite
+## 1. Aplicación operativa Excel / VBA / Access
 
-## Estructura
+- Libro: `bdas-multiusuario/BDAS_Multiusuario.xlsm`.
+- Backend de producción: `H:\ResidenciaBD\Residencia_BE.accdb` (externo al repositorio).
+- Entorno de referencia: Excel 2016 en español, ACE/DAO de 32 bits.
+- **Documento rector:** [`docs/ResidenciaApp_Especificacion_Arquitectonica_v1_0_rev1.md`](docs/ResidenciaApp_Especificacion_Arquitectonica_v1_0_rev1.md).
+- **Jerarquía, estado y evidencias:** [`docs/INDICE_DOCUMENTAL.md`](docs/INDICE_DOCUMENTAL.md).
 
-- backend/src/ResidenciaApp.Api: API web ASP.NET Core
-- backend/src/ResidenciaApp.Application: lógica de aplicación y DTOs
-- backend/src/ResidenciaApp.Infrastructure: EF Core, Identity y servicios de infraestructura
-- backend/src/ResidenciaApp.Domain: entidades del dominio
-- frontend: aplicación React con pantalla de login y gestión de parámetros
-- scripts/create-database.sql: script SQL Server para crear la base de datos
+La especificación define la arquitectura objetivo y sus contratos. No significa que todas sus decisiones estén ya implantadas en el código del libro.
 
-## Requisitos locales
+## 2. Prototipo web
 
-- .NET 8 SDK
-- Node.js 20+
-- SQL Server (LocalDB, SQL Express o SQL Server Developer)
+`webapp/` contiene un prototipo .NET/React separado. Sus instrucciones están en [`webapp/README.md`](webapp/README.md). No se debe asumir que este prototipo es la aplicación operativa ni que está conectado al backend Access de producción.
 
-## 1) Base de datos
+## Estado y precauciones
 
-Ejecuta el script SQL Server desde [scripts/create-database.sql](scripts/create-database.sql) o ajusta la cadena de conexión en [backend/src/ResidenciaApp.Api/appsettings.json](backend/src/ResidenciaApp.Api/appsettings.json).
-
-Ejemplo de cadena de conexión:
-
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=ResidenciaAppDb;Trusted_Connection=True;TrustServerCertificate=True;"
-}
-```
-
-Si utilizas SQL Server Express o una instancia con nombre, ajusta la cadena de conexión a algo como:
-
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=.\\SQLEXPRESS;Database=ResidenciaAppDb;Trusted_Connection=True;TrustServerCertificate=True;"
-}
-```
-
-## 2) Backend
-
-```bash
-cd backend
-dotnet restore
-dotnet run --project src/ResidenciaApp.Api/ResidenciaApp.Api.csproj
-```
-
-La API quedará disponible en http://localhost:5260.
-
-Endpoints incluidos:
-
-- POST /auth/login
-- GET /users/me
-- GET /settings
-- POST /settings
-
-## 3) Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-La app quedará disponible en http://localhost:5173.
-
-## Credenciales iniciales
-
-- Email: admin@residencia.local
-- Password: Admin123!
-
-## Próximos pasos recomendados
-
-- Añadir más entidades de negocio (habitaciones, reservas, contratos, clientes)
-- Extender los parámetros a un modelo de configuración más rico
-- Añadir permisos por rol para operaciones de administración y reservas
-- Sustituir la gestión de parámetros por un modelo más escalable de “configuraciones por residencia”
+- Antes de cualquier trabajo, revisar [`docs/LINEA_BASE_REFERENCIA.md`](docs/LINEA_BASE_REFERENCIA.md) y ejecutar `git status`.
+- El XLSM versionado en `main` corresponde al snapshot del 22/10/2026. Existe un candidato posterior del 09/11/2026 preservado en el respaldo externo; no se ha promovido durante la depuración porque esta tarea no autoriza modificar el libro ni los módulos VBA.
+- `LABORATORIO_GATE2_20261120_1558/` es local y está excluido de Git. `BASELINE/` es inmutable.
+- No modificar el backend de producción, el libro Excel ni módulos VBA sin autorización específica y sin superar las puertas de validación correspondientes.

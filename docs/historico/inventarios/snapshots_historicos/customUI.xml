@@ -1,0 +1,341 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="RibbonOnLoad">
+
+  <ribbon startFromScratch="false">
+
+    <tabs>
+      <!-- PESTAÑAS NATIVAS DE EXCEL (Visibles para ADMINISTRADOR, ocultas para OPERADOR) -->
+      <tab idMso="TabHome" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabInsert" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabPageLayoutExcel" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabFormulas" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabData" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabReview" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabView" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabDeveloper" getVisible="RibbonNativeTabGetVisible" />
+      <tab idMso="TabAddIns" getVisible="RibbonNativeTabGetVisible" />
+
+
+      
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+      <!-- PESTAÑA 1: GESTIÓN RESIDENCIAS ASTURIAS                                 -->
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+      <tab id="gestionResidencia" label="GESTIÓN RESIDENCIAS ASTURIAS">
+
+        
+
+        <!-- GRUPO: GESTIÓN ALOJAMIENTOS -->
+
+        <group id="Gijon" label="GESTIÓN ALOJAMIENTOS">
+
+          <button id="Button1"  label="Último Nº Orden"        imageMso="EndOfDocument"          size="large" onAction="IrUltimaCeldaVacia" />
+
+          <button id="Button2"  label="Filtrar solicitudes"   imageMso="FootnotesEndnotesShow"   size="large" onAction="MostrarFilasPorIntervaloFechas" />
+
+          <button id="Button11" label="Realizar búsqueda"     imageMso="FileFind"                size="large" onAction="BusquedasResidencia" />
+
+          <button id="btnInsertarComentario" label="Insertar Comentario"  imageMso="NewComment"  size="large" onAction="ComentarioCeldaInsertar"/>
+
+          <button id="btnEliminarComentario" label="Eliminar Comentario"  imageMso="ClearAll" size="large" onAction="ComentarioCeldaBorrar"/>
+
+          <button id="BtnImprimirSobreGijon" label="Sobre Gijón" image="Imprimir_Sobre" size="large"  onAction="MostrarSobreGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnImprimirSobreOviedo" label="Sobre Oviedo" image="Imprimir_Sobre" size="large"  onAction="MostrarSobreOviedo" getVisible="RibbonControlGetVisible" />
+
+        </group>
+
+        
+
+        <!-- GRUPO: CALENDARIOS -->
+
+        <group id="Gijon2" label="CALENDARIOS">
+
+          <button id="ButtonActualizarGijon"    label="Actualizar Gijón" imageMso="RecordsRefreshRecords"    size="large" onAction="ActualizarCalendarioGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonActualizarSoto"    label="Actualizar Soto" imageMso="RecordsRefreshRecords"    size="large" onAction="ActualizarCalendarioSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonActualizarOviedo"    label="Actualizar Oviedo" imageMso="RecordsRefreshRecords"    size="large" onAction="ActualizarCalendarioOviedo" getVisible="RibbonControlGetVisible" />          
+
+          <button id="Button3"             label="Retroceder 5 días"      imageMso="OutlinePromote"            size="large" onAction="Retroceder5DiasDesdeFechaVisible" />
+
+          <button id="btnPosicionarFecha"  label="Ir a Fecha Actual"      imageMso="Today"          size="large" onAction="PosicionarFechaActual" />
+
+          <button id="Button5"             label="Avanzar 5 días"         imageMso="OutlineDemote"              size="large" onAction="Avanzar5DiasDesdeFechaVisible" />
+
+          <button id="Button6"             label="Avanzar 10 días"        imageMso="OutlineDemoteToBodyText"    size="large" onAction="Avanzar10DiasDesdeFechaVisible" />
+
+        </group>
+
+        
+
+        <!-- GRUPO: GESTIÓN ECONÓMICA -->
+
+        <group id="GrupoFacturacion" label="GESTIÓN ECONÓMICA">
+
+          <button id="BtnFacturacionMensualGijon" label="Facturación mes Gijón" imageMso="CalculateSheet" size="large"  onAction="MostrarFacturacionGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnFacturaHabitacionGijon" label="Factura PAX Gijón" imageMso="Calculator" size="large"  onAction="MostrarFacturaPaxGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnFacturacionMensualSoto" label="Facturación mes Soto" imageMso="CalculateSheet" size="large"  onAction="MostrarFacturacionSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnFacturaHabitacionSoto" label="Factura PAX Soto" imageMso="Calculator" size="large"  onAction="MostrarFacturaPaxSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnFacturacionMensualOviedo" label="Facturación mes Oviedo" imageMso="CalculateSheet" size="large"  onAction="MostrarFacturacionOviedo" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnFacturaHabitacionOviedo" label="Factura PAX Oviedo" imageMso="Calculator" size="large"  onAction="MostrarFacturaPaxOviedo" getVisible="RibbonControlGetVisible" />
+
+        </group>
+
+        
+
+        <!-- GRUPO: GESTIÓN SOLICITUDES -->
+
+        <group id="GrupoSolicitudes" label="GESTIÓN SOLICITUDES">
+
+          <splitButton id="SplitButtonSolicitudesGijon" size="large" getVisible="RibbonControlGetVisible">
+
+            <button id="BtnSolicitudesGijon"  label="Solicitudes Gijón"       onAction="BuscarPDFGijon"       imageMso="FileOpen" />
+
+            <menu   id="menuSolicitudesGijon">
+
+              <button id="BtnSolicitudGijon" label="Configurar Carpeta Gijón"     onAction="ConfigurarCarpetaGijon" imageMso="FileFolder" />
+
+            </menu>
+
+          </splitButton>
+
+          <splitButton id="SplitButtonSolicitudesSoto" size="large" getVisible="RibbonControlGetVisible">
+
+            <button id="BtnSolicitudesSoto"  label="Solicitudes Soto"        onAction="BuscarPDFSoto"        imageMso="FileOpen" />
+
+            <menu   id="menuSolicitudesSoto">
+
+              <button id="BtnSolicitudSoto" label="Configurar Carpeta Soto"    onAction="ConfigurarCarpetaSoto" imageMso="FileFolder" />
+
+            </menu>
+
+          </splitButton>
+
+          <splitButton id="SplitButtonSolicitudesOviedo" size="large" getVisible="RibbonControlGetVisible">
+
+            <button id="BtnSolicitudesOviedo" label="Solicitudes Oviedo" onAction="BuscarPDFOviedo" imageMso="FileOpen" />
+
+            <menu   id="menuSolicitudesOviedo">
+
+              <button id="BtnSolicitudOviedo" label="Configurar Carpeta Oviedo"     onAction="ConfigurarCarpetaOviedo" imageMso="FileFolder" />
+
+            </menu>
+
+          </splitButton>
+
+        </group>
+
+        
+
+        <!-- GRUPO: GESTIÓN LAVANDERÍA -->
+
+        <group id="GrupoLavanderia" label="GESTIÓN LAVANDERÍA">
+
+          <button id="BtnLavanderiaGijo" label="Lavandería Gijón" image="Lavadora_y_Ropa" size="large"  onAction="MostrarLavanderiaGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnLavanderiaGijonHistorico" label="HISTÓRICO Lavandería Gijón" image="Calendario_y_Ropa" size="large"  onAction="MostrarHistoricoLavanderiaGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnLavanderiaSoto" label="Lavandería Soto" image="Lavadora_y_Ropa" size="large"  onAction="MostrarLavanderiaSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnLavanderiaSotoHistorico" label="HISTÓRICO Lavandería Soto" image="Calendario_y_Ropa" size="large"  onAction="MostrarHistoricoLavanderiaSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnLavanderiaOviedo" label="Lavandería Oviedo" image="Lavadora_y_Ropa" size="large"  onAction="MostrarLavanderiaOviedo" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnLavanderiaOviedoHistorico" label="HISTÓRICO Lavandería Oviedo" image="Calendario_y_Ropa" size="large"  onAction="MostrarHistoricoLavanderiaOviedo" getVisible="RibbonControlGetVisible" />
+
+        </group>
+
+        
+
+        <!-- GRUPO: HERRAMIENTAS -->
+
+        <group id="customGroup1" label="HERRAMIENTAS">
+
+          <button id="btnRestaurarEventos" label="Restaurar Macros" imageMso="RefreshAll" size="large" onAction="RestaurarEventosYEstados"/>
+
+          <button id="btnLOGGijon" label="LOG Gijón" image="IMAGEN_LOG" size="large" onAction="VisualizarLogGijon" getVisible="RibbonControlGetVisible"/>
+
+          <button id="btnLOGSoto" label="LOG Soto" image="IMAGEN_LOG" size="large" onAction="VisualizarLogSoto" getVisible="RibbonControlGetVisible"/>
+
+          <button id="btnLOGOviedo" label="LOG Oviedo" image="IMAGEN_LOG" size="large" onAction="VisualizarLogOviedo" getVisible="RibbonControlGetVisible"/>
+
+          <button id="ButtonBloqGijon" label="Bloqueos Gijón"     imageMso="SheetProtect"  size="large" onAction="MostrarBloqueosGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonBloqSoto" label="Bloqueos Soto"     imageMso="SheetProtect"  size="large" onAction="MostrarBloqueosSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonBloqOviedo" label="Bloqueos Oviedo"     imageMso="SheetProtect"  size="large" onAction="MostrarBloqueosOviedo" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonActivarSolapeGijon" label="Activar Solape Gijón"     imageMso="ShapesIntersect"  size="large" onAction="AceptarSolapeGijon_GrupoPorHabitacion" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonVisualizarSolapesGijon" label="Visualizar Solapes Gijón"     imageMso="ErrorChecking"  size="large" onAction="VerHojaSolapesAceptadosGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonActivarSolapeOviedo" label="Activar Solape Oviedo"     imageMso="ShapesIntersect"  size="large" onAction="AceptarSolapeOviedo_GrupoPorHabitacion" getVisible="RibbonControlGetVisible" />
+
+          <button id="ButtonVisualizarSolapeOviedo" label="Visualizar Solapes Oviedo"     imageMso="ErrorChecking"  size="large" onAction="VerHojaSolapesAceptadosOviedo" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnSeparacionGijon" label="Separación Gijón" imageMso="TableInsertRowsBelow" size="large" onAction="CambiarSeparacionGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnSeparacionSoto" label="Separación Soto" imageMso="TableInsertRowsBelow" size="large" onAction="CambiarSeparacionSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnSeparacionOviedo" label="Separación Oviedo" imageMso="TableInsertRowsBelow" size="large" onAction="CambiarSeparacionOviedo" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnOcultarHabGijon"    label="FILTRAR Hab. Gijón" imageMso="Filter"    size="large" onAction="GestionarHabitacionesGijon" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnOcultarAptSoto"    label="FILTRAR Apt. Soto" imageMso="Filter"    size="large" onAction="GestionarHabitacionesSoto" getVisible="RibbonControlGetVisible" />
+
+          <button id="BtnOcultarHabOviedo"    label="FILTRAR Hab. Oviedo" imageMso="Filter"    size="large" onAction="GestionarHabitacionesOviedo" getVisible="RibbonControlGetVisible" />
+
+          <button id="btnGestionarUsuarios" label="Gestión usuarios" image="GestionUsuarios" size="large" onAction="GestionarUsuarios"/>
+
+          
+
+          <button id="btnFestivos" label="Festivos" imageMso="AccessTableEvents" size="large" onAction="AsignarFestivo"/>
+
+          <button id="btnInicioCalendario" label="Fecha inicio calendario" imageMso="DateAndTimeInsert" size="large" onAction="EstablecerFechaInicio" screentip="Establecer nueva fecha de inicio"
+
+                        supertip="Define la fecha inicial del calendario|Actualiza todas las reservas"/>
+
+          <menu id="menuPlantillas" label="PLANTILLAS" imageMso="TableInsertDialog">
+
+            <button id="btnGijonPlantilla" label="GIJÓN" onAction="MostrarPlantillaGijon" getVisible="RibbonControlGetVisible"/>
+
+            <button id="btnSotoPlantilla" label="SOTO" onAction="MostrarPlantillaSoto" getVisible="RibbonControlGetVisible"/>
+
+            <button id="btnOviedoPlantilla" label="OVIEDO" onAction="MostrarPlantillaOviedo" getVisible="RibbonControlGetVisible"/>
+
+          </menu>
+
+          <menu id="menuContrasenas" label="CONTRASEÑAS" imageMso="TableInsertDialog">
+
+            <button id="btnGijonContraseñas" label="GIJÓN" onAction="MostrarContrasenasGijon" getVisible="RibbonControlGetVisible"/>
+
+            <button id="btnSotoContraseñas" label="SOTO" onAction="MostrarContrasenasSoto" getVisible="RibbonControlGetVisible"/>
+
+          </menu>
+
+          <menu id="MenuTarifas" label="TARIFAS · € ·" imageMso="TableInsertDialog">
+
+            <button id="BtnTarifaUnidad" label="Unidad-Estudiantes" onAction="MostrarTarifaUnidad" imageMso="ApplyCurrencyFormat"/>
+
+            <button id="BtnTarifaDescanso" label="Descanso" onAction="MostrarTarifaDescanso" imageMso="ApplyCurrencyFormat"/>
+
+          </menu>
+
+          <button id="BtnListaNegra"        label="Lista Negra"    onAction="MostrarListaNegra"    imageMso="TableDeleteRows"        size="large" />
+
+          <button id="btnImportarDatosGijonSoto" label="IMPORTAR datos Gijón-Soto-Oviedo" imageMso="CopyToFolder" size="large" onAction="ImportarDatosGijonSotoOviedo_Click"/>
+
+          <button id="btnBorradoParcialCeldas" label="Borrado PARCIAL filas" imageMso="Delete" size="large" onAction="BorradoParcialCeldas_Click"/>
+
+          <button id="btnBorradoCeldas" label="Borrado TOTAL tabla" imageMso="Delete" size="large" onAction="BorrarDatosAlojamientoOptimizado"/>
+
+        </group>
+
+        
+
+        <!-- GRUPO: ESTUDIANTES GIJÓN -->
+
+        <group id="GrupoEstudiantesGijon" label="ESTUDIANTES GIJÓN" getVisible="RibbonControlGetVisible">
+
+          <button id="BtnResidenciaEstudiantesGijon" label="Estudiantes Gijón" imageMso="ReadingMode" size="large"  onAction="ResidenciaEstudiantesGijon" />
+
+          <button id="BtnFacturaEstudianteGijon" label="Factura Estudiante Gijón" imageMso="Calculator" size="large"  onAction="MostrarFacturaEstudianteGijon" />
+
+          <button id="BtnLiquidacionMensualEstudiantes" label="Liquidación mensual Gijón" imageMso="CalculateSheet" size="large"  onAction="LiquidacionEstudiantesGijon" />
+
+        </group>
+
+      
+
+        <!-- GRUPO: GoToPrevious -->
+
+        <group id="grpDesplazamientoIzda" label="GoToPrevious">
+
+            <button id="BtnRetrocederBloque"
+
+                label="IZQUIERDA"
+
+                imageMso="OutlinePromote"
+
+                size="large"
+
+                onAction="DesplazarColumnasHaciaIzquierda"
+
+                screentip="Desplazar columnas a la izquierda" />
+
+        </group>
+
+
+
+        <!-- GRUPO: GoToNext -->
+
+        <group id="grpDesplazamientoDcha" label="GoToNext">
+
+            <button id="BtnAvanzarBloque"
+
+                label="DERECHA"
+
+                imageMso="OutlineDemote"
+
+                size="large"
+
+                onAction="DesplazarColumnasHaciaDerecha"
+
+                screentip="Desplazar columnas a la derecha" />
+
+        </group>
+
+        
+
+      </tab>
+
+      
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+      <!-- PESTAÑA 2: RGPD - GESTIÓN DE ARCHIVADO AUTOMÁTICO                       -->
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+      <tab id="tabRGPD" label="RGPD">
+
+        
+
+        <!-- GRUPO: GESTIÓN DE ARCHIVADO -->
+
+        <group id="grpGestionArchivado" label="Gestión de Borrado">
+
+          <button id="btnPanelRGPD" 
+
+                  label="Panel de Control" 
+
+                  size="large" 
+
+                  imageMso="Settings"
+
+                  onAction="RibbonAbrirPanelRGPD"
+
+                  screentip="Panel de Control RGPD"
+
+                  supertip="Configurar borrado automático/manual de datos personales según RGPD (Reglamento UE 2016/679). Cambie días de retención y active/desactive borrado automático." />
+
+        </group>
+
+        
+
+      </tab>
+
+    </tabs>
+
+  </ribbon>
+
+</customUI>
+

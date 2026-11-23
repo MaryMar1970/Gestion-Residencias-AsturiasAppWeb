@@ -1,0 +1,13 @@
+{
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "[vba]": {
+    "files.encoding": "windows1252",
+    "files.eol": "\r\n"
+  },
+  "files.associations": {
+    "*.bas": "vba",
+    "*.cls": "vba",
+    "*.frm": "vba"
+  }
+}

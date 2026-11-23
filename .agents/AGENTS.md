@@ -1,29 +1,64 @@
-# Reglas del Proyecto ResidenciaApp
+# AGENTS.md — ResidenciaApp
 
-- La ruta principal de este proyecto es `H:\ResidenciaApp`.
-- Todas las lecturas, modificaciones, búsquedas y ejecuciones de comandos se realizarán de forma predeterminada sobre la ruta `H:\ResidenciaApp`.
-- **Regla estricta de nombres**: Usar siempre el texto literal `GIJÓN` (o `GIJON` donde corresponda). Queda terminantemente prohibido el uso de `Chr(211)`, `ChrW(211)` o concatenaciones tipo `GIJ" & Chr(211) & "N`.
-- **Versión de Referencia y Archivo Activo de Trabajo**: A partir de ahora, se toma como versión de referencia oficial, y aquella sobre la que se proponen los cambios y se implementan los mismos, la que existe actualmente en `H:\ResidenciaApp\bdas-multiusuario\BDAS_Multiusuario.xlsm`.
-- **Réplica de Respaldo de Referencia (Hito 2026-10-22 19:45)**: Existe una réplica protegida en modo Solo Lectura en `H:\ResidenciaBD\Plantilla\VersionReferencia\BDAS_Multiusuario_VERSION_REFERENCIA.xlsm` y `Residencia_BE_VERSION_REFERENCIA.accdb` (que incorpora: Reposición Automática e Integral de Barras de Desplazamiento [Vertical y Horizontal], Encabezados y Cuadrículas en todas las Hojas Operativas en `Workbook_Open` y `Workbook_SheetActivate` de `ThisWorkbook.cls` con ocultación exclusiva durante el login en `INICIO`, Saneamiento Ortográfico de `BotonIzdaDchaHojasRESIDENCIAS` para navegación por columnas [GoToPrevious/GoToNext], Carátula Pantalla Completa de la Casa Cuartel Antigua en INICIO [`AjustarCaratulaInicio` en `ThisWorkbook.cls` con deformación leve controlada para cubrir 100% de la ventana útil sin recortes y bloqueo de recorrido de barras con `ScrollArea = "A1:A1"`], Tarjeta de Login Estilizada y Compacta reducida en ~30% con campos reducidos en 20% y botones ENTRAR/SALIR elevados y anclados herméticamente en la base empedrada entre los dos Guardias Civiles en `frmLogin` sin recortes inferiores, Erradicación Total del Error de Sintaxis y Compilación por Continuaciones Rotas ` _` y Saltos Corruptos `\r\r\n` en `ThisWorkbook.cls` y `EvitarDuplicidadSolicitudesGyS.bas`, Validación Activa en Excel COM con 0 errores de compilación [`VBE.CommandBars.FindControl(1, 578).Enabled == False`], Auto-Fit Dinámico Proporcional de la Carátula de la Casa Cuartel en `Workbook_Open` de `ThisWorkbook`, Erradicación Total del Reloj de Arena y Retardo en la Columna T [DTO. FAM. NUM.] de Hoja2 [RESIDENCIA GIJÓN] al suprimir la comprobación redundante y prematura en `Worksheet_SelectionChange`, Suavizado y confirmación interactiva de salida segura en `Workbook_BeforeClose` de `ThisWorkbook`, Protocolo Estricto de Codificación y Cero Mojibake en VBA con Control de Puerta Pre-Entrega, Saneamiento Ortográfico Integral de acentos y caracteres corruptos en `EvitarDuplicidadSolicitudesGyS` [sustituyendo flechas corruptas `âž”` por `->`], Tarifas Dinámicas en Facturas PAX de Gijón y Oviedo vinculadas a TARIFAS UNIDAD con cuadre contable exacto al céntimo, Preservación Total e Incondicional de los 171 componentes con blindaje de variables globales [UltimoOrdenLiberado, etc.] en hojas operativas, Saneamiento Integral de Auditoría en Hojas LOG con parseo estricto por columnas [Usuario, Fecha/Hora, Nº Orden, Columna, Valor anterior, Valor nuevo], Sincronización Relacional de los 500 registros más recientes de Access vía subconsulta descendente sin truncamiento histórico, Filtrado de LOGIN exclusivo por residencia sin contaminación cruzada, Protección contra Inyección de Fórmulas [precediendo con apóstrofo valores de auditoría que inician con '=' para neutralizar error 1004], Erradicación del Error 50290 en Worksheet_Calculate de Hoja11 [SOBRE GIJÓN] al editar celdas o listas de selección, Sistema de Sesión Persistente y Auto-reparable en Nombres Definidos Ocultos de Excel resistente a la volatilidad de memoria VBA y reseteos, Blindaje Permanente de la Barra de Estado con preservación de leyenda de conexión sin interferencias de alertas de accesibilidad, Saneamiento Global de Mojibake en los 171 componentes y 127 módulos con 0 errores de compilación, Normalización Inmune de Búsqueda 7-bit ASCII, Gobernanza Técnica en 5 Capas, Carátula Casa Cuartel a pantalla completa, Persistencia Inmediata ADODB UPSERT, Asignación de 'SIN TURNO' en Soto y Eliminación Total de Hoja Lista Negra). Si en futuras modificaciones se presentan fallos mayores y se solicita restaurar, se ejecutará el script `bdas-multiusuario\scripts\Restaurar-Version-Referencia.ps1`.
-- **Protocolo de Recuperación Instantánea (Golden Master)**: Existe una réplica protegida en modo Solo Lectura en `H:\ResidenciaBD\Plantilla\GoldenMaster\BDAS_Multiusuario_GOLDEN_MASTER.xlsm` y un commit etiquetado en git (`GOLDEN_MASTER_TEXTOS_OK`). Si en cualquier momento se introducen errores en el archivo en uso o en el maestro, se restaurará ejecutando el script `bdas-multiusuario\scripts\Restaurar-Golden-Master.ps1`, el cual restablece de inmediato la versión limpia sin errores ortográficos ni de acentuación.
-- **Inmutabilidad del Golden Master**: La réplica Golden Master NUNCA se modificará ni sobrescribirá, salvo petición EXPRESA e inequívoca del usuario indicándolo textualmente, quedando reservada para posibles errores de inicio del proyecto.
-- **Copias de Seguridad Incrementales Diarias**: En cada sesión o día de trabajo donde se realicen modificaciones sobre el libro Excel o la base de datos, se generará una copia de respaldo con fecha y hora (`BACKUP_AAAA-MM-DD_HHMM`) antes y después de los cambios, asegurando un historial completo de versiones de fácil reversión.
-- **Borrado Exclusivo de Base de Datos (RGPD)**: El borrado físico y definitivo de datos personales de la base de datos Access (`Residencia_BE.accdb`, tablas `Ordenes` y `Ordenes_Historico`) queda reservado DE MANERA EXCLUSIVA a la pestaña `RGPD-Panel de Control/Gestión de Borrado`. Ninguna acción ordinaria en las hojas de residencia (como borrar celdas o pulsar Supr en Nº de Orden) destruirá datos de personas en la base de datos; dichas acciones únicamente archivarán o retirarán la visualización de la orden en la vista activa.
-- **Protocolo Estricto de Codificación y Cero Mojibake en VBA**:
-  1. **Codificación Nativa Obligatoria (Windows-1252)**: Queda terminantemente prohibido inyectar código en módulos VBA desde archivos o scripts temporales guardados en UTF-8 sin conversión explícita previa a Windows-1252 (ANSI).
-  2. **Prohibición de Scripts VBScript para Literales en Español**: Cualquier manipulación automatizada de cadenas con tildes, signos `¿` o `¡` debe realizarse exclusivamente mediante Python especificando `encoding='windows-1252'` o utilizando secuencias de escape numéricas (`Chr(x)` / `ChrW(x)`).
-  3. **Control de Puerta Obligatorio Pre-Entrega**: Antes de dar por finalizada cualquier petición que toque código VBA, el asistente está OBLIGADO a ejecutar un escaneo automatizado contra patrones de mojibake (`Ã`, `Â`, `ǭ`, `?` en palabras) en los componentes modificados. Si detecta un solo carácter corrupto, deberá subsanarlo de inmediato antes de responder al usuario.
+## Alcance del repositorio
 
-## Recuperación y verificación del contexto técnico del proyecto
+- `bdas-multiusuario/` contiene la aplicación operativa Excel/VBA y sus exportaciones.
+- El backend Access de producción está fuera del repositorio: `H:\ResidenciaBD\Residencia_BE.accdb`.
+- `webapp/` es un prototipo separado .NET/React. No es la autoridad funcional de la aplicación Excel/Access.
 
-Antes de analizar una incidencia, debes recuperar y verificar el contexto técnico necesario a partir de los archivos, la documentación, los índices y los registros existentes del proyecto.
+## Lectura obligatoria antes de intervenir
 
-1. **Versión de referencia:** identifica, cuando la información esté disponible, la versión de Git y el estado del código sobre el que se solicita trabajar. No presupongas que los archivos o fragmentos aportados corresponden a la última versión.
-2. **Fuentes de información:** consulta la documentación técnica, el inventario de componentes y el índice de dependencias existentes cuando sean pertinentes para la incidencia. El código fuente vigente será la referencia para comprobar nombres, implementaciones y relaciones reales.
-3. **Identificación exacta:** verifica los nombres y las referencias de los procedimientos, funciones, variables, formularios, controles, hojas, tablas, columnas y rangos implicados. No los reconstruyas de memoria ni a partir de documentación desactualizada.
-4. **Contexto relevante:** recupera únicamente los componentes y antecedentes necesarios para comprender la incidencia, ampliando la inspección cuando las dependencias identificadas lo requieran.
-5. **Información no disponible:** si no puedes acceder a los archivos, verificar la versión o confirmar una dependencia crítica, indícalo expresamente y solicita únicamente la información imprescindible. No presentes como comprobados los datos que no hayas podido verificar.
-6. **Continuidad entre sesiones:** no presupongas que recuerdas íntegramente el código, las decisiones o las incidencias de conversaciones anteriores. Recupera la información necesaria de las fuentes documentales y técnicas disponibles.
-7. **Respeto del procedimiento vigente:** esta recuperación y consulta de información no autoriza a modificar archivos, actualizar documentación, alterar el índice de dependencias ni ejecutar operaciones sobre Git, los respaldos o el Golden Master. Cualquier modificación de estos elementos seguirá sujeta a las autorizaciones y restricciones establecidas en las reglas permanentes.
+1. `docs/INDICE_DOCUMENTAL.md`.
+2. `docs/ResidenciaApp_Especificacion_Arquitectonica_v1_0_rev1.md`.
+3. `docs/RESIDENCIAAPP_ADENDA_PREFLIGHT_v1_0.md` y `docs/RESIDENCIAAPP_INFORME_PREFLIGHT_v1_0.md` cuando afecte a datos, esquema o puertas.
+4. `docs/PROTOCOLO_CAMBIOS.md`.
+5. Evidencias 1H y 1Q–1X que afecten al flujo concreto.
 
-La recuperación y verificación del contexto es un requisito previo al diagnóstico, pero no sustituye el análisis de dependencias, la entrega de cambios exactos ni el procedimiento de validación establecidos en los apartados siguientes.
+## Autoridad y precedencia documental
+
+- La especificación arquitectónica v1.0 rev1 es la referencia principal para la arquitectura objetivo, decisiones y contratos de Excel/Access.
+- La adenda de Preflight es vinculante para sus rectificaciones concretas: dominio de `TAG`/`R` 1–9999, identificación del backend consultado y límites de la inspección.
+- Los informes de auditoría son evidencias de inspecciones fechadas; no prueban por sí solos que el código actual implemente el diseño.
+- `RESIDENCIAAPP_DOCUMENTO_MAESTRO_v0.2.7`, el diseño v0.2, los mapas y diccionarios históricos son antecedentes, no autoridades superiores a v1.0 rev1.
+- Separar siempre arquitectura objetivo, código realmente inspeccionado y comportamiento probado. No inferir dependencias por nombres.
+
+## Invariantes arquitectónicos que no deben quebrantarse
+
+- `IdInstanciaOrden` es la identidad permanente del expediente (GUID); no confundirlo con `Ordenes.Id` autonumérico ni con `IdOperacion`.
+- La identidad técnica se dirige por GUID; la ubicación arquitectónica elegida es AJ, oculta. Verificar el libro y los llamadores reales antes de implantarla.
+- Alta A → B: A inicia borrador; B determina `AnioOrden = Year(FechaPeticion)`; Access confirma la reserva transaccional de `(Residencia, AnioOrden, NumOrden)`. No actualizar Access como expediente confirmado antes de completar la confirmación.
+- Facturación: `AnioFactura = Year(FechaSalida)`. Un expediente corresponde a una factura física; no hay facturas agrupadas. `RegistroNumerosFactura` mantiene el consumo único `(Residencia, AnioFactura, NumFactura)`; un número consumido no se libera.
+- Histórico y borrado se dirigen por `IdInstanciaOrden`; el archivo debe ser transaccional y respetar el umbral de 17 campos y los nueve obligatorios definidos en la especificación.
+- Los cinco campos funcionales no admiten backfill. `REPARTIR COSTE`: `dbText(2)`, `NO`/`SI`. `TAG` y `R`: `dbInteger`, enteros estrictos 1–9999; cero, negativos, decimales y texto son inválidos.
+- La sincronización offline requiere WAL local durable, idempotencia y los contratos de concurrencia/identidad definidos en v1.0 rev1. No sustituirlos por heurísticas locales.
+
+## Seguridad y límites de autorización
+
+- No modificar el libro Excel, módulos VBA, backend Access, esquema ni datos de producción sin autorización expresa para ese cambio concreto.
+- No ejecutar DDL/DML ni repetir consultas de Preflight sobre producción. La adenda aclara que la inspección documentada apuntó al backend de producción en modo de solo lectura; otras estaciones remotas no fueron inspeccionadas.
+- No confundir el cierre del Paso 1 de preparación Gate 2 con la aprobación completa de Gate 2 ni con autorización de despliegue.
+- La Fase 2A del Ledger no está aprobada. El parche WAL y el código modificado en Gate 2 son exclusivamente de laboratorio: no aplicarlos a producción.
+- La carpeta `LABORATORIO_GATE2_20261120_1558/` es local y excluida de Git. `BASELINE/` es inmutable; nunca alterar sus ACL ni sobrescribir sus archivos.
+- Preservar la etiqueta `GOLDEN_MASTER_2026-10-24`, la rama `respaldo/main-antes-sincronizacion_20261123_201324` y el respaldo externo `H:\ResidenciaApp_RESPALDO_PRE_SYNC_20261123_201324`.
+
+## Entorno y reglas de código
+
+- Compatibilidad obligatoria: Excel 2016 en español, ACE/DAO de 32 bits.
+- VBA: Windows-1252 nativo y CRLF; no introducir UTF-8/BOM en módulos VBA ni mojibake. No usar sustituciones como `Chr(211)` para ocultar errores de codificación.
+- No generar texto español mediante VBScript. Mantener comentarios y mensajes en español correctamente codificados.
+- Verificar nombres reales de procedimientos, eventos, formularios, controles, hojas, tablas, columnas y rangos antes de cambiar código.
+- No introducir formularios de progreso ni cambios de interfaz ajenos al alcance autorizado.
+
+## Método de trabajo
+
+- En análisis solamente: inspeccionar y dictaminar; no editar ni probar el libro.
+- En implementación: ChatGPT define arquitectura, algoritmo, contratos y criterios de aceptación; Antigravity ejecuta únicamente el paquete autorizado; el usuario importa, compila y prueba en Excel 2016 por etapas.
+- Agrupar cambios por dependencias en paquetes técnicos autosuficientes. Hacer copia previa, trabajar en laboratorio, aplicar cambios quirúrgicos y verificar el contexto exacto antes de sustituir código.
+- Si falta un módulo, llamador o dependencia necesaria, solicitarlo; no inventar ni completar por conjetura.
+- Exigir `git diff`, hashes, inventario de archivos, evidencia de pruebas y registro cronológico. Fail-fast ante discrepancias.
+- Nunca usar un stash como sustituto de una depuración real. Antes de retirar un stash, clasificar y preservar o descartar conscientemente cada contenido.
+- No declarar compilación, pruebas o validaciones que no se hayan ejecutado.
+
+## Discrepancia de versión que sigue abierta
+
+El XLSM de `main` es el snapshot del 22/10/2026 (SHA-256 `9114EA53C4DBA8EC2D88166B27F356C67CD75468990B61471801C6DB2B5626B9`). El candidato del 09/11/2026 (SHA-256 `B9117659842369515FFAF714AB63B8BB3B1927CD2F7FB6D589882AC7F6E419D7`) y sus exportaciones se preservan en el respaldo externo. No promover ni sustituirlos automáticamente: requieren una decisión y autorización separadas.

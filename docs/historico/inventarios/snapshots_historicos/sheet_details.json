@@ -1,0 +1,801 @@
+{
+  "xlsm_md5": "9E9685D7F5F8E33B8A139EE4929AE543",
+  "mdb_md5": "740739C2D02DD8D98F17C4DD75F09AD2",
+  "sheets": [
+    {
+      "name": "INICIO",
+      "sheetId": "85",
+      "state": "hidden",
+      "target": "worksheets/sheet1.xml",
+      "codeName": "Hoja43"
+    },
+    {
+      "name": "RESIDENCIA GIJÓN",
+      "sheetId": "2",
+      "state": "visible",
+      "target": "worksheets/sheet2.xml",
+      "codeName": "Hoja2"
+    },
+    {
+      "name": "SOLAPES_ACEPTADOS_GIJON",
+      "sheetId": "99",
+      "state": "veryHidden",
+      "target": "worksheets/sheet3.xml",
+      "codeName": "Hoja44"
+    },
+    {
+      "name": "Calendario GIJÓN",
+      "sheetId": "38",
+      "state": "visible",
+      "target": "worksheets/sheet4.xml",
+      "codeName": "Hoja1"
+    },
+    {
+      "name": "RESUMEN GIJÓN",
+      "sheetId": "7",
+      "state": "visible",
+      "target": "worksheets/sheet5.xml",
+      "codeName": "Hoja7"
+    },
+    {
+      "name": "CONFIG_PWD",
+      "sheetId": "87",
+      "state": "veryHidden",
+      "target": "worksheets/sheet6.xml",
+      "codeName": "Hoja45"
+    },
+    {
+      "name": "CONFIG",
+      "sheetId": "84",
+      "state": "veryHidden",
+      "target": "worksheets/sheet7.xml",
+      "codeName": "Hoja42"
+    },
+    {
+      "name": "USUARIOS",
+      "sheetId": "79",
+      "state": "veryHidden",
+      "target": "worksheets/sheet8.xml",
+      "codeName": "Hoja6"
+    },
+    {
+      "name": "PLANTILLAS GIJÓN",
+      "sheetId": "74",
+      "state": "veryHidden",
+      "target": "worksheets/sheet9.xml",
+      "codeName": "Hoja12"
+    },
+    {
+      "name": "PLANTILLAS SOTO",
+      "sheetId": "76",
+      "state": "veryHidden",
+      "target": "worksheets/sheet10.xml",
+      "codeName": "Hoja33"
+    },
+    {
+      "name": "PLANTILLAS OVIEDO",
+      "sheetId": "75",
+      "state": "veryHidden",
+      "target": "worksheets/sheet11.xml",
+      "codeName": "Hoja16"
+    },
+    {
+      "name": "SOBRE GIJÓN",
+      "sheetId": "20",
+      "state": "veryHidden",
+      "target": "worksheets/sheet12.xml",
+      "codeName": "Hoja11"
+    },
+    {
+      "name": "FACTURA GIJÓN",
+      "sheetId": "9",
+      "state": "hidden",
+      "target": "worksheets/sheet13.xml",
+      "codeName": "Hoja4"
+    },
+    {
+      "name": "Habitaciones Bloqueadas GIJÓN",
+      "sheetId": "72",
+      "state": "hidden",
+      "target": "worksheets/sheet14.xml",
+      "codeName": "Hoja37"
+    },
+    {
+      "name": "FACTURACIÓN GIJÓN",
+      "sheetId": "37",
+      "state": "hidden",
+      "target": "worksheets/sheet15.xml",
+      "codeName": "Hoja18"
+    },
+    {
+      "name": "CONTRASEÑAS GIJÓN",
+      "sheetId": "45",
+      "state": "veryHidden",
+      "target": "worksheets/sheet16.xml",
+      "codeName": "Hoja27"
+    },
+    {
+      "name": "LOG_GIJÓN",
+      "sheetId": "80",
+      "state": "hidden",
+      "target": "worksheets/sheet17.xml",
+      "codeName": "Hoja32"
+    },
+    {
+      "name": "RESIDENCIA ESTUDIANTES",
+      "sheetId": "44",
+      "state": "veryHidden",
+      "target": "worksheets/sheet18.xml",
+      "codeName": "Hoja8"
+    },
+    {
+      "name": "FACTURA R. ESTUDIANTES",
+      "sheetId": "12",
+      "state": "veryHidden",
+      "target": "worksheets/sheet19.xml",
+      "codeName": "Hoja5"
+    },
+    {
+      "name": "LIQUIDACION R. ESTUDIANTES",
+      "sheetId": "15",
+      "state": "veryHidden",
+      "target": "worksheets/sheet20.xml",
+      "codeName": "Hoja10"
+    },
+    {
+      "name": "Lavandería Gijón",
+      "sheetId": "94",
+      "state": "veryHidden",
+      "target": "worksheets/sheet21.xml",
+      "codeName": "Hoja49"
+    },
+    {
+      "name": "HISTORICO_LAVANDERIA_GIJON",
+      "sheetId": "96",
+      "state": "veryHidden",
+      "target": "worksheets/sheet22.xml",
+      "codeName": "Hoja50"
+    },
+    {
+      "name": "RESIDENCIA SOTO",
+      "sheetId": "34",
+      "state": "visible",
+      "target": "worksheets/sheet23.xml",
+      "codeName": "Hoja20"
+    },
+    {
+      "name": "HISTORICO_LAVANDERIA_SOTO",
+      "sheetId": "91",
+      "state": "veryHidden",
+      "target": "worksheets/sheet24.xml",
+      "codeName": "Hoja19"
+    },
+    {
+      "name": "FACTURA SOTO",
+      "sheetId": "48",
+      "state": "hidden",
+      "target": "worksheets/sheet25.xml",
+      "codeName": "Hoja29"
+    },
+    {
+      "name": "Apartamentos Bloqueados SOTO",
+      "sheetId": "70",
+      "state": "veryHidden",
+      "target": "worksheets/sheet26.xml",
+      "codeName": "Hoja35"
+    },
+    {
+      "name": "CONTRASEÑAS SOTO",
+      "sheetId": "73",
+      "state": "veryHidden",
+      "target": "worksheets/sheet27.xml",
+      "codeName": "Hoja38"
+    },
+    {
+      "name": "FACTURACIÓN SOTO",
+      "sheetId": "50",
+      "state": "hidden",
+      "target": "worksheets/sheet28.xml",
+      "codeName": "Hoja30"
+    },
+    {
+      "name": "Turnos-Precios",
+      "sheetId": "46",
+      "state": "hidden",
+      "target": "worksheets/sheet29.xml",
+      "codeName": "Hoja28"
+    },
+    {
+      "name": "Calendario SOTO",
+      "sheetId": "39",
+      "state": "visible",
+      "target": "worksheets/sheet30.xml",
+      "codeName": "Hoja22"
+    },
+    {
+      "name": "RESUMEN SOTO",
+      "sheetId": "77",
+      "state": "visible",
+      "target": "worksheets/sheet31.xml",
+      "codeName": "Hoja9"
+    },
+    {
+      "name": "LOG_SOTO",
+      "sheetId": "81",
+      "state": "hidden",
+      "target": "worksheets/sheet32.xml",
+      "codeName": "Hoja39"
+    },
+    {
+      "name": "Lavandería Soto",
+      "sheetId": "93",
+      "state": "veryHidden",
+      "target": "worksheets/sheet33.xml",
+      "codeName": "Hoja21"
+    },
+    {
+      "name": "RESIDENCIA OVIEDO",
+      "sheetId": "41",
+      "state": "visible",
+      "target": "worksheets/sheet34.xml",
+      "codeName": "Hoja24"
+    },
+    {
+      "name": "Calendario OVIEDO",
+      "sheetId": "40",
+      "state": "visible",
+      "target": "worksheets/sheet35.xml",
+      "codeName": "Hoja23"
+    },
+    {
+      "name": "SOLAPES_ACEPTADOS_OVIEDO",
+      "sheetId": "101",
+      "state": "veryHidden",
+      "target": "worksheets/sheet36.xml",
+      "codeName": "Hoja53"
+    },
+    {
+      "name": "RESUMEN OVIEDO",
+      "sheetId": "78",
+      "state": "visible",
+      "target": "worksheets/sheet37.xml",
+      "codeName": "Hoja17"
+    },
+    {
+      "name": "Lavandería Oviedo",
+      "sheetId": "97",
+      "state": "veryHidden",
+      "target": "worksheets/sheet38.xml",
+      "codeName": "Hoja51"
+    },
+    {
+      "name": "HISTORICO_LAVANDERIA_OVIEDO",
+      "sheetId": "98",
+      "state": "veryHidden",
+      "target": "worksheets/sheet39.xml",
+      "codeName": "Hoja52"
+    },
+    {
+      "name": "SOBRE OVIEDO",
+      "sheetId": "102",
+      "state": "veryHidden",
+      "target": "worksheets/sheet40.xml",
+      "codeName": "Hoja54"
+    },
+    {
+      "name": "Festivos",
+      "sheetId": "83",
+      "state": "hidden",
+      "target": "worksheets/sheet41.xml",
+      "codeName": "Hoja41"
+    },
+    {
+      "name": "LOG_OVIEDO",
+      "sheetId": "82",
+      "state": "hidden",
+      "target": "worksheets/sheet42.xml",
+      "codeName": "Hoja40"
+    },
+    {
+      "name": "FACTURA OVIEDO",
+      "sheetId": "52",
+      "state": "hidden",
+      "target": "worksheets/sheet43.xml",
+      "codeName": "Hoja31"
+    },
+    {
+      "name": "Habitaciones Bloqueadas OVIEDO",
+      "sheetId": "71",
+      "state": "veryHidden",
+      "target": "worksheets/sheet44.xml",
+      "codeName": "Hoja36"
+    },
+    {
+      "name": "FACTURACIÓN OVIEDO",
+      "sheetId": "42",
+      "state": "hidden",
+      "target": "worksheets/sheet45.xml",
+      "codeName": "Hoja25"
+    },
+    {
+      "name": "TARIFAS UNIDAD",
+      "sheetId": "69",
+      "state": "hidden",
+      "target": "worksheets/sheet46.xml",
+      "codeName": "Hoja34"
+    },
+    {
+      "name": "LISTA NEGRA",
+      "sheetId": "19",
+      "state": "veryHidden",
+      "target": "worksheets/sheet47.xml",
+      "codeName": "Hoja3"
+    },
+    {
+      "name": "Evaluación",
+      "sheetId": "27",
+      "state": "veryHidden",
+      "target": "worksheets/sheet48.xml",
+      "codeName": "Hoja15"
+    },
+    {
+      "name": "Auxiliar",
+      "sheetId": "30",
+      "state": "veryHidden",
+      "target": "worksheets/sheet49.xml",
+      "codeName": "Hoja14"
+    }
+  ],
+  "defined_names": [
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'FACTURACIÓN GIJÓN'!$A$3:$I$3",
+      "localSheetId": "14"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'FACTURACIÓN OVIEDO'!$A$3:$I$3",
+      "localSheetId": "44"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'FACTURACIÓN SOTO'!$A$3:$I$3",
+      "localSheetId": "27"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "HISTORICO_LAVANDERIA_GIJON!$A$1:$X$1",
+      "localSheetId": "21"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "HISTORICO_LAVANDERIA_SOTO!$A$1:$U$1",
+      "localSheetId": "23"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'LIQUIDACION R. ESTUDIANTES'!$A$9:$G$20",
+      "localSheetId": "19"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "LOG_GIJÓN!$A$1:$F$1",
+      "localSheetId": "16"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "LOG_SOTO!$A$1:$F$1",
+      "localSheetId": "31"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'RESIDENCIA GIJÓN'!$A$1:$AB$1",
+      "localSheetId": "1"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'RESIDENCIA SOTO'!$A$1:$AB$1",
+      "localSheetId": "22"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'RESUMEN GIJÓN'!$A$1:$O$285",
+      "localSheetId": "4"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'RESUMEN OVIEDO'!$A$1:$O$1801",
+      "localSheetId": "36"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "ref": "'RESUMEN SOTO'!$A$1:$N$33",
+      "localSheetId": "30"
+    },
+    {
+      "name": "ApartamentosDisponibles",
+      "ref": "\"Ap.2, Ap.4, Ap.5, Ap.6, Ap.7, Ap.8, Ap.9, Ap.10, Ap.12\"",
+      "localSheetId": "39"
+    },
+    {
+      "name": "ApartamentosDisponibles",
+      "ref": "\"Ap.5, Ap.6, Ap.9, Ap.12\"",
+      "localSheetId": null
+    },
+    {
+      "name": "_xlnm.Print_Area",
+      "ref": "'FACTURA GIJÓN'!$A$1:$V$42",
+      "localSheetId": "12"
+    },
+    {
+      "name": "_xlnm.Print_Area",
+      "ref": "'FACTURA OVIEDO'!$A$1:$V$42",
+      "localSheetId": "42"
+    },
+    {
+      "name": "_xlnm.Print_Area",
+      "ref": "'FACTURA R. ESTUDIANTES'!$A$2:$U$39",
+      "localSheetId": "18"
+    },
+    {
+      "name": "_xlnm.Print_Area",
+      "ref": "'FACTURA SOTO'!$A$1:$V$42",
+      "localSheetId": "24"
+    },
+    {
+      "name": "_xlnm.Print_Area",
+      "ref": "'LIQUIDACION R. ESTUDIANTES'!$A$1:$F$24",
+      "localSheetId": "19"
+    },
+    {
+      "name": "_xlnm.Print_Area",
+      "ref": "'SOBRE GIJÓN'!$A$1:$G$24",
+      "localSheetId": "11"
+    },
+    {
+      "name": "_xlnm.Print_Area",
+      "ref": "'SOBRE OVIEDO'!$A$1:$F$16",
+      "localSheetId": "39"
+    },
+    {
+      "name": "CodigosParaPoblacion",
+      "ref": "OFFSET(#REF!, MATCH(#REF!,#REF!, 0)-1, 0, COUNTIF(#REF!,#REF!))",
+      "localSheetId": "22"
+    },
+    {
+      "name": "CodigosParaPoblacion",
+      "ref": "OFFSET(#REF!, MATCH(#REF!,#REF!, 0)-1, 0, COUNTIF(#REF!,#REF!))",
+      "localSheetId": "45"
+    },
+    {
+      "name": "CodigosParaPoblacion",
+      "ref": "OFFSET(#REF!, MATCH(#REF!,#REF!, 0)-1, 0, COUNTIF(#REF!,#REF!))",
+      "localSheetId": null
+    },
+    {
+      "name": "DIAS_DISFRUTE",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "DIAS_DISFRUTE",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "DIAS_DISFRUTE",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "DIAS_DISFRUTE",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "ESTUDIANTES",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "ESTUDIANTES",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "FACTUAS",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "FACTUAS",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "FACTUAS",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "FACTUAS",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "FACTURACION_OFICIALES",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "FACTURACION_OFICIALES",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "FACTURACION_OFICIALES",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "FACTURACION_OFICIALES",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "FACTURACION_PLAZA",
+      "ref": "'RESIDENCIA OVIEDO'!$E:$AH",
+      "localSheetId": "33"
+    },
+    {
+      "name": "FACTURACION_PLAZA",
+      "ref": "'RESIDENCIA SOTO'!$E:$AD",
+      "localSheetId": "22"
+    },
+    {
+      "name": "FACTURACION_PLAZA",
+      "ref": "'RESIDENCIA GIJÓN'!$E:$AD",
+      "localSheetId": null
+    },
+    {
+      "name": "FACTURAS",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "FACTURAS",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "FACTURAS",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "FACTURAS",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "FECHA_ENTRADA",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "FECHA_ENTRADA",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "FECHA_ENTRADA",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "FECHA_ENTRADA",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "FECHA_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "FECHA_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "FECHA_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "FECHA_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "FECHA_SALIDA",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "FECHA_SALIDA",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "FECHA_SALIDA",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "FECHA_SALIDA",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "FestivosLista",
+      "ref": "Festivos!$A$20",
+      "localSheetId": null
+    },
+    {
+      "name": "HabitacionesDisponibles",
+      "ref": "\"1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15\"",
+      "localSheetId": null
+    },
+    {
+      "name": "HabitacionesDisponiblesGIJON",
+      "ref": "\"1, 2, 3, 4, 5, 6, 7, Of.1, Of.2, Of.3, Est.1, Est.2, Est.3\"",
+      "localSheetId": "39"
+    },
+    {
+      "name": "HabitacionesDisponiblesGIJON",
+      "ref": "\"1, 3, 5, 6, 7\"",
+      "localSheetId": null
+    },
+    {
+      "name": "HabitacionesDisponiblesOVIEDO",
+      "ref": "\"4, 7, 8, 9, 13, 14\"",
+      "localSheetId": null
+    },
+    {
+      "name": "IMPORTE_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "IMPORTE_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "IMPORTE_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "IMPORTE_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "Nº_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "Nº_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "Nº_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "Nº_FACTURA",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "NOMBRE_Y_APELLIDOS",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "NOMBRE_Y_APELLIDOS",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "NOMBRE_Y_APELLIDOS",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "NOMBRE_Y_APELLIDOS",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "NUM_ORDEN",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "NUM_ORDEN",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "NUM_ORDEN",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "NUM_ORDEN",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "ORDEN",
+      "ref": "\" \"",
+      "localSheetId": null
+    },
+    {
+      "name": "ORDEN_PLAZA",
+      "ref": "#REF!",
+      "localSheetId": "47"
+    },
+    {
+      "name": "ORDEN_PLAZA",
+      "ref": "#REF!",
+      "localSheetId": "22"
+    },
+    {
+      "name": "ORDEN_PLAZA",
+      "ref": "#REF!",
+      "localSheetId": "45"
+    },
+    {
+      "name": "ORDEN_PLAZA",
+      "ref": "#REF!",
+      "localSheetId": null
+    },
+    {
+      "name": "PLAZA1",
+      "ref": "'RESIDENCIA OVIEDO'!$E:$W",
+      "localSheetId": "33"
+    },
+    {
+      "name": "PLAZA1",
+      "ref": "'RESIDENCIA SOTO'!$E:$V",
+      "localSheetId": "22"
+    },
+    {
+      "name": "PLAZA1",
+      "ref": "'RESIDENCIA GIJÓN'!$E:$V",
+      "localSheetId": null
+    },
+    {
+      "name": "PoblacionesParaCodigo",
+      "ref": "OFFSET(#REF!, MATCH(#REF!,#REF!, 0)-1, 0, COUNTIF(#REF!,#REF!))",
+      "localSheetId": "22"
+    },
+    {
+      "name": "PoblacionesParaCodigo",
+      "ref": "OFFSET(#REF!, MATCH(#REF!,#REF!, 0)-1, 0, COUNTIF(#REF!,#REF!))",
+      "localSheetId": "45"
+    },
+    {
+      "name": "PoblacionesParaCodigo",
+      "ref": "OFFSET(#REF!, MATCH(#REF!,#REF!, 0)-1, 0, COUNTIF(#REF!,#REF!))",
+      "localSheetId": null
+    }
+  ]
+}
