@@ -114,4 +114,6 @@ No se modificó producción. Preflight fue una inspección documentada de solo l
 
 ## 9. Cierre Git
 
-Pendiente de completar después de la restauración del laboratorio: retirar `stash@{0}` tras comprobar que los cuatro WAL están recuperados, crear el commit final de cierre y sincronizar `main` con `origin/main`. El respaldo externo, la rama de seguridad y Golden Master permanecen preservados.
+- Commit documental inicial: `1d7fb17` (`chore: consolidate architecture docs and repository baseline`), publicado en `origin/main`.
+- Verificación Git posterior: `HEAD = origin/main = 1d7fb17`; divergencia `0 0`. No hay cambios rastreados pendientes; `_AUDIT_STAGING/` permanece como único directorio local no rastreado porque contiene los cuatro WAL que aún deben recuperarse.
+- Pendiente tras la restauración del laboratorio: copiar y verificar los cuatro WAL, comprobar los 155 archivos, eliminar `_AUDIT_STAGING/`, retirar `stash@{0}` y publicar el commit final de cierre. El respaldo externo, la rama de seguridad y Golden Master permanecen preservados.
